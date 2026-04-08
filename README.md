@@ -34,6 +34,29 @@ Both drivers publish NUMA node attributes, making them compatible with the topol
 
 **Maturity caveat:** `dra-driver-cpu` is a kubernetes-sigs project and is mature. `dra-driver-memory` is on a personal repo and still in early development — memory NUMA pinning may need to rely on the existing kubelet Memory Manager in the near term.
 
+## Relationship to the NUMA Resources Operator
+
+The [NUMA Resources Operator](https://github.com/openshift-kni/numaresources-operator) is the existing OpenShift solution for NUMA-aware scheduling. It solves a similar problem but for the **device plugin resource model**, not DRA:
+
+| | NUMA Resources Operator | DRA Topology Coordinator |
+|---|---|---|
+| Resource model | Device plugins + `resources.requests` | DRA ResourceSlices + ResourceClaims |
+| Topology data | RTE daemon scrapes kubelet PodResource API → NRT CRD | Drivers publish topology in ResourceSlices directly |
+| Scheduling | Secondary scheduler with NodeResourceTopologyMatch plugin | Mutating webhook + existing DRA allocator |
+| Soft affinity | Scoring strategies (MostAllocated, Balanced, etc.) | `enforcement: preferred` on topology rules |
+| DRA awareness | None | Native |
+
+### Transition path
+
+**Fully on DRA (all resource types via DRA drivers):** The NUMA Resources Operator is no longer needed. Its three components become redundant:
+- **RTE** — DRA drivers publish topology info directly in ResourceSlices
+- **NRT CRD** — ResourceSlices already contain per-device NUMA attributes
+- **Secondary scheduler** — the coordinator's webhook injects `matchAttribute` constraints, and the existing DRA allocator handles the rest
+
+**Mixed clusters (some DRA, some device plugins):** Both systems coexist. Device plugin workloads use the NUMA Resources Operator; DRA workloads use the topology coordinator. They don't conflict — they operate on different resource models — but it's two topology systems to maintain.
+
+**What drives the transition:** GPU vendors are migrating from device plugins to DRA drivers at different speeds. The full replacement also requires `dra-driver-cpu` and `dra-driver-memory` to be production-ready, since the NUMA Resources Operator currently handles CPU and memory NUMA alignment via the kubelet's CPU Manager and Memory Manager.
+
 ---
 
 ## Current State: No Topology Awareness
@@ -47,79 +70,46 @@ graph TB
         MEM["Memory Driver<br/>dra.memory/numaNode"]
     end
 
-    GPU -->|"ResourceSlice"| SCHED
-    NIC -->|"ResourceSlice"| SCHED
-    CPU -->|"ResourceSlice"| SCHED
-    MEM -->|"ResourceSlice"| SCHED
+    GPU -->|"ResourceSlice"| ALLOC
+    NIC -->|"ResourceSlice"| ALLOC
+    CPU -->|"ResourceSlice"| ALLOC
+    MEM -->|"ResourceSlice"| ALLOC
 
-    subgraph "Problem 1 ─ Node Selection"
-        SCHED["Scheduler picks a node<br/>based on device count<br/>❌ never checks NUMA alignment"]
-    end
-
-    SCHED --> ALLOC
-
-    subgraph "Problem 2 ─ Device Selection"
-        ALLOC["DRA Allocator picks devices<br/>per driver independently<br/>❌ no cross-driver coordination"]
+    subgraph "Scheduler + DRA Allocator"
+        ALLOC["Picks devices per driver<br/>independently ─ no cross-driver<br/>NUMA coordination"]
     end
 
     ALLOC --> POD["Pod gets devices on<br/>different NUMA nodes"]
 
     style POD fill:#f44,color:#fff
-    style SCHED fill:#ff9,color:#000
     style ALLOC fill:#ff9,color:#000
 ```
 
 ---
 
-## Problems to Solve
+## The Problem
 
-Meeting the goal requires solving two distinct problems, plus closing driver-specific gaps that block both.
+DRA allocates each resource type independently. The `MatchAttribute` constraint only works within a single driver's devices — there is no mechanism to coordinate across the GPU driver, NIC driver, and CPU driver to ensure they all pick devices from the same NUMA node. A pod requesting 2 GPUs + 1 NIC + CPUs may get a GPU from NUMA 0, a NIC from NUMA 1, and CPUs from NUMA 2, with no way to prevent this.
 
-### Problem 1: Node selection is topology-unaware
+Node selection is also affected: the scheduler does not check whether NUMA-aligned allocation is possible on a node before selecting it. However, this is implicitly solved when cross-driver `matchAttribute` constraints are present in the claim — the DRA allocator will fail to find a valid allocation on nodes where no NUMA node has all the required devices, causing the scheduler to naturally try other nodes.
 
-The scheduler picks a node based on whether it has enough free devices to satisfy a ResourceClaim. It does not consider whether those devices can be co-located on the same NUMA node. A pod requesting 2 GPUs + 1 NIC may land on a node where no single NUMA node has all three available — guaranteeing cross-NUMA placement regardless of what constraints exist in the claim.
+### Gaps
 
-### Problem 2: Device selection is driver-isolated
-
-Once a node is chosen, the DRA allocator picks specific devices. But `MatchAttribute` constraints only work within a single driver's devices. Even on a node where NUMA-aligned allocation is possible, the allocator has no mechanism to coordinate across the GPU driver, NIC driver, and CPU driver to ensure they all pick devices from the same NUMA node.
-
-### Why these are separate problems
-
-- Problem 1 can exist even if Problem 2 is solved — perfect device alignment constraints are useless if the pod lands on a node where alignment is impossible
-- Problem 2 can exist even if Problem 1 is solved — landing on the right node doesn't help if the allocator picks misaligned devices
-- They have different solution mechanisms: Problem 1 needs scheduler filtering and scoring, Problem 2 needs cross-driver constraints on device selection
-
-| | Without node-level topology (Problem 1 unsolved) | With node-level topology (Problem 1 solved) |
-|---|---|---|
-| **Without device-level topology (Problem 2 unsolved)** | Random node, random devices | Right node, random devices |
-| **With device-level topology (Problem 2 solved)** | Random node, aligned devices (may fail if node can't align) | **Right node, aligned devices** |
-
-### Gaps blocking these problems
-
-Each gap is categorized by which problem it blocks and which layer must fix it:
-
-#### Gaps blocking Problem 2 (device selection)
+#### Cross-driver coordination gaps
 
 | Gap | Description | Layer |
 |-----|-------------|-------|
 | **Gap 1: No standard NUMA attribute** | Every driver uses its own attribute name (`dra.cpu/numaNodeID`, `gpu.amd.com/numaNode`, etc.). No `resource.kubernetes.io/numaNode` exists. KEP-5491 proposes it but it is not yet merged. | Upstream Kubernetes |
 | **Gap 2: No cross-driver constraints** | `MatchAttribute` only works within a single driver's devices. No mechanism to say "match NUMA across GPU, NIC, and CPU drivers simultaneously" without hardcoding the node ID. | Upstream Kubernetes |
-| **Gap 4: NVIDIA no NUMA for standard GPUs** | NUMA node info only exposed for VFIO/passthrough devices. Standard GPU and MIG types have no `numaNode` attribute, even though the data is in sysfs. Blocks NUMA-aware placement for NVIDIA container workloads. | NVIDIA GPU DRA driver |
 
-#### Gaps blocking Problem 1 (node selection)
-
-| Gap | Description | Layer |
-|-----|-------------|-------|
-| **Gap 8: No topology preference (soft affinity)** | Only hard constraints exist ("same NUMA or fail"). No preference-based scoring to steer pods toward nodes with better alignment. | Upstream Kubernetes |
-
-#### Gaps blocking VM support (extends both problems to VMs)
+#### Driver-specific gaps
 
 | Gap | Description | Layer |
 |-----|-------------|-------|
 | **Gap 3: AMD vendor-specific `pciBusID`** | AMD GPU DRA driver publishes PCI address as `pciAddr` instead of `resource.kubernetes.io/pciBusID` (KEP-4381). Breaks KEP-5304 metadata and KubeVirt device discovery. | AMD GPU DRA driver |
+| **Gap 4: NVIDIA no NUMA for standard GPUs** | NUMA node info only exposed for VFIO/passthrough devices. Standard GPU and MIG types have no `numaNode` attribute, even though the data is in sysfs. Blocks NUMA-aware placement for NVIDIA container workloads. | NVIDIA GPU DRA driver |
 | **Gap 5: AMD no VFIO passthrough** | AMD GPU DRA driver only supports ROCm containers. No VFIO mode for VM passthrough. Blocks KubeVirt DRA integration for AMD GPUs. | AMD GPU DRA driver |
 | **Gap 6: KEP-5304 opt-in incomplete** | DRA drivers need three code changes for KEP-5304 metadata file generation. Without this, KubeVirt cannot discover device PCI addresses via DRA. | Each PCI DRA driver |
-| **Gap 7: KubeVirt cannot influence placement** | VEP 115 maps device NUMA placement into guest topology but only reports — it cannot request co-placement. | Requires Problems 1+2 solved |
 
 | Driver | KEP-5304 Status |
 |--------|----------------|
@@ -127,19 +117,25 @@ Each gap is categorized by which problem it blocks and which layer must fix it:
 | AMD GPU DRA | Not started |
 | SR-IOV NIC DRA | Not started |
 
-#### Gaps for future optimization
+#### VM support gaps
 
 | Gap | Description | Layer |
 |-----|-------------|-------|
-| **Gap 9: No GPU interconnect topology** | AMD does not advertise xGMI/Infinity Fabric. NVIDIA exposes NVLink only via ComputeDomains for multi-node, not intra-node. | GPU DRA drivers |
+| **Gap 7: KubeVirt cannot influence placement** | VEP 115 maps device NUMA placement into guest topology but only reports — it cannot request co-placement. Requires cross-driver constraints to guarantee alignment before VEP 115 maps it into the guest. | KubeVirt + coordination layer |
+
+#### Future optimization
+
+| Gap | Description | Layer |
+|-----|-------------|-------|
+| **Gap 8: No GPU interconnect topology** | AMD does not advertise xGMI/Infinity Fabric. NVIDIA exposes NVLink only via ComputeDomains for multi-node, not intra-node. | GPU DRA drivers |
 
 ---
 
 ## Solutions
 
-### Solution for Problem 2 (device selection): Topology Coordinator
+### Topology Coordinator
 
-A [POC by Fabien Dupont](https://github.com/fabiendupont/k8s-dra-topology-coordinator) (not upstream) — a controller + mutating webhook that solves cross-driver device alignment using only existing Kubernetes APIs:
+A [POC by Fabien Dupont](https://github.com/fabiendupont/k8s-dra-topology-coordinator) (not upstream) — a controller + mutating webhook that solves cross-driver NUMA coordination using only existing Kubernetes APIs:
 
 1. **Controller** watches `ResourceSlices` from all DRA drivers and builds a cross-driver topology model
 2. **ConfigMap-based topology rules** map vendor-specific attributes to standard topology concepts (e.g., `gpu.nvidia.com/numaNode` → `numaNode`, `dra.cpu/numaNodeID` → `numaNode`)
@@ -207,23 +203,11 @@ graph LR
 | Gap 2: No cross-driver constraints | **Yes** | Webhook expands claims so existing `MatchAttribute` works |
 | Gap 4: NVIDIA no NUMA for standard GPUs | **No — blocks coordinator** | Can't map an attribute that doesn't exist |
 | Gap 7: KubeVirt placement | **Yes** | Guarantees co-placement before VEP 115 reports it |
-| Gap 9: GPU interconnect topology | **Partial** | Can group by NVLink domain if driver publishes it |
+| Gap 8: GPU interconnect topology | **Partial** | Can group by NVLink domain if driver publishes it |
 
-### Solution for Problem 1 (node selection): Scheduler Plugin
+**Node selection is implicitly handled:** The expanded claim's `matchAttribute` constraints cause the DRA allocator to fail on nodes where NUMA alignment is impossible, so the scheduler naturally skips them. No separate scheduler plugin is needed for node filtering.
 
-A scheduler plugin that reads ResourceSlices, builds a topology model, and filters/scores nodes based on whether NUMA-aligned allocation is achievable. No POC exists yet.
-
-**What it would do:**
-- **Filter:** Remove nodes where no single NUMA node has all requested device types available
-- **Score:** Rank remaining nodes by alignment quality (e.g., a node with 2 free GPUs + 1 free NIC on the same NUMA node scores higher than one where they're split)
-- **Soft affinity:** Prefer topology-aligned nodes without failing if none exist (solves Gap 8)
-
-**What it would NOT do:**
-- Control which specific devices the DRA allocator picks — that's Problem 2 (the coordinator's job)
-
-**Why both are needed:**
-
-The scheduler plugin picks a node where alignment *is possible*. The coordinator (or upstream cross-driver `MatchAttribute`) ensures the allocator actually *uses* that alignment.
+**Soft affinity (preferred enforcement):** Topology rules can specify `enforcement: preferred`. At expansion time, the webhook checks `IsConstraintSatisfiable()` against current cluster state. If no node can satisfy the constraint, it is omitted from the expanded claim — the pod still gets its devices, just without NUMA alignment. If the constraint IS satisfiable, it is emitted normally. This closes the soft affinity gap without any upstream changes.
 
 ### Solution for driver gaps: DRA driver changes
 
@@ -235,7 +219,6 @@ These are independent of the coordination layer — they must be fixed regardles
 | Gap 4: No NUMA for standard GPUs | NVIDIA GPU DRA | Read `/sys/bus/pci/devices/<BDF>/numa_node` for GPU and MIG types |
 | Gap 5: No VFIO passthrough | AMD GPU DRA | Implement VFIO mode (bind VFs to `vfio-pci`, CDI-inject `/dev/vfio/*`) |
 | Gap 6: KEP-5304 opt-in | NVIDIA GPU, AMD GPU, SR-IOV NIC | Three code changes: `EnableDeviceMetadata(true)`, populate `Metadata`, target k8s 1.36+ |
-| Gap 1: Standard NUMA attribute | All drivers | Add `resource.kubernetes.io/numaNode` once KEP defines it |
 
 ### Long-term upstream path
 
@@ -245,9 +228,9 @@ Upstream changes reduce operational complexity and eventually make the coordinat
 |-----------|-------|------------|--------|
 | Define `resource.kubernetes.io/numaNode` | KEP-5491 / SIG Node | Gap 1 | All drivers use one attribute name; simplifies coordinator rules |
 | Cross-driver `MatchAttribute` in scheduler | SIG Scheduling / SIG Node | Gap 2 | Users can write `matchAttribute: resource.kubernetes.io/numaNode` directly |
-| Topology preference (soft affinity) | SIG Scheduling | Gap 8 | "Prefer same NUMA" without scheduling failures |
+| Scheduler plugin for topology-aware scoring | SIG Scheduling | — | Optimize node selection by preferring nodes with more alignment options (the coordinator already handles node filtering implicitly) |
 
-The coordinator continues to add value after upstream standardization through the partition abstraction ("give me a quarter of an HGX node") and automatic claim expansion.
+The coordinator continues to add value after upstream standardization through the partition abstraction ("give me a quarter of an HGX node"), automatic claim expansion, and soft affinity via preferred enforcement.
 
 ---
 
@@ -257,15 +240,14 @@ The coordinator continues to add value after upstream standardization through th
 graph TD
     GOAL["🎯 Cross-driver NUMA<br/>co-placement for<br/>pods and VMs"]
 
-    subgraph "Solves Problem 2 ─ Device Selection"
-        POC_DONE["✅ Topology Coordinator<br/>ConfigMap rules + webhook +<br/>partition abstraction"]
-        CROSS_MATCH["Cross-driver<br/>MatchAttribute<br/>in scheduler"]
-        STD_NUMA["Define standard<br/>resource.k8s.io/numaNode<br/>(KEP-5491 proposes this)"]
+    subgraph "Topology Coordinator (works today)"
+        POC_DONE["✅ Coordinator<br/>ConfigMap rules + webhook +<br/>partition abstraction"]
+        SOFT_DONE["✅ Soft affinity<br/>preferred enforcement"]
     end
 
-    subgraph "Solves Problem 1 ─ Node Selection"
-        SCHED_PLUGIN["Scheduler plugin<br/>NUMA-aware node<br/>filtering + scoring"]
-        SOFT["Topology preference<br/>(soft affinity)"]
+    subgraph "Upstream (longer-term)"
+        STD_NUMA["Define standard<br/>resource.k8s.io/numaNode<br/>(KEP-5491 proposes this)"]
+        CROSS_MATCH["Cross-driver<br/>MatchAttribute<br/>in scheduler"]
     end
 
     subgraph "Driver Gaps"
@@ -282,11 +264,9 @@ graph TD
     end
 
     POC_DONE --> GOAL
+    SOFT_DONE --> POC_DONE
     STD_NUMA --> CROSS_MATCH
     CROSS_MATCH --> GOAL
-
-    SCHED_PLUGIN --> GOAL
-    SOFT -.->|"future"| GOAL
 
     NVIDIA_NUMA --> GOAL
     NVIDIA_NUMA -.->|"blocks coordinator<br/>for NVIDIA GPUs"| POC_DONE
@@ -306,28 +286,28 @@ graph TD
 
     style GOAL fill:#4a4,color:#fff
     style POC_DONE fill:#4af,color:#fff
+    style SOFT_DONE fill:#4af,color:#fff
     style VEP115 fill:#4a4,color:#fff
     style KV_DRA fill:#4a4,color:#fff
-    style SCHED_PLUGIN fill:#fa4,color:#000
     style NVIDIA_NUMA fill:#f44,color:#fff
     style AMD_VFIO fill:#f44,color:#fff
     style AMD_PCIBUSID fill:#f44,color:#fff
     style KEP5304 fill:#fa4,color:#000
     style STD_NUMA fill:#fa4,color:#000
     style CROSS_MATCH fill:#fa4,color:#000
-    style SOFT fill:#ddd,color:#666
     style KV_FULL fill:#fa4,color:#000
     style GPU_TOPO fill:#ddd,color:#666
 ```
 
 **Legend:** 🟢 Done  🔵 POC (works today)  🟠 In progress / needs work  🔴 Not started  ⬜ Future
 
-### Phase 1: Device-level NUMA alignment for containers (works now)
+### Phase 1: NUMA-aligned containers (works now)
 
-**Deploy the topology coordinator** to solve Problem 2 using existing DRA APIs and current driver attributes. No upstream changes or driver modifications needed.
+**Deploy the topology coordinator** using existing DRA APIs and current driver attributes. No upstream changes or driver modifications needed. The coordinator handles both device-level NUMA alignment (via expanded `matchAttribute` constraints) and implicit node filtering (the scheduler naturally skips nodes where the constraints can't be satisfied).
 
 - Deploy topology coordinator with ConfigMap rules for deployed drivers
 - Validate with GPU + NIC + CPU partitions on multi-NUMA hardware
+- Soft affinity via `enforcement: preferred` rules — constraints are skipped when unsatisfiable, so pods don't get stuck
 - Provides immediate value for container workloads on AMD GPUs (which already publish NUMA)
 
 **Blocked for NVIDIA GPUs** until Gap 4 is closed — NVIDIA must add NUMA attributes for standard GPU types.
@@ -346,50 +326,47 @@ These are independent driver changes that can proceed in parallel:
 
 ### Phase 3: End-to-end NUMA-aware VMs
 
-**Requires:** Phase 2 driver gaps closed + topology coordinator (or upstream cross-driver constraints)
+**Requires:** Phase 2 driver gaps closed + topology coordinator
 
-- Topology coordinator guarantees GPU + NIC co-placement on same NUMA node (Problem 2)
+- Topology coordinator guarantees GPU + NIC co-placement on same NUMA node
 - KEP-5304 delivers PCI BDF to KubeVirt via metadata files
 - VEP 115 maps co-located devices into correct guest NUMA topology
 - Guest AI frameworks detect GPU-NIC co-locality, enable GPU Direct RDMA
 
-### Phase 4: Node-level topology + upstream standardization (longer-term)
+### Phase 4: Upstream standardization (longer-term)
 
-Solve Problem 1 and reduce operational complexity:
+Reduce operational complexity and enable users to write topology constraints directly without the coordinator:
 
-| Work Item | Solves | Impact |
-|-----------|--------|--------|
-| Scheduler plugin for topology-aware node selection | Problem 1 | Pods land on nodes where NUMA alignment is achievable |
-| Define `resource.kubernetes.io/numaNode` | Gap 1 | Simplifies coordinator rules; enables direct user constraints |
-| Cross-driver `MatchAttribute` in scheduler | Gap 2 | Native device-level coordination without coordinator webhook |
-| Topology preference (soft affinity) | Gap 8 | "Prefer same NUMA" without scheduling failures |
-| All drivers adopt standard NUMA attribute | Gap 1 (driver-side) | Ecosystem-wide interoperability |
+| Work Item | Forum | Gaps Closed | Impact |
+|-----------|-------|------------|--------|
+| Define `resource.kubernetes.io/numaNode` | KEP-5491 / SIG Node | Gap 1 | All drivers use one attribute name; simplifies coordinator rules |
+| Cross-driver `MatchAttribute` in scheduler | SIG Scheduling / SIG Node | Gap 2 | Native cross-driver coordination without coordinator webhook |
+| All drivers adopt standard NUMA attribute | Each driver repo | Gap 1 (driver-side) | Ecosystem-wide interoperability |
 
-The coordinator continues to add value after upstream standardization through the partition abstraction ("give me a quarter of an HGX node") and automatic claim expansion.
+The coordinator continues to add value after upstream standardization through the partition abstraction ("give me a quarter of an HGX node"), automatic claim expansion, and soft affinity via preferred enforcement.
 
 ### Phase 5: GPU interconnect topology (future)
 
 | Work Item | Owner | Gap Closed |
 |-----------|-------|-----------|
-| NVIDIA: Expose intra-node NVLink topology as device attributes | NVIDIA | Gap 9 |
-| AMD: Expose xGMI / Infinity Fabric distance metrics | AMD | Gap 9 |
-| Coordinator: Group by GPU interconnect domain | Coordinator | Gap 9 (partial, with above) |
+| NVIDIA: Expose intra-node NVLink topology as device attributes | NVIDIA | Gap 8 |
+| AMD: Expose xGMI / Infinity Fabric distance metrics | AMD | Gap 8 |
+| Coordinator: Group by GPU interconnect domain | Coordinator | Gap 8 (partial, with above) |
 
 ---
 
 ## Gap Status Summary
 
-| Gap | Status | Problem | Solved By | Phase |
-|-----|--------|---------|-----------|-------|
-| 1. No standard NUMA attribute | 🟠 KEP-5491 proposes it | P2 (device) | Coordinator (now) / Upstream (later) | 1 / 4 |
-| 2. No cross-driver constraints | 🟠 Needs KEP work | P2 (device) | Coordinator (now) / Upstream (later) | 1 / 4 |
-| 3. AMD vendor-specific `pciBusID` | 🔴 Not started | VM support | AMD GPU DRA driver | 2 |
-| 4. NVIDIA no NUMA for standard GPUs | 🔴 Not started | P2 (device) | NVIDIA GPU DRA driver | 2 |
-| 5. AMD no VFIO passthrough | 🔴 Not started | VM support | AMD GPU DRA driver | 2 |
-| 6. KEP-5304 opt-in | 🟠 NVIDIA in progress | VM support | Each PCI DRA driver | 2 |
-| 7. KubeVirt placement | 🟠 VEP 115 done, needs coordination | VM support | Coordinator + driver gaps | 3 |
-| 8. Soft affinity | ⬜ Future | P1 (node) | Scheduler plugin / Upstream KEP | 4 |
-| 9. GPU interconnect topology | ⬜ Future | Optimization | Driver attributes + coordinator | 5 |
+| Gap | Status | Solved By | Phase |
+|-----|--------|-----------|-------|
+| 1. No standard NUMA attribute | 🟠 KEP-5491 proposes it | Coordinator (now) / Upstream (later) | 1 / 4 |
+| 2. No cross-driver constraints | 🟠 Needs KEP work | Coordinator (now) / Upstream (later) | 1 / 4 |
+| 3. AMD vendor-specific `pciBusID` | 🔴 Not started | AMD GPU DRA driver | 2 |
+| 4. NVIDIA no NUMA for standard GPUs | 🔴 Not started | NVIDIA GPU DRA driver | 2 |
+| 5. AMD no VFIO passthrough | 🔴 Not started | AMD GPU DRA driver | 2 |
+| 6. KEP-5304 opt-in | 🟠 NVIDIA in progress | Each PCI DRA driver | 2 |
+| 7. KubeVirt placement | 🟠 VEP 115 done, needs coordination | Coordinator + driver gaps | 3 |
+| 8. GPU interconnect topology | ⬜ Future | Driver attributes + coordinator | 5 |
 
 ---
 
