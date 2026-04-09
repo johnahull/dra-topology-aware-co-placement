@@ -34,29 +34,6 @@ Both drivers publish NUMA node attributes, making them compatible with the topol
 
 **Maturity caveat:** `dra-driver-cpu` is a kubernetes-sigs project and is mature. `dra-driver-memory` is on a personal repo and still in early development — memory NUMA pinning may need to rely on the existing kubelet Memory Manager in the near term.
 
-## Relationship to the NUMA Resources Operator
-
-The [NUMA Resources Operator](https://github.com/openshift-kni/numaresources-operator) is the existing OpenShift solution for NUMA-aware scheduling. It solves a similar problem but for the **device plugin resource model**, not DRA:
-
-| | NUMA Resources Operator | DRA Topology Coordinator |
-|---|---|---|
-| Resource model | Device plugins + `resources.requests` | DRA ResourceSlices + ResourceClaims |
-| Topology data | RTE daemon scrapes kubelet PodResource API → NRT CRD | Drivers publish topology in ResourceSlices directly |
-| Scheduling | Secondary scheduler with NodeResourceTopologyMatch plugin | Mutating webhook + existing DRA allocator |
-| Soft affinity | Scoring strategies (MostAllocated, Balanced, etc.) | `enforcement: preferred` on topology rules |
-| DRA awareness | None | Native |
-
-### Transition path
-
-**Fully on DRA (all resource types via DRA drivers):** The NUMA Resources Operator is no longer needed. Its three components become redundant:
-- **RTE** — DRA drivers publish topology info directly in ResourceSlices
-- **NRT CRD** — ResourceSlices already contain per-device NUMA attributes
-- **Secondary scheduler** — the coordinator's webhook injects `matchAttribute` constraints, and the existing DRA allocator handles the rest
-
-**Mixed clusters (some DRA, some device plugins):** Both systems coexist. Device plugin workloads use the NUMA Resources Operator; DRA workloads use the topology coordinator. They don't conflict — they operate on different resource models — but it's two topology systems to maintain.
-
-**What drives the transition:** GPU vendors are migrating from device plugins to DRA drivers at different speeds. The full replacement also requires `dra-driver-cpu` and `dra-driver-memory` to be production-ready, since the NUMA Resources Operator currently handles CPU and memory NUMA alignment via the kubelet's CPU Manager and Memory Manager.
-
 ---
 
 ## Current State: No Topology Awareness
@@ -367,6 +344,31 @@ The coordinator continues to add value after upstream standardization through th
 | 6. KEP-5304 opt-in | 🟠 NVIDIA in progress | Each PCI DRA driver | 2 |
 | 7. KubeVirt placement | 🟠 VEP 115 done, needs coordination | Coordinator + driver gaps | 3 |
 | 8. GPU interconnect topology | ⬜ Future | Driver attributes + coordinator | 5 |
+
+---
+
+## Relationship to the NUMA Resources Operator
+
+The [NUMA Resources Operator](https://github.com/openshift-kni/numaresources-operator) is the existing OpenShift solution for NUMA-aware scheduling. It solves a similar problem but for the **device plugin resource model**, not DRA:
+
+| | NUMA Resources Operator | DRA Topology Coordinator |
+|---|---|---|
+| Resource model | Device plugins + `resources.requests` | DRA ResourceSlices + ResourceClaims |
+| Topology data | RTE daemon scrapes kubelet PodResource API → NRT CRD | Drivers publish topology in ResourceSlices directly |
+| Scheduling | Secondary scheduler with NodeResourceTopologyMatch plugin | Mutating webhook + existing DRA allocator |
+| Soft affinity | Scoring strategies (MostAllocated, Balanced, etc.) | `enforcement: preferred` on topology rules |
+| DRA awareness | None | Native |
+
+### Transition path
+
+**Fully on DRA (all resource types via DRA drivers):** The NUMA Resources Operator is no longer needed. Its three components become redundant:
+- **RTE** — DRA drivers publish topology info directly in ResourceSlices
+- **NRT CRD** — ResourceSlices already contain per-device NUMA attributes
+- **Secondary scheduler** — the coordinator's webhook injects `matchAttribute` constraints, and the existing DRA allocator handles the rest
+
+**Mixed clusters (some DRA, some device plugins):** Both systems coexist. Device plugin workloads use the NUMA Resources Operator; DRA workloads use the topology coordinator. They don't conflict — they operate on different resource models — but it's two topology systems to maintain.
+
+**What drives the transition:** GPU vendors are migrating from device plugins to DRA drivers at different speeds. The full replacement also requires `dra-driver-cpu` and `dra-driver-memory` to be production-ready, since the NUMA Resources Operator currently handles CPU and memory NUMA alignment via the kubelet's CPU Manager and Memory Manager.
 
 ---
 
