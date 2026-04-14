@@ -198,16 +198,41 @@ show_summary() {
   local ns_flag=""
   [[ -n "$NAMESPACE" ]] && ns_flag="-n $NAMESPACE" || ns_flag="-A"
 
-  echo -e "${BOLD}Pod                    NUMA  CPUs  GPUs  NICs  Memory${NC}"
-  echo    "-----                  ----  ----  ----  ----  ------"
+  echo -e "${BOLD}Pod                              NUMA  CPUs  GPUs  NICs  Memory${NC}"
+  echo    "-----                            ----  ----  ----  ----  ------"
 
-  kubectl get resourceclaims $ns_flag -o json 2>/dev/null | python3 -c "
+  # Get both claims and resourceslices in one go
+  { kubectl get resourceclaims $ns_flag -o json 2>/dev/null; echo "---SEPARATOR---"; kubectl get resourceslices -o json 2>/dev/null; } | python3 -c "
 import json, sys
 
-data = json.load(sys.stdin)
-pods = {}
+# Parse both JSON objects separated by the marker
+raw = sys.stdin.read()
+parts = raw.split('---SEPARATOR---')
+claims_data = json.loads(parts[0])
+slices_data = json.loads(parts[1])
 
-for c in data.get('items', []):
+# Build device -> NUMA lookup from ResourceSlices
+device_numa = {}
+for rs in slices_data.get('items', []):
+    driver = rs['spec']['driver']
+    pool = rs['spec'].get('pool', {}).get('name', rs['spec'].get('nodeName', ''))
+    for dev in rs['spec'].get('devices', []) or []:
+        name = dev['name']
+        attrs = dev.get('attributes', {})
+        numa = None
+        for k, v in attrs.items():
+            if 'numa' in k.lower():
+                for vtype, val in v.items():
+                    numa = val
+                    break
+                break
+        key = f'{driver}/{name}'
+        if numa is not None:
+            device_numa[key] = numa
+
+# Process claims
+pods = {}
+for c in claims_data.get('items', []):
     reserved = c.get('status', {}).get('reservedFor', [])
     if not reserved:
         continue
@@ -220,25 +245,34 @@ for c in data.get('items', []):
     for r in c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', []):
         driver = r['driver']
         device = r['device']
+        consumed = r.get('consumedCapacity', {})
+
+        # Detect NUMA from ResourceSlice attributes
+        dev_key = f'{driver}/{device}'
+        if dev_key in device_numa:
+            pods[key]['numa'].add(device_numa[dev_key])
+
+        # Categorize device
         if 'cpu' in driver:
-            pods[key]['cpu'].append(device)
-            # Extract NUMA from device name
-            if 'numa000' in device: pods[key]['numa'].add(0)
-            elif 'numa001' in device: pods[key]['numa'].add(1)
+            cpu_count = consumed.get('dra.cpu/cpu', '')
+            pods[key]['cpu'].append(f'{device}({cpu_count})' if cpu_count else device)
         elif 'gpu' in driver:
             pods[key]['gpu'].append(device)
         elif 'sriov' in driver:
             pods[key]['nic'].append(device)
         elif 'memory' in driver:
-            pods[key]['mem'].append(device)
+            cap = consumed.get('size', '')
+            pods[key]['mem'].append(f'{device}({cap})' if cap else device)
 
 for key in sorted(pods):
     p = pods[key]
     ns, pod = key.split('/', 1)
+    # Shorten virt-launcher names
+    if pod.startswith('virt-launcher-'):
+        pod = pod.replace('virt-launcher-', 'vm:')
+        pod = pod.rsplit('-', 1)[0]  # remove random suffix
     numa = ','.join(str(n) for n in sorted(p['numa'])) if p['numa'] else '?'
-    # Pad for alignment
-    name = f'{pod}'
-    print(f'{name:<23}{numa:<6}{len(p[\"cpu\"]):<6}{len(p[\"gpu\"]):<6}{len(p[\"nic\"]):<6}{len(p[\"mem\"])}')
+    print(f'{pod:<33}{numa:<6}{len(p[\"cpu\"]):<6}{len(p[\"gpu\"]):<6}{len(p[\"nic\"]):<6}{len(p[\"mem\"])}')
 "
 }
 

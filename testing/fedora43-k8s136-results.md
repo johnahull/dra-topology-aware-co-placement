@@ -16,9 +16,9 @@ Deployed a full DRA topology-aware co-placement stack on Fedora 43 with Kubernet
 
 - **4-pod quarter-machine split**: 32 CPUs + 2 GPUs + 2 NICs + 128 GiB memory + 8 GiB hugepages per pod, NUMA-isolated, capacity reserved via `DRAConsumableCapacity`
 - **2-pod half-machine split**: 64 CPUs + 4 GPUs + 4 NICs + 256 GiB memory + 16 GiB hugepages per pod
-- **Mixed pod + VM workload**: 2 pods (GPUs via ROCm + NICs) + 2 KubeVirt VMs (NICs via VFIO + KEP-5304), all NUMA-isolated on the same node
-- **KEP-5304 native metadata API**: Drivers set `EnableDeviceMetadata(true)`, kubelet handles file writing and CDI mounts automatically — eliminates 4 manual patches from the OCP testing
-- **DRA CPU exclusive pinning**: CPU driver allocates exclusive cores via `DRAConsumableCapacity` — eliminates the cpuset swap hack
+- **Mixed pod + VM workload with full resource allocation**: 2 pods + 2 KubeVirt VMs, all with CPU + memory + hugepages + NICs, NUMA-isolated. Pods get GPUs (ROCm), VMs get NICs (VFIO passthrough via KEP-5304). Pods and VMs share CPU and memory devices on the same NUMA node via `DRAConsumableCapacity`.
+- **KEP-5304 native metadata API**: Drivers set `EnableDeviceMetadata(true)`, kubelet handles file writing and CDI mounts automatically
+- **DRA CPU exclusive pinning**: CPU driver allocates exclusive cores via `DRAConsumableCapacity`
 
 ### What Required Patching
 
@@ -146,14 +146,18 @@ Two pods share each CPU and memory device via `DRAConsumableCapacity`.
 | half0 | 0 | 64 cores | 4x MI300X | 4x CX-6 VFs | 256 GiB | 16 GiB |
 | half1 | 1 | 64 cores | 4x MI300X | 4x CX-6 VFs | 256 GiB | 16 GiB |
 
-### Mixed Pod + VM (2 pods + 2 VMs)
+### Mixed Pod + VM with Full Resource Allocation (2 pods + 2 VMs)
 
-| Workload | Type | NUMA | GPUs (ROCm) | NICs |
-|----------|------|------|-------------|------|
-| pod-numa0 | Pod | 0 | gpu-1 | 1d:00.2, 1d:00.3 |
-| pod-numa1 | Pod | 1 | gpu-33, gpu-41 | 9f:00.4, 9f:00.5 |
-| vm-numa0 | KubeVirt VM | 0 | — | 1d:00.4 (VFIO passthrough) |
-| vm-numa1 | KubeVirt VM | 1 | — | 9f:00.2 (VFIO passthrough) |
+All 5 device types allocated per workload. Pods and VMs share CPU and memory devices on the same NUMA node via `DRAConsumableCapacity`.
+
+| Workload | Type | NUMA | CPU | GPUs | NICs | Memory | Hugepages |
+|----------|------|------|-----|------|------|--------|-----------|
+| pod-numa0 | Pod | 0 | 16 cores | gpu-1 (`1b:00.0`), gpu-9 (`3d:00.0`) | `1d:00.3`, `1d:00.5` | 128 GiB | 8 GiB |
+| pod-numa1 | Pod | 1 | 16 cores | gpu-33 (`9d:00.0`), gpu-57 (`dd:00.0`) | `9f:00.3`, `9f:00.4` | 128 GiB | 8 GiB |
+| vm-numa0 | KubeVirt VM | 0 | 16 cores | — | `1d:00.4` (VFIO) | 64 GiB | 4 GiB |
+| vm-numa1 | KubeVirt VM | 1 | 16 cores | — | `9f:00.2` (VFIO) | 64 GiB | 4 GiB |
+
+VMs use separate ResourceClaims per driver (CPU, NIC, memory) to work around the multi-driver KEP-5304 metadata limitation.
 
 ---
 
