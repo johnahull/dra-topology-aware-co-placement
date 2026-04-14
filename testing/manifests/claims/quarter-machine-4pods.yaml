@@ -1,0 +1,270 @@
+# Four pods — quarter machine each
+# Each gets: 32 CPUs + 2 GPUs + 2 NICs + 128 GiB memory + 8 GiB hugepages
+# Two pods share each NUMA node via DRAConsumableCapacity
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q0
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.cpu"].numaNodeID == 0'
+        capacity:
+          requests:
+            "dra.cpu/cpu": "32"
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.amd.com
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["gpu.amd.com"].numaNode == 0'
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 0'
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 0 && device.attributes["dra.memory"].hugeTLB == false'
+        capacity:
+          requests:
+            size: "128Gi"
+    - name: hugepages
+      exactly:
+        deviceClassName: dra.hugepages-2m
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 0'
+        capacity:
+          requests:
+            size: "8Gi"
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q1
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.cpu"].numaNodeID == 0'
+        capacity:
+          requests:
+            "dra.cpu/cpu": "32"
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.amd.com
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["gpu.amd.com"].numaNode == 0'
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 0'
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 0 && device.attributes["dra.memory"].hugeTLB == false'
+        capacity:
+          requests:
+            size: "128Gi"
+    - name: hugepages
+      exactly:
+        deviceClassName: dra.hugepages-2m
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 0'
+        capacity:
+          requests:
+            size: "8Gi"
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q2
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.cpu"].numaNodeID == 1'
+        capacity:
+          requests:
+            "dra.cpu/cpu": "32"
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.amd.com
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["gpu.amd.com"].numaNode == 1'
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 1'
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 1 && device.attributes["dra.memory"].hugeTLB == false'
+        capacity:
+          requests:
+            size: "128Gi"
+    - name: hugepages
+      exactly:
+        deviceClassName: dra.hugepages-2m
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 1'
+        capacity:
+          requests:
+            size: "8Gi"
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q3
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.cpu"].numaNodeID == 1'
+        capacity:
+          requests:
+            "dra.cpu/cpu": "32"
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.amd.com
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["gpu.amd.com"].numaNode == 1'
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+        count: 2
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 1'
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 1 && device.attributes["dra.memory"].hugeTLB == false'
+        capacity:
+          requests:
+            size: "128Gi"
+    - name: hugepages
+      exactly:
+        deviceClassName: dra.hugepages-2m
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 1'
+        capacity:
+          requests:
+            size: "8Gi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q0
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q0
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q1
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q2
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q2
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q3
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q3

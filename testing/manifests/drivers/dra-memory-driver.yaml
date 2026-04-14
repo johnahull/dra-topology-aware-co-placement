@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dramemory
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dramemory
+rules:
+- apiGroups: ["resource.k8s.io"]
+  resources: ["resourceslices"]
+  verbs: ["get","list","watch","create","update","patch","delete"]
+- apiGroups: ["resource.k8s.io"]
+  resources: ["resourceclaims"]
+  verbs: ["get","list","watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get","list","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dramemory
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dramemory
+subjects:
+- kind: ServiceAccount
+  name: dramemory
+  namespace: kube-system
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.memory
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == \"dra.memory\""
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.hugepages-2m
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == \"dra.memory\" && device.attributes[\"dra.memory\"].hugeTLB == true && device.attributes[\"dra.memory\"].pageSize == \"2Mi\""
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dramemory
+  namespace: kube-system
+  labels:
+    app: dramemory
+spec:
+  selector:
+    matchLabels:
+      app: dramemory
+  template:
+    metadata:
+      labels:
+        app: dramemory
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      serviceAccountName: dramemory
+      containers:
+      - name: dramemory
+        image: localhost/dra-driver-memory:latest
+        imagePullPolicy: Never
+        args:
+        - /bin/dramemory
+        - --hostname-override=$(NODE_NAME)
+        - --v=4
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: plugins
+          mountPath: /var/lib/kubelet/plugins
+        - name: plugins-registry
+          mountPath: /var/lib/kubelet/plugins_registry
+        - name: cdi
+          mountPath: /var/run/cdi
+        - name: sys
+          mountPath: /sys
+        - name: nri
+          mountPath: /var/run/nri
+      volumes:
+      - name: plugins
+        hostPath:
+          path: /var/lib/kubelet/plugins
+      - name: plugins-registry
+        hostPath:
+          path: /var/lib/kubelet/plugins_registry
+      - name: cdi
+        hostPath:
+          path: /var/run/cdi
+          type: DirectoryOrCreate
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: nri
+        hostPath:
+          path: /var/run/nri

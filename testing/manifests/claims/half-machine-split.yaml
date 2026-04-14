@@ -1,0 +1,130 @@
+# Two pods — half machine each
+# Each gets: 64 CPUs + 4 GPUs + 4 NICs + 256 GiB memory + 16 GiB hugepages
+# All from the same NUMA node, with DRAConsumableCapacity reservation
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: half0
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.cpu"].numaNodeID == 0'
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.amd.com
+        count: 4
+        selectors:
+        - cel:
+            expression: 'device.attributes["gpu.amd.com"].numaNode == 0'
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+        count: 4
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 0'
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 0 && device.attributes["dra.memory"].hugeTLB == false'
+        capacity:
+          requests:
+            size: "256Gi"
+    - name: hugepages
+      exactly:
+        deviceClassName: dra.hugepages-2m
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 0'
+        capacity:
+          requests:
+            size: "16Gi"
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: half1
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.cpu"].numaNodeID == 1'
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.amd.com
+        count: 4
+        selectors:
+        - cel:
+            expression: 'device.attributes["gpu.amd.com"].numaNode == 1'
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+        count: 4
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 1'
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 1 && device.attributes["dra.memory"].hugeTLB == false'
+        capacity:
+          requests:
+            size: "256Gi"
+    - name: hugepages
+      exactly:
+        deviceClassName: dra.hugepages-2m
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.memory"].numaNode == 1'
+        capacity:
+          requests:
+            size: "16Gi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: half0
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: half0
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: half1
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: half1

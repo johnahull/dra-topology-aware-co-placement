@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dracpu
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dracpu
+rules:
+- apiGroups: ["resource.k8s.io"]
+  resources: ["resourceslices"]
+  verbs: ["get","list","watch","create","update","patch","delete"]
+- apiGroups: ["resource.k8s.io"]
+  resources: ["resourceclaims"]
+  verbs: ["get","list","watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get","list","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dracpu
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dracpu
+subjects:
+- kind: ServiceAccount
+  name: dracpu
+  namespace: kube-system
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.cpu
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == \"dra.cpu\""
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dracpu
+  namespace: kube-system
+  labels:
+    app: dracpu
+spec:
+  selector:
+    matchLabels:
+      app: dracpu
+  template:
+    metadata:
+      labels:
+        app: dracpu
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      serviceAccountName: dracpu
+      hostPID: true
+      containers:
+      - name: dracpu
+        args:
+        - /dracpu
+        - --v=4
+        - --cpu-device-mode=grouped
+        - --hostname-override=$(NODE_NAME)
+        image: us-central1-docker.pkg.dev/k8s-staging-images/dra-driver-cpu/dra-driver-cpu:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: plugins
+          mountPath: /var/lib/kubelet/plugins
+        - name: plugins-registry
+          mountPath: /var/lib/kubelet/plugins_registry
+        - name: nri
+          mountPath: /var/run/nri
+        - name: cdi
+          mountPath: /var/run/cdi
+      volumes:
+      - name: plugins
+        hostPath:
+          path: /var/lib/kubelet/plugins
+      - name: plugins-registry
+        hostPath:
+          path: /var/lib/kubelet/plugins_registry
+      - name: nri
+        hostPath:
+          path: /var/run/nri
+      - name: cdi
+        hostPath:
+          path: /var/run/cdi
+          type: DirectoryOrCreate
