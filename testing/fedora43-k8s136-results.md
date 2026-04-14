@@ -32,7 +32,7 @@ This feature (beta, enabled by default in K8s 1.36) allows DRA drivers to publis
 - **Hugepages**: 2 pods share `hugepages-2mi-rjbmfh` with 8 GiB each
 - **GPUs and NICs**: Exclusive (not shared — each pod gets distinct devices)
 
-This eliminates the cpuset swap hack from the OCP 4.21 testing.
+This eliminates any need for cpuset swap hacks — the CPU driver handles exclusive pinning natively.
 
 ---
 
@@ -157,7 +157,7 @@ Built from patched source. Publishes 4 devices: 2 regular memory + 2 hugepages z
 
 ## KEP-5304 Native Metadata API (K8s 1.36)
 
-Both the SR-IOV and AMD GPU drivers were updated to use the native KEP-5304 API instead of the manual workaround from OCP 4.21.
+Both the SR-IOV and AMD GPU drivers were updated to use the native KEP-5304 metadata API.
 
 ### How It Works
 
@@ -183,15 +183,15 @@ dev.Metadata = &kubeletplugin.DeviceMetadata{
 
 The kubelet handles file writing, CDI mount generation, and cleanup automatically.
 
-### What This Replaced
+### What This Replaces
 
-On OCP 4.21 (K8s 1.34), KEP-5304 required 4 patches:
-1. Manual JSON metadata file writing during PrepareResources
-2. CDI mount directives for metadata injection
-3. NRI CreateContainer hook to inject mounts (CRI-O didn't process CDI mounts)
-4. Per-request metadata aggregation to avoid NRI mount collisions
+Without the native API, KEP-5304 would require manual implementation:
+1. Writing JSON metadata files during PrepareResources
+2. Adding CDI mount directives for metadata injection
+3. NRI hooks to inject mounts into containers
+4. Per-request metadata aggregation to avoid mount collisions
 
-All 4 eliminated by the native API.
+The native API eliminates all of this — the kubelet handles it automatically.
 
 ### K8s 1.36 API Renames
 
@@ -205,7 +205,7 @@ The `kubeletplugin.Device` wrapper still uses `CDIDeviceIDs`.
 
 ## Patches Applied
 
-### SR-IOV DRA Driver — 5 patches (down from 7 on OCP)
+### SR-IOV DRA Driver — 5 patches
 
 | # | File | Change |
 |---|------|--------|
@@ -217,7 +217,7 @@ The `kubeletplugin.Device` wrapper still uses `CDIDeviceIDs`.
 
 Plus: `CDIDeviceIDs` → `CdiDeviceIds` rename, `go.mod` updated to K8s 1.36 RC + controller-runtime@main.
 
-**Removed from OCP version:** manual metadata write (#1), metadata cleanup (#4), NRI mount hook (#6), metadata aggregation (#7).
+The native KEP-5304 API eliminates the need for manual metadata file writing, cleanup, NRI mount hooks, and per-request aggregation.
 
 ### AMD GPU DRA Driver — 5 patches
 
@@ -280,23 +280,6 @@ The AMD GPU operator (`ROCm/gpu-operator`) has too many dependencies for plain K
 - `DeviceConfig` CR doesn't support DRA driver image override
 
 **Solution:** Deploy the GPU DRA driver as a standalone DaemonSet.
-
----
-
-## What Changed from OCP 4.21
-
-| OCP 4.21 (K8s 1.34) | Fedora 43 (K8s 1.36) |
-|---------------------|----------------------|
-| CRI-O | containerd (built from main for NRI v0.11.0) |
-| `oc` CLI | `kubectl` |
-| MachineConfig for NRI, IOMMU, hugepages | `grubby`, `/etc/containerd/config.toml` |
-| SCCs for every driver | Not needed |
-| KEP-5304 manual workaround (4 patches) | Native `EnableDeviceMetadata(true)` |
-| `DRAConsumableCapacity` unavailable | Beta, enabled by default |
-| Cpuset swap hack for NUMA | **Eliminated** — CPU driver pins exclusively |
-| Memory driver `PrepareResources` fails | Works with capacity reservation |
-| GPU via device plugin | GPU via AMD DRA driver (ROCm mode) |
-| 7 SR-IOV patches | 5 SR-IOV patches (4 eliminated) |
 
 ---
 
