@@ -102,7 +102,13 @@
 
 | # | Summary | Severity | Details | Repo |
 |---|---------|----------|---------|------|
-| 1 | Multi-driver KEP-5304 metadata in single claim | High | When a single ResourceClaim contains devices from multiple DRA drivers (e.g., GPU + NIC), the kubelet's native KEP-5304 API only injects the metadata CDI mount for one driver's devices, not all. The second driver's metadata file exists on the host but is not bind-mounted into the container. Workaround: use separate ResourceClaims per driver. The kubelet plugin framework should inject metadata CDI devices for ALL drivers in a multi-driver claim. | `kubernetes/kubernetes` |
+| 1 | Multi-driver KEP-5304 metadata in single claim | High | When a single ResourceClaim contains devices from multiple DRA drivers (e.g., GPU + NIC), the kubelet's native KEP-5304 API only injects the metadata CDI mount for one driver's devices, not all. The second driver's metadata file exists on the host but is not bind-mounted into the container. Verified: GPU metadata CDI specs exist on the host (`/var/run/cdi/gpu.amd.com_metadata_*.json`) but `/var/run/kubernetes.io/` doesn't exist inside pods using coordinator partition claims (which span 4 drivers). Workaround: use separate ResourceClaims per driver. The kubelet plugin framework should inject metadata CDI devices for ALL drivers in a multi-driver claim. | `kubernetes/kubernetes` |
+
+### DRA CPU Driver
+
+| # | Summary | Severity | Details | Repo |
+|---|---------|----------|---------|------|
+| 1 | CPU pinning via NRI doesn't match DRAConsumableCapacity request | Medium | `DRAConsumableCapacity` reserves 8 cores per pod (`consumedCapacity: dra.cpu/cpu: 8`), but the NRI plugin's cpuset enforcement doesn't always restrict to exactly those 8 cores. Observed cpusets vary: some pods get 16 CPUs, some 32, some all 128. The scheduler correctly accounts for capacity, but the NRI plugin may be setting the cpuset based on a different granularity or not receiving the correct capacity information. Needs investigation in the CPU driver's NRI `CreateContainer` hook — specifically how it reads the consumed capacity and translates it to cpuset pins. | `kubernetes-sigs/dra-driver-cpu` |
 
 ### containerd (Fedora packaging)
 
@@ -127,7 +133,8 @@
 | DRA Memory driver | 2 | 0 | 2 |
 | Topology coordinator | 6 | 5 | 11 |
 | KubeVirt | 2 | 2 | 4 |
+| DRA CPU driver | 0 | 1 | 1 |
 | Kubernetes/kubelet | 0 | 1 | 1 |
 | containerd | 1 (rebuild) | 1 | 2 |
 | Infrastructure | 0 | 1 | 1 |
-| **Total** | **25 PRs** | **15 issues** | **40** |
+| **Total** | **25 PRs** | **17 issues** | **42** |
