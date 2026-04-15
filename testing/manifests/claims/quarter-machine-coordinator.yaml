@@ -1,0 +1,129 @@
+# 4 quarter-machine pods via topology coordinator
+# Each gets: 1 GPU + 2 NICs + 16 CPU cores + 8 GiB memory (NUMA-aligned)
+#
+# The DeviceClass name includes a hash. Find the current name:
+#   kubectl get deviceclass -l nodepartition.dra.k8s.io/partitionType=quarter
+#
+# The webhook expands each claim into 4 sub-requests with matchAttribute constraint.
+# CPU and memory use DRAConsumableCapacity for sharing across pods on the same NUMA node.
+
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q0
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: q
+      exactly:
+        # Replace with actual DeviceClass name from: kubectl get deviceclass -l ...partitionType=quarter
+        deviceClassName: dra-cpu-2-dra-memory-2-gpu-amd-com-8-sriovnetw-a8e66b43-quarter
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 0'
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q1
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: q
+      exactly:
+        deviceClassName: dra-cpu-2-dra-memory-2-gpu-amd-com-8-sriovnetw-a8e66b43-quarter
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 0'
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q2
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: q
+      exactly:
+        deviceClassName: dra-cpu-2-dra-memory-2-gpu-amd-com-8-sriovnetw-a8e66b43-quarter
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 1'
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: q3
+  namespace: test
+spec:
+  devices:
+    requests:
+    - name: q
+      exactly:
+        deviceClassName: dra-cpu-2-dra-memory-2-gpu-amd-com-8-sriovnetw-a8e66b43-quarter
+        count: 1
+        selectors:
+        - cel:
+            expression: 'device.attributes["dra.net"].numaNode == 1'
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q0
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q0
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q1
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q2
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q2
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: q3
+  namespace: test
+spec:
+  containers:
+  - name: w
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["/bin/sleep", "infinity"]
+  resourceClaims:
+  - name: d
+    resourceClaimName: q3

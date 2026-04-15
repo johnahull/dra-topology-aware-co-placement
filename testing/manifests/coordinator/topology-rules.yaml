@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cpu-numa-rule
+  namespace: nodepartition
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: dra.cpu/numaNodeID
+  type: int
+  driver: dra.cpu
+  mapsTo: numaNode
+  partitioning: group
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sriov-numa-rule
+  namespace: nodepartition
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: dra.net/numaNode
+  type: int
+  driver: sriovnetwork.k8snetworkplumbingwg.io
+  mapsTo: numaNode
+  partitioning: group
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-numa-rule
+  namespace: nodepartition
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: gpu.amd.com/numaNode
+  type: int
+  driver: gpu.amd.com
+  mapsTo: numaNode
+  partitioning: group
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memory-numa-rule
+  namespace: nodepartition
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: dra.memory/numaNode
+  type: int
+  driver: dra.memory
+  mapsTo: numaNode
+  partitioning: group
