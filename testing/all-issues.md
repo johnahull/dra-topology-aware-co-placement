@@ -89,6 +89,7 @@
 | 2 | No anti-affinity across NUMA | Low | The scheduler may place all partition claims on the same NUMA node (all 4 quarter pods on NUMA 0, leaving NUMA 1 empty). The `matchAttribute: dra.net/numaNode` constraint only requires same-NUMA within each pod, not spread across NUMA nodes. Workaround: add CEL `numaNode==0/1` selectors to claims. DRA has no anti-affinity mechanism. | Design limitation |
 | 3 | Partition naming is unintuitive | Low | "Quarter" in the coordinator means "quarter of the device groups within a NUMA node", not "quarter of the machine". With 2 NUMA nodes and 4 GPUs per NUMA, a "quarter" = 1 GPU + 2 NICs + 1 CPU + 1 memory. Users expect "quarter" to mean 25% of the machine (2 GPUs + 4 NICs + 32 CPUs + ...). The naming convention should be documented or made configurable. | `fabiendupont/k8s-dra-topology-coordinator` |
 | 4 | Webhook unavailable during controller restart | Medium | The controller pod serves both the reconciler and the webhook. When the pod restarts (e.g., after image update), claims created during the restart window are not expanded by the webhook. They get the raw partition DeviceClass which the scheduler can't allocate. Workaround: wait for the controller pod to be Running before creating claims. Fix: separate webhook and controller pods, or add a readiness gate. | `fabiendupont/k8s-dra-topology-coordinator` |
+| 5 | Webhook drops user CEL selectors on partition request | Medium | When a user adds a CEL selector to the partition request (e.g., `numaNode == 0` to pin to a specific NUMA node), the webhook replaces the entire partition request with expanded sub-requests and drops the user's selector. All pods land on whatever NUMA node the scheduler picks first. Workaround: none — the webhook needs to forward user-specified selectors from the original partition request to each expanded sub-request. This would enable NUMA pinning and anti-affinity patterns. | `fabiendupont/k8s-dra-topology-coordinator` |
 
 ### KubeVirt
 
@@ -124,9 +125,9 @@
 | AMD GPU DRA driver | 9 | 4 | 13 |
 | SR-IOV NIC DRA driver | 5 | 1 | 6 |
 | DRA Memory driver | 2 | 0 | 2 |
-| Topology coordinator | 6 | 4 | 10 |
+| Topology coordinator | 6 | 5 | 11 |
 | KubeVirt | 2 | 2 | 4 |
 | Kubernetes/kubelet | 0 | 1 | 1 |
 | containerd | 1 (rebuild) | 1 | 2 |
 | Infrastructure | 0 | 1 | 1 |
-| **Total** | **25 PRs** | **14 issues** | **39** |
+| **Total** | **25 PRs** | **15 issues** | **40** |
