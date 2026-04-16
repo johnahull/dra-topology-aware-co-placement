@@ -64,6 +64,43 @@ The community removed `numaNode` from KEP-4381 because SNC/NPS changes what NUMA
 
 But this is the **same problem** as pcieRoot: hardware topology limits which devices can be co-located. SNC doesn't make `numaNode` wrong — it makes it finer-grained. The sysfs value is always correct for the current BIOS configuration.
 
+### Side-by-side: pcieRoot vs numaNode on real hardware
+
+**By pcieRoot** — which GPUs can match a NIC? (same answer SNC on or off):
+
+| pcieRoot | GPU | NIC | Match? |
+|----------|-----|-----|--------|
+| `pci0000:15` | 1b | 1d:00.0, 1d:00.1 | **YES** |
+| `pci0000:37` | 3d | — | no |
+| `pci0000:48` | 4e | — | no |
+| `pci0000:59` | 5f | — | no |
+| `pci0000:97` | 9d | 9f:00.0, 9f:00.1 | **YES** |
+| `pci0000:b7` | bd | — | no |
+| `pci0000:c7` | cd | — | no |
+| `pci0000:d7` | dd | — | no |
+
+**Result: 2 of 8 GPUs (25%)**
+
+**By numaNode (SNC off)** — which GPUs can match a NIC?
+
+| numaNode | GPUs | NICs | Match? |
+|----------|------|------|--------|
+| 0 | 1b, 3d, 4e, 5f | 1d:00.0, 1d:00.1 | **YES — 4 GPUs** |
+| 1 | 9d, bd, cd, dd | 9f:00.0, 9f:00.1 | **YES — 4 GPUs** |
+
+**Result: 8 of 8 GPUs (100%)**
+
+**By numaNode (SNC on)** — which GPUs can match a NIC?
+
+| numaNode | GPUs | NICs | Match? |
+|----------|------|------|--------|
+| 0 | 1b, 5f | 1d:00.0, 1d:00.1 | **YES — 2 GPUs** |
+| 1 | 3d, 4e | — | no (no NIC on this sub-NUMA) |
+| 2 | 9d, dd | 9f:00.0, 9f:00.1 | **YES — 2 GPUs** |
+| 3 | bd, cd | — | no (no NIC on this sub-NUMA) |
+
+**Result: 4 of 8 GPUs (50%)** — the 4 excluded GPUs are on sub-NUMAs that physically have no NIC. No attribute can fix missing hardware.
+
 ### Neither attribute works alone on all hardware
 
 | Attribute | Coverage on XE9680 (SNC off) | Coverage on XE9680 (SNC on) | Works for CPU/memory |
