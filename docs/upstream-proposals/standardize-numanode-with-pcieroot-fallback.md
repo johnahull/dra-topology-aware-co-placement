@@ -4,6 +4,35 @@
 
 Standardize `resource.kubernetes.io/numaNode` as a companion to the existing `resource.kubernetes.io/pcieRoot`. Together they form a distance-based alignment system: `pcieRoot` for tight coupling (same PCIe switch), `numaNode` for loose coupling (same memory controller). Neither attribute alone covers all hardware configurations. Both are needed for reliable cross-driver device co-placement.
 
+## Overview Diagram
+
+```mermaid
+graph TB
+    subgraph PROBLEM["The Problem: Neither Attribute Works Alone"]
+        direction TB
+        P1["pcieRoot only<br/>✓ GPU+NIC on same switch<br/>✗ 75% of GPUs excluded<br/>✗ CPU/memory can't participate"]
+        P2["numaNode only<br/>✓ All device types<br/>✓ 100% GPU coverage (SNC off)<br/>✗ Not standardized<br/>✗ Each driver uses different name"]
+    end
+
+    subgraph SOLUTION["Proposed: Distance-Based Fallback"]
+        direction TB
+        S1["resource.kubernetes.io/pcieRoot<br/>(already standard)"]
+        S2["resource.kubernetes.io/numaNode<br/>(proposed standard)"]
+        S1 -->|"tight coupling<br/>same switch"| TIGHT["GPU-NIC RDMA<br/>GPU-GPU peer DMA<br/>25% coverage"]
+        S2 -->|"loose coupling<br/>same memory controller"| LOOSE["Cross-driver co-placement<br/>CPU + memory included<br/>100% coverage"]
+        S1 -->|"preferred<br/>(fallback)"| S2
+    end
+
+    PROBLEM --> SOLUTION
+
+    style P1 fill:#e44,color:#fff
+    style P2 fill:#fa4,color:#000
+    style TIGHT fill:#4a9,color:#fff
+    style LOOSE fill:#49a,color:#fff
+    style S1 fill:#4a9,color:#fff
+    style S2 fill:#49a,color:#fff
+```
+
 ## The Problem
 
 ### pcieRoot alone excludes most devices on real hardware
@@ -238,6 +267,127 @@ SNC splits each socket into 2 sub-NUMA nodes. The PCIe tree is physically identi
 | SNC on (4 NUMA) | 2/8 GPUs (25%) | 4/8 GPUs (50%) | 4/8* (50%) |
 
 *With SNC on, NUMA 1 and 3 physically have no NIC — no attribute can match what doesn't exist. The 50% limit is hardware, not software.
+
+### Fallback Chain in Action (SNC off)
+
+```mermaid
+graph LR
+    subgraph SWITCH_15["PCIe Switch pci0000:15"]
+        GPU_1b["GPU 1b"]
+        NIC_1d["NIC 1d"]
+    end
+    subgraph SWITCH_37["PCIe Switch pci0000:37"]
+        GPU_3d["GPU 3d"]
+    end
+    subgraph SWITCH_48["PCIe Switch pci0000:48"]
+        GPU_4e["GPU 4e"]
+    end
+    subgraph SWITCH_59["PCIe Switch pci0000:59"]
+        GPU_5f["GPU 5f"]
+    end
+
+    GPU_1b ---|"pcieRoot ✓<br/>TIGHT"| NIC_1d
+    GPU_3d -.-|"pcieRoot ✗<br/>fallback to<br/>numaNode ✓<br/>LOOSE"| NIC_1d
+    GPU_4e -.-|"numaNode ✓<br/>LOOSE"| NIC_1d
+    GPU_5f -.-|"numaNode ✓<br/>LOOSE"| NIC_1d
+
+    style GPU_1b fill:#4a9,color:#fff
+    style NIC_1d fill:#49a,color:#fff
+    style GPU_3d fill:#fa4,color:#000
+    style GPU_4e fill:#fa4,color:#000
+    style GPU_5f fill:#fa4,color:#000
+    style SWITCH_15 fill:#dfd,color:#000
+    style SWITCH_37 fill:#fdd,color:#000
+    style SWITCH_48 fill:#fdd,color:#000
+    style SWITCH_59 fill:#fdd,color:#000
+```
+
+**Without numaNode:** Only GPU 1b can be co-located with NIC 1d. GPUs 3d, 4e, 5f are excluded.
+**With numaNode fallback:** All 4 GPUs on NUMA 0 can be co-located with NIC 1d. GPU 1b gets tight coupling, the rest get loose coupling.
+
+### SNC Impact Diagram
+
+```mermaid
+graph TB
+    subgraph SNC_OFF["SNC OFF (2 NUMA nodes)"]
+        direction LR
+        subgraph N0_OFF["NUMA 0 — Socket 0"]
+            G0a["GPU 1b"] --- G0b["GPU 3d"] --- G0c["GPU 4e"] --- G0d["GPU 5f"]
+            N0a["NIC 1d"]
+        end
+        subgraph N1_OFF["NUMA 1 — Socket 1"]
+            G1a["GPU 9d"] --- G1b["GPU bd"] --- G1c["GPU cd"] --- G1d["GPU dd"]
+            N1a["NIC 9f"]
+        end
+    end
+
+    subgraph SNC_ON["SNC ON (4 NUMA nodes)"]
+        direction LR
+        subgraph N0_ON["NUMA 0"]
+            G00["GPU 1b"]
+            G01["GPU 5f"]
+            N00["NIC 1d ✓"]
+        end
+        subgraph N1_ON["NUMA 1"]
+            G10["GPU 3d"]
+            G11["GPU 4e"]
+            N10["no NIC ✗"]
+        end
+        subgraph N2_ON["NUMA 2"]
+            G20["GPU 9d"]
+            G21["GPU dd"]
+            N20["NIC 9f ✓"]
+        end
+        subgraph N3_ON["NUMA 3"]
+            G30["GPU bd"]
+            G31["GPU cd"]
+            N30["no NIC ✗"]
+        end
+    end
+
+    SNC_OFF -->|"BIOS enables SNC"| SNC_ON
+
+    style N0_OFF fill:#dfd,color:#000
+    style N1_OFF fill:#dfd,color:#000
+    style N0_ON fill:#dfd,color:#000
+    style N2_ON fill:#dfd,color:#000
+    style N1_ON fill:#fdd,color:#000
+    style N3_ON fill:#fdd,color:#000
+```
+
+**SNC off:** numaNode matches 8/8 GPUs with NICs (100%).
+**SNC on:** numaNode matches 4/8 GPUs with NICs (50%). NUMA 1/3 have no NIC — this is a hardware limitation, not an attribute problem.
+
+### Distance Hierarchy
+
+```mermaid
+graph TD
+    subgraph LEVELS["Device Proximity Levels"]
+        L1["TIGHT<br/>resource.kubernetes.io/pcieRoot<br/>Same PCIe switch<br/>Lowest latency"]
+        L2["LOOSE<br/>resource.kubernetes.io/numaNode<br/>Same memory controller<br/>Low latency"]
+        L3["CROSS-NUMA<br/>(no constraint)<br/>Different sockets<br/>High latency (UPI/xGMI)"]
+    end
+
+    L1 -->|"preferred<br/>fallback"| L2
+    L2 -->|"worst case"| L3
+
+    subgraph COVERAGE["XE9680 Coverage (SNC off)"]
+        C1["pcieRoot: 2/8 GPUs"]
+        C2["+ numaNode: 8/8 GPUs"]
+        C3["unconstrained: 8/8 GPUs<br/>(no alignment guarantee)"]
+    end
+
+    L1 --- C1
+    L2 --- C2
+    L3 --- C3
+
+    style L1 fill:#4a9,color:#fff
+    style L2 fill:#49a,color:#fff
+    style L3 fill:#e44,color:#fff
+    style C1 fill:#fdd,color:#000
+    style C2 fill:#dfd,color:#000
+    style C3 fill:#ddd,color:#000
+```
 
 ## Addressing the SNC/NPS Objection
 
