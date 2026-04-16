@@ -381,6 +381,105 @@ data:
 
 ---
 
+## Proposed Enhancement: Distance-Based Constraint Fallback
+
+### Problem
+
+Today the coordinator emits constraints with `enforcement: required` (always emit) or `enforcement: preferred` (emit only if satisfiable, otherwise skip entirely). There's no middle ground — a preferred constraint that fails doesn't fall back to a looser constraint.
+
+On the XE9680, a `pcieRoot` constraint for GPU+NIC is satisfiable for only 2 of 8 GPUs (the ones sharing a PCIe switch with the NIC). A `numaNode` constraint works for all 8. Ideally the coordinator would try pcieRoot first, then fall back to numaNode.
+
+### Proposal: Constraint Priority Chain
+
+Add a `fallbackAttribute` field to topology rules, creating a priority chain of alignment constraints:
+
+```yaml
+# Topology rule ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-nic-alignment
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: resource.kubernetes.io/pcieRoot
+  type: string
+  driver: gpu.amd.com
+  constraint: match
+  enforcement: preferred
+  fallbackAttribute: numaNode     # NEW: fall back to NUMA if pcieRoot unsatisfiable
+  description: "GPU-NIC tight coupling (same switch) with NUMA fallback"
+```
+
+### How It Works
+
+```
+Coordinator builds partition config:
+  1. Try pcieRoot constraint for GPU+NIC
+     → IsConstraintSatisfiable("pcieRoot", {gpu: 1, nic: 2})?
+     → YES for GPU 1b + NIC 1d (same switch)
+     → NO for GPU 3d (no NIC on its switch)
+
+  2. For partitions where pcieRoot fails, try fallbackAttribute (numaNode)
+     → IsConstraintSatisfiable("numaNode", {gpu: 1, nic: 2})?
+     → YES for all GPUs (same NUMA as NICs)
+
+  Result:
+    Partition with GPU 1b: pcieRoot constraint (tight, same switch)
+    Partition with GPU 3d: numaNode constraint (loose, same NUMA)
+```
+
+### Distance Levels
+
+This naturally creates a distance hierarchy:
+
+| Level | Attribute | What It Means | Latency |
+|-------|-----------|---------------|---------|
+| Tight | `pcieRoot` | Same PCIe switch | Lowest (no root complex hop) |
+| Loose | `numaNode` | Same memory controller | Low (crosses PCIe fabric, same NUMA) |
+| Cross-NUMA | none | Different sockets | High (crosses UPI/xGMI) |
+
+The coordinator would label each partition with its coupling level, so users can request specific tightness:
+
+```yaml
+# DeviceClass labels
+nodepartition.dra.k8s.io/coupling: tight    # pcieRoot matched
+nodepartition.dra.k8s.io/coupling: loose    # numaNode matched only
+```
+
+Users who need minimum latency (RDMA, GPU-Direct) select `coupling: tight`. Users who just need NUMA locality select either.
+
+### Implementation
+
+Changes to existing coordinator code:
+
+1. **`AlignmentConfig`** — add `FallbackAttribute string` field
+2. **`buildPartitionConfig()`** — when a preferred constraint is unsatisfiable for a partition, check fallbackAttribute
+3. **`IsConstraintSatisfiable()`** — already exists, just call it for the fallback
+4. **`DeviceClass labels`** — add coupling level label based on which constraint was used
+5. **Topology rule ConfigMap** — add optional `fallbackAttribute` field, parsed in `parseTopologyRule()`
+
+No changes needed to the webhook, DRA drivers, or KubeVirt.
+
+### Example: XE9680 Result
+
+With the fallback chain, the coordinator would create:
+
+| Partition | GPU | NIC | Coupling | Constraint |
+|-----------|-----|-----|----------|------------|
+| eighth-numa0-tight | 1b | 1d:00.2 | tight | pcieRoot=pci0000:15 |
+| eighth-numa0-loose | 3d | 1d:00.3 | loose | numaNode=0 |
+| eighth-numa0-loose | 4e | 1d:00.4 | loose | numaNode=0 |
+| eighth-numa0-loose | 5f | 1d:00.5 | loose | numaNode=0 |
+| eighth-numa1-tight | 9d | 9f:00.2 | tight | pcieRoot=pci0000:97 |
+| eighth-numa1-loose | bd | 9f:00.3 | loose | numaNode=1 |
+| eighth-numa1-loose | cd | 9f:00.4 | loose | numaNode=1 |
+| eighth-numa1-loose | dd | 9f:00.5 | loose | numaNode=1 |
+
+2 tight partitions (GPU+NIC on same switch) + 6 loose partitions (GPU+NIC on same NUMA). All 8 GPUs usable, with the best available coupling for each.
+
+---
+
 ## Solution A: pcieRoot-as-list (Pivot Mode)
 
 Solution A uses `resource.kubernetes.io/pcieRoot` (list-typed on CPUs, scalar on PCI devices) for alignment, with the CPU as a pivot device. Three components need changes:
