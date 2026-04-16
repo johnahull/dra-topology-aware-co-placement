@@ -97,14 +97,85 @@ A DRA topology hint mechanism would let the scheduler tell the kubelet "this pod
 
 **Gap**: KubeVirt needs the kubelet to pin CPUs/memory to the same sub-NUMA as devices. Without this, the `NUMATune` strict mode fails for device-only cells because the cgroup doesn't allow that sub-NUMA's resources.
 
+## Real Hardware: Dell XE9680 SNC On vs Off
+
+Tested on Dell XE9680 (2-socket Intel Sapphire Rapids, 8x MI300X, 4x ConnectX-6 ports).
+
+### SNC OFF (2 NUMA nodes)
+
+Each socket is one NUMA node. All PCIe root complexes on a socket share one NUMA.
+
+| NUMA | CPUs | Memory | GPUs | NICs |
+|------|------|--------|------|------|
+| 0 | 64 (even: 0,2,4...) | 1 TB | 4 (1b, 3d, 4e, 5f) | 2 (1d:00.0, 1d:00.1) |
+| 1 | 64 (odd: 1,3,5...) | 1 TB | 4 (9d, bd, cd, dd) | 2 (9f:00.0, 9f:00.1) |
+
+PCIe root complexes per NUMA:
+- NUMA 0: `0000:15`, `0000:37`, `0000:48`, `0000:59` (4 GPU switches + 1 NIC switch)
+- NUMA 1: `0000:97`, `0000:b7`, `0000:c7`, `0000:d7` (4 GPU switches + 1 NIC switch)
+
+### SNC ON (4 NUMA nodes)
+
+Each socket splits into 2 sub-NUMA nodes. PCIe root complexes distribute across sub-NUMAs:
+
+| NUMA | CPUs | Memory | GPUs | NICs |
+|------|------|--------|------|------|
+| 0 | 32 (0,4,8...) | 503 GB | 2 (1b, 5f) | 2 (1d:00.0, 1d:00.1) |
+| 1 | 32 (2,6,10...) | 504 GB | 2 (3d, 4e) | **0** |
+| 2 | 32 (1,5,9...) | 504 GB | 2 (9d, dd) | 2 (9f:00.0, 9f:00.1) |
+| 3 | 32 (3,7,11...) | 504 GB | 2 (bd, cd) | **0** |
+
+PCIe root complexes per sub-NUMA:
+- NUMA 0: `0000:15`, `0000:59` (2 GPUs + NIC)
+- NUMA 1: `0000:37`, `0000:48` (2 GPUs, no NIC)
+- NUMA 2: `0000:97`, `0000:d7` (2 GPUs + NIC)
+- NUMA 3: `0000:b7`, `0000:c7` (2 GPUs, no NIC)
+
+### Key Observations
+
+1. **PCIe tree is identical** — same physical devices, same switches. SNC only changes which CPU/memory controller services each root complex.
+
+2. **Asymmetric device distribution** — NUMA 1 and 3 have GPUs but no NICs. The NICs share a PCIe switch with one GPU, and that switch stays on the "first half" sub-NUMA.
+
+3. **sysfs NUMA numbers are always correct** — the kernel reports the right sub-NUMA node. No driver changes needed between SNC on/off.
+
+4. **Topology coordinator handles both transparently** — it reads ResourceSlice attributes (which come from sysfs) and creates per-NUMA partitions. With SNC on, NUMA 1/3 get GPU-only partitions (no NICs).
+
+5. **CPU interleaving changes** — SNC OFF: even CPUs on NUMA 0, odd on NUMA 1. SNC ON: strided across 4 nodes (0,4,8... / 2,6,10... / 1,5,9... / 3,7,11...).
+
+## Impact on the DRA Stack
+
+### What Works Without Changes
+
+- **DRA drivers**: Read NUMA from sysfs, publish in ResourceSlice. Correct for any SNC/NPS mode.
+- **Topology coordinator**: Creates per-NUMA partitions from ResourceSlice data. Adapts automatically to 2 vs 4 vs 8 NUMA nodes.
+- **Per-driver CEL selectors**: `device.attributes["gpu.amd.com"].numaNode == 2` works because the driver reads from sysfs.
+- **KubeVirt device placement**: VEP 115 pxb-pcie reads NUMA from sysfs or KEP-5304 metadata. Correct for any topology.
+
+### What Breaks
+
+- **Kubelet CPU/memory pinning**: The topology manager doesn't coordinate with DRA. On SNC with 4 NUMA nodes, DRA places a device on sub-NUMA 3, but the topology manager might pin CPUs on sub-NUMA 0. The pod's cgroup doesn't allow sub-NUMA 3 resources.
+- **KubeVirt guest NUMA memory binding**: Device-only guest NUMA cells need memory from the device's sub-NUMA, but the cgroup restricts it.
+- **Partition symmetry assumptions**: Some workloads assume all partitions are identical. With SNC, NUMA 0 has GPU+NIC while NUMA 1 has GPU-only.
+
+### The Fundamental Gap
+
+DRA and the kubelet topology manager are separate systems:
+- DRA knows which NUMA each device is on (from driver ResourceSlice attributes)
+- Topology manager knows which NUMA each CPU/memory allocation is on (from cgroup)
+- Neither tells the other what it chose
+
+A DRA topology hint mechanism would let the scheduler tell the kubelet: "this pod's devices are on NUMA 0 and 3 — pin CPUs and memory to those nodes." This doesn't exist today.
+
 ## Summary
 
 | Question | Status |
 |----------|--------|
 | Can we get the NUMA number for a device? | Yes — sysfs, always correct for SNC/NPS |
-| Can the kubelet auto-populate it? | Proposed — one-time K8s change, no driver changes |
+| Can the kubelet auto-populate it in metadata? | Proposed — one-time K8s change, no driver changes |
 | Does the topology coordinator handle SNC/NPS? | Yes — per-sub-NUMA partitions automatically |
 | Does KubeVirt guest NUMA work with SNC/NPS? | Partially — device placement works, CPU/memory coordination doesn't |
 | Can DRA and topology manager coordinate? | No — this is the fundamental gap |
+| Are partitions asymmetric with SNC/NPS? | Yes — NUMA 1/3 have no NICs on XE9680 |
 
 The topology coordinator solves the device placement problem. The kubelet auto-populate solves the metadata problem. The remaining gap is CPU/memory pinning to match DRA device placement — that requires a DRA topology hint mechanism in the kubelet, which doesn't exist today.
