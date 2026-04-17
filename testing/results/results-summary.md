@@ -13,6 +13,10 @@
 | KubeVirt GPU VFIO via DRA | Fedora 43 | 1.36.0-rc.0 | GPU, NIC | KEP-5304 native metadata, VFIO passthrough | 2026-04-14 |
 | Topology coordinator partitions | Fedora 43 | 1.36.0-rc.0 | GPU, NIC, CPU, Memory | 8-pod eighth-machine split, webhook expansion | 2026-04-14/15 |
 | Full GPU+NIC VFIO with guest NUMA | Fedora 43 | 1.36.0-rc.0 | GPU, NIC | GIM SR-IOV VFs, 7 KubeVirt patches, VEP 115 fix | 2026-04-15/16 |
+| Hardware topology capture (SNC on) | Fedora 43 | 1.36.0-rc.0 | All 4 | 4 NUMA, 9 DeviceClasses (4 tight + 4 loose + 1 full) | 2026-04-17 |
+| Hardware topology capture (SNC off) | Fedora 43 | 1.36.0-rc.0 | All 4 | 2 NUMA, 5 DeviceClasses (4 tight + 1 full) | 2026-04-17 |
+| E2E pod scheduling (SNC off) | Fedora 43 | 1.36.0-rc.0 | All 4 | 2 eighth pods running, full 4-driver NUMA alignment | 2026-04-17 |
+| KubeVirt VFIO guest NUMA (VEP 115+DRA) | Fedora 43 | 1.36.0-rc.0 | GPU, NIC | VM running, pxb-pcie placement from KEP-5304 metadata | 2026-04-17 |
 
 ## Feature Matrix
 
@@ -53,9 +57,44 @@
 | KubeVirt VM (DRA VFIO) | 1 | 8 vCPUs + 2 GPUs + 2 NICs + 16 GiB hugepages | Guest NUMA | Working (patched) |
 | Mixed pod + VM | 2 | Pod: CPUs+NICs, VM: GPUs+NICs | Both | Working |
 
+## SNC-2 On vs Off Comparison
+
+Same hardware (Dell XE9680), same software, different BIOS setting:
+
+| | SNC-2 ON | SNC OFF |
+|--|----------|---------|
+| NUMA nodes | 4 | 2 |
+| CPUs per node | 32 | 64 |
+| RAM per node | ~500 GB | ~1 TB |
+| Partition DeviceClasses | 9 | 5 |
+| Tight coupling (GPU+NIC same pcieRoot) | 4 (NUMA 0, 2) | 4 (NUMA 0, 1) |
+| Loose coupling (GPU-only, no NIC on switch) | 4 (NUMA 1, 3) | 0 |
+| Result | Distance-based fallback needed | All partitions tight |
+
+Key finding: the coordinator adapts automatically to SNC changes without configuration.
+
+## Bugs Found and Fixed (2026-04-17)
+
+| Bug | Root Cause | Fix | Repo |
+|-----|-----------|-----|------|
+| pcieRoot matchAttribute unsatisfiable | CPU/memory drivers included in pcieRoot constraint | Filter constraint requests to only drivers publishing the attribute | topology-coordinator |
+| GPU pods ContainerCreating error | GPU driver applying ROCm config to VFIO VFs | Deploy patched GPU driver with VFIO support | k8s-gpu-dra-driver |
+| virt-controller rejects DRA hostDevices | Unpatched virt-controller checking permittedHostDevices | Deploy patched virt-controller, disable operator reconciliation | kubevirt |
+| KEP-5304 metadata path mismatch | Template claims under `resourceclaimtemplates/` not `resourceclaims/` | Search both directories in resolveClaimMetadata | kubevirt |
+| libnbd ABI mismatch | virt-launcher built on Fedora 43, base image is RHEL 9 | Build with CentOS Stream 9 container | kubevirt |
+| Multi-device DRA requests | KubeVirt expects 1 device per request, coordinator uses count>1 | Use count:1 per claim (needs upstream fix for multi-device) | kubevirt |
+
 ## Detailed Results
 
 - [OCP 4.21 Baseline Results](ocp421-xe9680.md)
 - [K8s 1.36 Full Stack Results](k8s136-fedora43.md)
 - [KubeVirt Integration](../../docs/kubevirt-integration.md)
 - [Topology Coordinator Partitioning](../../docs/topology-coordinator.md)
+
+### Hardware Captures
+- [XE9680 SNC-2 ON (4 NUMA)](xe9680-hardware/) — PCIe tree, IOMMU groups, lstopo, ResourceSlices, DeviceClasses
+- [XE9680 SNC OFF (2 NUMA)](xe9680-hardware-snc-off/) — same captures, plus e2e test results
+
+### E2E Test Results (2026-04-17)
+- [Pod scheduling test](xe9680-hardware-snc-off/e2e-test-running.txt) — 2 eighth pods with 4-driver NUMA alignment
+- [KubeVirt VFIO NUMA test](xe9680-hardware-snc-off/kubevirt-vfio-numa-test.txt) — VM with GPU+NIC, VEP 115 pxb-pcie placement
