@@ -1,0 +1,132 @@
+=== E2E Test: SNC OFF (2 NUMA nodes) ===
+Date: 2026-04-17T15:54:38Z
+
+=== Pod Status ===
+eighth-numa0   0/1   ContainerCreating   0     2m5s   <none>   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   <none>   <none>
+eighth-numa1   0/1   ContainerCreating   0     2m5s   <none>   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   <none>   <none>
+
+=== ResourceClaim Allocations ===
+--- eighth-numa0-partition-fqz6q ---
+[
+    {
+        "consumedCapacity": {
+            "dra.cpu/cpu": "16"
+        },
+        "device": "cpudevnuma000",
+        "driver": "dra.cpu",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-cpu",
+        "shareID": "1a3f3f18-dbf8-4fc1-9b08-bff86732aa3d"
+    },
+    {
+        "consumedCapacity": {
+            "size": "8Gi"
+        },
+        "device": "memory-8wmmbh",
+        "driver": "dra.memory",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-memory",
+        "shareID": "deb64a4b-46de-4834-a8d0-d6d5432b3bc6"
+    },
+    {
+        "device": "gpu-vfio-4",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "gpu-49-176",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "0000-1d-00-3",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    },
+    {
+        "device": "0000-1d-01-0",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    }
+]
+--- eighth-numa1-partition-wpshb ---
+[
+    {
+        "consumedCapacity": {
+            "dra.cpu/cpu": "16"
+        },
+        "device": "cpudevnuma001",
+        "driver": "dra.cpu",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-cpu",
+        "shareID": "d37aedde-6fac-41eb-89c1-bb629f9dae73"
+    },
+    {
+        "consumedCapacity": {
+            "size": "8Gi"
+        },
+        "device": "memory-g75w5d",
+        "driver": "dra.memory",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-memory",
+        "shareID": "7f9456b0-9e46-4137-9f14-74b2ecbe2d16"
+    },
+    {
+        "device": "gpu-vfio-0",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "gpu-57-184",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "0000-9f-00-6",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    },
+    {
+        "device": "0000-9f-01-1",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    }
+]
+
+=== Constraints ===
+--- eighth-numa0-partition-fqz6q ---
+[
+    {
+        "matchAttribute": "resource.kubernetes.io/pcieRoot",
+        "requests": [
+            "partition-gpu-amd-com",
+            "partition-sriovnetwork-k8snetworkplumbingwg-io"
+        ]
+    }
+]
+--- eighth-numa1-partition-wpshb ---
+[
+    {
+        "matchAttribute": "resource.kubernetes.io/pcieRoot",
+        "requests": [
+            "partition-gpu-amd-com",
+            "partition-sriovnetwork-k8snetworkplumbingwg-io"
+        ]
+    }
+]
+
+=== DeviceClass Coupling Labels ===
+NAME                                                                          PARTITION   NUMA     COUPLING
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa0-tight   quarter     numa0    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa1-tight   quarter     numa1    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa0-tight   eighth      numa0    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa1-tight   eighth      numa1    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetwor-59293660-full-loose         full        <none>   loose
