@@ -1,0 +1,179 @@
+=== KubeVirt VFIO Guest NUMA Test (VEP 115 + DRA) ===
+Date: 2026-04-17T17:53:59Z
+
+=== VMI Status ===
+vm-numa-test   4m18s   Running   192.168.63.138   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   True
+
+=== DRA Claims ===
+--- virt-launcher-vm-numa-test-4zfrv-my-gpu-ldsng ---
+[
+    {
+        "device": "gpu-vfio-5",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "gpu"
+    }
+]
+--- virt-launcher-vm-numa-test-4zfrv-my-nic-n7vpc ---
+[
+    {
+        "device": "0000-1d-01-1",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "nic"
+    }
+]
+
+=== DRA NUMA Overrides (from launcher logs) ===
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:10.665340Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:10.666093Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:13.325436Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:13.326053Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:13.391597Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:13.392143Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:13.472788Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:13.473336Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:32.048292Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:32.048798Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:32.213735Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:32.214142Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:32.294999Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:32.295455Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:42.175733Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:42.176100Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=my-gpu request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:42.263579Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=my-nic request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T17:50:42.264066Z"}
+
+=== Libvirt Domain: NUMA + pxb-pcie + hostdev ===
+<domain type='kvm' id='1'>
+  <name>vm-test_vm-numa-test</name>
+  <uuid>74eb7fb5-da9b-4c24-9ca5-a2f33e316024</uuid>
+  <metadata>
+    <kubevirt xmlns="http://kubevirt.io">
+      <uid/>
+    </kubevirt>
+  </metadata>
+  <memory unit='KiB'>4194304</memory>
+  <currentMemory unit='KiB'>4194304</currentMemory>
+  <memoryBacking>
+    <hugepages>
+--
+    <vcpupin vcpu='0' cpuset='0'/>
+    <vcpupin vcpu='1' cpuset='64'/>
+    <vcpupin vcpu='2' cpuset='2'/>
+    <vcpupin vcpu='3' cpuset='66'/>
+  </cputune>
+  <numatune>
+    <memory mode='strict' nodeset='0'/>
+    <memnode cellid='0' mode='strict' nodeset='0'/>
+  </numatune>
+  <resource>
+    <partition>/machine</partition>
+  </resource>
+  <sysinfo type='smbios'>
+    <system>
+      <entry name='manufacturer'>KubeVirt</entry>
+      <entry name='product'>None</entry>
+      <entry name='uuid'>74eb7fb5-da9b-4c24-9ca5-a2f33e316024</entry>
+      <entry name='family'>KubeVirt</entry>
+    </system>
+--
+    <feature policy='require' name='vmx-eptp-switching'/>
+    <feature policy='disable' name='hle'/>
+    <feature policy='disable' name='rtm'/>
+    <feature policy='disable' name='taa-no'/>
+    <feature policy='require' name='ht'/>
+    <numa>
+      <cell id='0' cpus='0-15' memory='4194304' unit='KiB'/>
+    </numa>
+  </cpu>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/libexec/qemu-kvm</emulator>
+    <disk type='file' device='disk' model='virtio-non-transitional'>
+      <driver name='qemu' type='qcow2' cache='none' error_policy='stop' discard='unmap'/>
+      <source file='/var/run/kubevirt-ephemeral-disks/disk-data/containerdisk/disk.qcow2' index='2'/>
+--
+      <alias name='ua-containerdisk'/>
+      <address type='pci' domain='0x0000' bus='0x0d' slot='0x00' function='0x0'/>
+    </disk>
+    <disk type='file' device='disk' model='virtio-non-transitional'>
+      <driver name='qemu' type='raw' cache='none' error_policy='stop' discard='unmap'/>
+      <source file='/var/run/kubevirt-ephemeral-disks/cloud-init-data/vm-test/vm-numa-test/noCloud.iso' index='1'/>
+      <backingStore/>
+      <target dev='vdb' bus='virtio'/>
+      <alias name='ua-cloudinitdisk'/>
+      <address type='pci' domain='0x0000' bus='0x0e' slot='0x00' function='0x0'/>
+    </disk>
+    <controller type='usb' index='0' model='none'/>
+    <controller type='scsi' index='0' model='virtio-non-transitional'>
+      <alias name='scsi0'/>
+      <address type='pci' domain='0x0000' bus='0x0b' slot='0x00' function='0x0'/>
+    </controller>
+    <controller type='pci' index='0' model='pcie-root'>
+      <alias name='pcie.0'/>
+    </controller>
+    <controller type='pci' index='1' model='pcie-expander-bus'>
+      <model name='pxb-pcie'/>
+      <target busNr='253'>
+        <node>0</node>
+      </target>
+      <alias name='pci.1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </controller>
+    <controller type='pci' index='2' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='2' port='0x0'/>
+      <alias name='pci.2'/>
+--
+      <log file='/var/run/kubevirt-private/069ebf22-a503-40c2-8a1c-5e436bd5acc5/virt-serial0-log' append='on'/>
+      <target type='serial' port='0'/>
+      <alias name='serial0'/>
+    </console>
+    <channel type='unix'>
+      <source mode='bind' path='/run/libvirt/qemu/channel/1-vm-test_vm-numa-test/org.qemu.guest_agent.0'/>
+      <target type='virtio' name='org.qemu.guest_agent.0' state='connected'/>
+      <alias name='channel0'/>
+      <address type='virtio-serial' controller='0' bus='0' port='1'/>
+    </channel>
+    <input type='mouse' bus='ps2'>
+      <alias name='input0'/>
+    </input>
+    <input type='keyboard' bus='ps2'>
+      <alias name='input1'/>
+    </input>
+--
+    <video>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+      <alias name='video0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
+    </video>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x3d' slot='0x02' function='0x0'/>
+      </source>
+      <alias name='ua-dra-hostdevice-gpu0'/>
+      <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x1d' slot='0x01' function='0x1'/>
+      </source>
+      <alias name='ua-dra-hostdevice-nic0'/>
+      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
+    </hostdev>
+    <watchdog model='itco' action='reset'>
+      <alias name='watchdog0'/>
+    </watchdog>
+    <memballoon model='virtio-non-transitional' freePageReporting='off'>
+      <stats period='10'/>
+      <alias name='balloon0'/>
+      <address type='pci' domain='0x0000' bus='0x0f' slot='0x00' function='0x0'/>
+    </memballoon>
+  </devices>
+  <seclabel type='dynamic' model='dac' relabel='yes'>
