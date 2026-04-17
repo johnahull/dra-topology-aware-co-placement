@@ -1,0 +1,85 @@
+=== SNC-2 ON: KubeVirt Dual-NUMA VM Test ===
+Date: 2026-04-17T19:18:03Z
+SNC-2: ON (4 host NUMA nodes: 0,1,2,3)
+VM devices from NUMA 0 (socket 0) and NUMA 2 (socket 1)
+
+=== VMI Status ===
+vm-snc-2numa   2m48s   Running   192.168.63.155   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   True
+
+=== DRA NUMA Mapping ===
+{"component":"virt-launcher","level":"info","msg":"DRA hostToGuest NUMA mapping: map[0:0 2:1]","pos":"converter.go:1507","timestamp":"2026-04-17T19:15:35.268886Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA transform: device 0000:5f:02.0 host NUMA 0 → guest cell 0","pos":"converter.go:1510","timestamp":"2026-04-17T19:15:35.268900Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA transform: device 0000:9d:02.0 host NUMA 2 → guest cell 1","pos":"converter.go:1510","timestamp":"2026-04-17T19:15:35.268910Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA transform: device 0000:1d:01.1 host NUMA 0 → guest cell 0","pos":"converter.go:1510","timestamp":"2026-04-17T19:15:35.268924Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA transform: device 0000:9f:00.4 host NUMA 2 → guest cell 1","pos":"converter.go:1510","timestamp":"2026-04-17T19:15:35.268933Z"}
+
+=== Guest NUMA Cells ===
+    <numa>
+      <cell id='0' cpus='0-15' memory='4192256' unit='KiB'/>
+      <cell id='1' memory='2048' unit='KiB'/>
+    </numa>
+
+=== pxb-pcie Expanders ===
+    <controller type='pci' index='1' model='pcie-expander-bus'>
+      <model name='pxb-pcie'/>
+      <target busNr='253'>
+        <node>1</node>
+      </target>
+      <alias name='pci.1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+--
+    <controller type='pci' index='4' model='pcie-expander-bus'>
+      <model name='pxb-pcie'/>
+      <target busNr='250'>
+        <node>0</node>
+      </target>
+      <alias name='pci.4'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+
+=== Host Devices ===
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x5f' slot='0x02' function='0x0'/>
+      </source>
+      <alias name='ua-dra-hostdevice-gpu0'/>
+      <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x9d' slot='0x02' function='0x0'/>
+      </source>
+      <alias name='ua-dra-hostdevice-gpu2'/>
+      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x1d' slot='0x01' function='0x1'/>
+      </source>
+      <alias name='ua-dra-hostdevice-nic0'/>
+      <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x9f' slot='0x00' function='0x4'/>
+      </source>
+      <alias name='ua-dra-hostdevice-nic2'/>
+      <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
+    </hostdev>
+    <watchdog model='itco' action='reset'>
+      <alias name='watchdog0'/>
+    </watchdog>
+    <memballoon model='virtio-non-transitional' freePageReporting='off'>
+      <stats period='10'/>
+      <alias name='balloon0'/>
+      <address type='pci' domain='0x0000' bus='0x12' slot='0x00' function='0x0'/>
+    </memballoon>
+
+=== Summary ===
+Host NUMA 0 (socket 0, SNC cluster 0) → Guest NUMA 0: GPU 0000:5f:02.0 + NIC 0000:1d:01.1
+Host NUMA 2 (socket 1, SNC cluster 0) → Guest NUMA 1: GPU 0000:9d:02.0 + NIC 0000:9f:00.4
+Device-only guest NUMA cell 1 for host NUMA 2 (no vCPUs, 2KB hugepage)
+Bug fixed: device-only cell mapping was incorrectly matching CPU-bearing NUMAs
