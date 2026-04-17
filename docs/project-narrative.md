@@ -55,6 +55,7 @@ On a Dell XE9680 (2-socket, 8x MI300X GPU, ConnectX-6 NIC, 128 CPUs, 2 TB memory
 - **Mixed sizes**: half on NUMA 1 + 2 quarters on NUMA 0
 - **DRAConsumableCapacity** for shared CPU/memory (multiple pods sharing the same device with divided capacity)
 - **Per-NUMA DeviceClasses**: eighth-numa0, quarter-numa1, half-numa0, etc.
+- **Distance-based fallback**: pcieRoot (tight, same switch) → numaNode (loose, same NUMA). On XE9680 with SNC: NUMA 0/2 get tight coupling, NUMA 1/3 get loose
 - Zero cross-NUMA contamination in any test
 
 ### Key Design Decisions
@@ -62,6 +63,7 @@ On a Dell XE9680 (2-socket, 8x MI300X GPU, ConnectX-6 NIC, 128 CPUs, 2 TB memory
 | Decision | Why |
 |----------|-----|
 | Per-driver CEL selectors instead of `matchAttribute` | Drivers don't agree on a common NUMA attribute name |
+| Distance-based fallback (pcieRoot → numaNode) | pcieRoot matches 25% of GPUs; numaNode matches 100%. Fallback gives tight coupling where hardware supports it, loose coupling everywhere else |
 | Per-NUMA DeviceClasses | Each partition is pre-pinned to a specific NUMA — deterministic allocation |
 | Topology rules via ConfigMap | New drivers supported without code changes — add a ConfigMap |
 | Half partitions from byNUMA fallback | Drivers don't publish socket attribute — fall back to NUMA grouping |

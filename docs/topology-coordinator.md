@@ -268,6 +268,7 @@ All branches on [`johnahull/k8s-dra-topology-coordinator`](https://github.com/jo
 | [`fix/per-driver-cel-selectors`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/per-driver-cel-selectors) | `d90e6ae` | Replaces cross-driver `matchAttribute` with per-driver CEL selectors. Each driver keeps its own NUMA attribute namespace. Coordinator translates between them. | [#2](../all-issues.md) (alternative approach) |
 | [`fix/webhook-forward-cel-selectors`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/webhook-forward-cel-selectors) | `b6de0ce` | Forwards user CEL selectors from the partition request to expanded sub-requests. Without this, user selectors are silently dropped. | [#7](../all-issues.md) |
 | [`test/all-fixes-combined`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/test/all-fixes-combined) | `83ec774` | Merge of all fixes into one testable branch. Includes NUMA label dash fix (`39b2ae1`). | All above |
+| [`fix/distance-based-fallback`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/distance-based-fallback) | `109fbf4` | Distance-based constraint fallback: try pcieRoot (tight) first, fall back to numaNode (loose). Labels DeviceClasses with coupling level. Tested on XE9680: NUMA 0/2 tight, NUMA 1/3 loose. | New feature |
 
 ### Branch Dependency Order
 
@@ -381,11 +382,14 @@ data:
 
 ---
 
-## Proposed Enhancement: Distance-Based Constraint Fallback
+## Implemented: Distance-Based Constraint Fallback
+
+**Branch:** [`fix/distance-based-fallback`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/distance-based-fallback)
+**Status:** Implemented and tested on XE9680
 
 ### Problem
 
-Today the coordinator emits constraints with `enforcement: required` (always emit) or `enforcement: preferred` (emit only if satisfiable, otherwise skip entirely). There's no middle ground — a preferred constraint that fails doesn't fall back to a looser constraint.
+The coordinator emitted constraints with `enforcement: required` (always emit) or `enforcement: preferred` (emit only if satisfiable, otherwise skip entirely). There was no middle ground — a preferred constraint that failed didn't fall back to a looser constraint.
 
 On the XE9680, a `pcieRoot` constraint for GPU+NIC is satisfiable for only 2 of 8 GPUs (the ones sharing a PCIe switch with the NIC). A `numaNode` constraint works for all 8. Ideally the coordinator would try pcieRoot first, then fall back to numaNode.
 
@@ -461,9 +465,9 @@ Changes to existing coordinator code:
 
 No changes needed to the webhook, DRA drivers, or KubeVirt.
 
-### Example: XE9680 Result
+### Verified: XE9680 Result (SNC on, 4 NUMA nodes)
 
-With the fallback chain, the coordinator would create:
+With the fallback chain deployed, the coordinator creates:
 
 | Partition | GPU | NIC | Coupling | Constraint |
 |-----------|-----|-----|----------|------------|
