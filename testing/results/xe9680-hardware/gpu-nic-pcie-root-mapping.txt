@@ -1,0 +1,56 @@
+=== GPU PF/VF NUMA and PCIe Root Mapping (SNC-2 ON, 4 NUMA nodes) ===
+
+Device              NUMA  PCIeRoot         Description
+-------------------------------------------------------------------
+0000:1b:00.0         0     pci0000:15/0000:15:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:1b:02.0         0     pci0000:15/0000:15:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:1d:00.0         0     pci0000:15/0000:15:01.0  Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:1d:00.1         0     pci0000:15/0000:15:01.0  Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:1d:00.2         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.3         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.4         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.5         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.6         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.7         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.0         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.1         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.2         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.3         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.4         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.5         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.6         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.7         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:02.0         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:02.1         0     pci0000:15/0000:15:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:3d:00.0         1     pci0000:37/0000:37:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:3d:02.0         1     pci0000:37/0000:37:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:4e:00.0         1     pci0000:48/0000:48:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:4e:02.0         1     pci0000:48/0000:48:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:5f:00.0         0     pci0000:59/0000:59:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:5f:02.0         0     pci0000:59/0000:59:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:9d:00.0         2     pci0000:97/0000:97:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:9d:02.0         2     pci0000:97/0000:97:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:9f:00.0         2     pci0000:97/0000:97:01.0  Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:9f:00.1         2     pci0000:97/0000:97:01.0  Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:9f:00.2         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.3         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.4         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.5         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.6         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.7         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.0         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.1         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.2         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.3         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.4         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.5         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.6         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.7         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:02.0         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:02.1         2     pci0000:97/0000:97:01.0  Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:bd:00.0         3     pci0000:b7/0000:b7:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:bd:02.0         3     pci0000:b7/0000:b7:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:cd:00.0         3     pci0000:c7/0000:c7:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:cd:02.0         3     pci0000:c7/0000:c7:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]
+0000:dd:00.0         2     pci0000:d7/0000:d7:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X]
+0000:dd:02.0         2     pci0000:d7/0000:d7:01.0  Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF]

@@ -150,17 +150,30 @@ constraints:
 constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, memory]
-
-# Best available: try tight, accept loose
-# (requires coordinator or application-level fallback)
-constraints:
-- matchAttribute: resource.kubernetes.io/pcieRoot
-  requests: [gpu, nic]
-  enforcement: preferred    # skip if unsatisfiable
-- matchAttribute: resource.kubernetes.io/numaNode
-  requests: [gpu, nic, cpu, memory]
-  enforcement: required     # always enforce NUMA alignment
 ```
+
+### Scope: what this proposal asks for vs. future work
+
+**This proposal asks for one thing:** Add `resource.kubernetes.io/numaNode` as a standard attribute in the upstream `deviceattribute` library, alongside the existing `pcieRoot` and `pciBusID`. This is a small, additive change — one attribute definition, zero scheduler changes.
+
+**Future work (NOT part of this proposal):**
+
+- **Preferred/soft constraints** (`enforcement: preferred`) — A fallback mechanism where the scheduler tries tight coupling (pcieRoot) but accepts loose coupling (numaNode) if the tighter constraint is unsatisfiable. This requires scheduler changes and is a separate KEP-level effort. Example of what this would enable:
+
+  ```yaml
+  # FUTURE: try tight, accept loose (does NOT exist today)
+  constraints:
+  - matchAttribute: resource.kubernetes.io/pcieRoot
+    requests: [gpu, nic]
+    enforcement: preferred    # skip if unsatisfiable
+  - matchAttribute: resource.kubernetes.io/numaNode
+    requests: [gpu, nic, cpu, memory]
+    enforcement: required     # always enforce NUMA alignment
+  ```
+
+- **Cross-claim constraints** — Matching attributes across separate ResourceClaims (different drivers). Requires scheduler changes.
+- **GPU interconnect topology** — Advertising xGMI (AMD) or NVLink (NVIDIA) distances between GPUs within a node. This is a different topology layer (device-to-device interconnect, not device-to-memory-controller) and out of scope for the numaNode/pcieRoot attribute pair. NVIDIA's ComputeDomain CRD addresses this for multi-node NVLink; intra-node GPU-to-GPU topology is not yet exposed by either vendor's DRA driver.
+- **Continuous distance metrics** — Exposing ACPI SLIT or HMAT values (actual latency in nanoseconds, bandwidth in MB/s) for fine-grained scheduling. The two discrete tiers proposed here (pcieRoot / numaNode) are sufficient for the co-placement use case. HMAT-based scheduling could be a future extension if workloads need finer granularity than "same NUMA node."
 
 ### Kubelet auto-population (no driver changes needed)
 
@@ -397,6 +410,8 @@ graph TB
 
 ### Distance Hierarchy
 
+This proposal defines two **discrete proximity tiers**, not continuous distance values. The kernel exposes continuous NUMA distances via ACPI SLIT (e.g., 10 for local, 21 for one hop, 31 for two hops) and newer systems provide actual latency/bandwidth via ACPI HMAT. However, for DRA scheduling, continuous distances are unnecessary — workloads care about which hardware boundary they cross, not the exact nanosecond cost. Two tiers (same PCIe switch, same NUMA node) capture the boundaries that matter for device co-placement.
+
 ```mermaid
 graph TD
     subgraph LEVELS["Device Proximity Levels"]
@@ -482,7 +497,9 @@ This proposal is based on end-to-end testing on a Dell XE9680 with:
 
 `pcieRoot` is the right attribute for tight coupling. `numaNode` is the right attribute for loose coupling. Both are needed. The SNC/NPS objection applies equally to both attributes — hardware topology limits what can be co-located regardless of which attribute you use.
 
-Standardizing `numaNode` alongside `pcieRoot` gives the K8s ecosystem a complete distance-based alignment system. Without it, basic NUMA alignment — the most common cross-driver topology need — requires either middleware (topology coordinator) or per-driver knowledge in every consumer.
+This proposal asks for a single, small change: add `resource.kubernetes.io/numaNode` to the upstream `deviceattribute` library. No scheduler changes. No new constraint types. Just a standard attribute name so that `matchAttribute` — the existing, stable mechanism — works across drivers for NUMA alignment.
+
+Without it, basic NUMA alignment — the most common cross-driver topology need — requires either middleware (topology coordinator) or per-driver knowledge in every consumer. With it, the two discrete proximity tiers (pcieRoot for same-switch, numaNode for same-memory-controller) give DRA users a complete device co-placement model that covers all device types on real hardware.
 
 ## References
 

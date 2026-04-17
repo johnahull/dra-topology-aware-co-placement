@@ -1,0 +1,32 @@
+W0417 15:31:22.707764       1 client_config.go:667] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0417 15:31:22.708605       1 main.go:102] Starting Node Partition Topology Coordinator
+I0417 15:31:22.708782       1 health.go:118] Starting health check server on port 8081
+I0417 15:31:22.708797       1 main.go:113] Health check server started on port 8081
+I0417 15:31:22.709657       1 leaderelection.go:257] attempting to acquire leader lease kube-system/nodepartition-controller...
+I0417 15:31:22.709735       1 main.go:212] Starting webhook server on port 9443
+I0417 15:31:22.723045       1 main.go:162] New leader elected: nodepartition-controller-5d88b8d585-flnt5
+I0417 15:31:34.778496       1 leaderelection.go:271] successfully acquired lease kube-system/nodepartition-controller
+I0417 15:31:34.778731       1 main.go:152] Acquired leader election, starting controller
+I0417 15:31:34.778799       1 controller.go:68] Starting topology coordinator controller
+I0417 15:31:34.786957       1 topology_rules.go:126] Loaded topology rule "cpu-numa-rule": attribute=dra.cpu/numaNodeID driver=dra.cpu mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 15:31:34.787082       1 topology_rules.go:126] Loaded topology rule "gpu-numa-rule": attribute=numaNode driver=gpu.amd.com mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 15:31:34.787111       1 topology_rules.go:126] Loaded topology rule "memory-numa-rule": attribute=dra.memory/numaNode driver=dra.memory mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 15:31:34.787137       1 topology_rules.go:126] Loaded topology rule "pcie-numa-fallback-rule": attribute=resource.kubernetes.io/pcieRoot driver=gpu.amd.com mapsTo= partitioning=info constraint=match enforcement=required fallback=numaNode
+I0417 15:31:34.787222       1 topology_rules.go:126] Loaded topology rule "sriov-numa-rule": attribute=dra.net/numaNode driver=sriovnetwork.k8snetworkplumbingwg.io mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 15:31:34.879714       1 controller.go:108] Informer caches synced
+I0417 15:31:34.880665       1 partition_builder.go:174] Node j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com (profile=dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8snetworkplumbingwg.io-16): computed 17 partitions (8 eighth, 8 quarter, 0 half, 1 full)
+I0417 15:31:34.895912       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa1-tight
+I0417 15:31:34.908867       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetwor-59293660-full-loose
+I0417 15:31:34.922367       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa0-tight
+I0417 15:31:34.932984       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa1-tight
+I0417 15:31:34.989079       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa0-tight
+I0417 15:31:35.184981       1 deviceclass_manager.go:141] Synced 5 DeviceClasses
+I0417 15:31:35.185036       1 controller.go:163] Reconciliation complete: 1 nodes, 3 DeviceClasses
+I0417 15:31:36.788230       1 partition_builder.go:174] Node j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com (profile=dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8snetworkplumbingwg.io-16): computed 17 partitions (8 eighth, 8 quarter, 0 half, 1 full)
+I0417 15:31:36.803224       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa0-tight
+I0417 15:31:36.814076       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa1-tight
+I0417 15:31:36.830282       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa0-tight
+I0417 15:31:36.842683       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa1-tight
+I0417 15:31:37.187725       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetwor-59293660-full-loose
+I0417 15:31:37.386968       1 deviceclass_manager.go:141] Synced 5 DeviceClasses
+I0417 15:31:37.387038       1 controller.go:163] Reconciliation complete: 1 nodes, 3 DeviceClasses

@@ -1,0 +1,10 @@
+NAME                                                                          PROFILE                                                           PARTITION   NUMA     COUPLING
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa0-tight   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   quarter     numa0    tight
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa1-loose   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   quarter     numa1    loose
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa2-tight   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   quarter     numa2    tight
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa3-loose   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   quarter     numa3    loose
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa0-tight   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   eighth      numa0    tight
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa1-loose   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   eighth      numa1    loose
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa2-tight   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   eighth      numa2    tight
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa3-loose   dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   eighth      numa3    loose
+dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetwor-da12deaf-full-loose         dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8s-5fd28c8c   full        <none>   loose

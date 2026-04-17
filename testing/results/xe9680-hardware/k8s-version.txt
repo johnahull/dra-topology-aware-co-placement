@@ -1,0 +1,5 @@
+Client Version: v1.36.0-rc.0
+Kustomize Version: v5.8.1
+Server Version: v1.36.0-rc.0
+---
+no feature gates in manifest

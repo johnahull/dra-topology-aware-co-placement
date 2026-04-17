@@ -1,0 +1,1 @@
+[    0.008375] APIC: Switched APIC routing to: cluster x2apic

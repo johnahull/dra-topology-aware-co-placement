@@ -1,0 +1,6 @@
+NAME                                                                          PROFILE                                                           PARTITION   NUMA     COUPLING
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa0-tight   dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8s-58fc4bfb   quarter     numa0    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnet-59293660-quarter-numa1-tight   dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8s-58fc4bfb   quarter     numa1    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa0-tight   dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8s-58fc4bfb   eighth      numa0    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetw-59293660-eighth-numa1-tight   dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8s-58fc4bfb   eighth      numa1    tight
+dra-cpu-2-dra-memory-2-gpu-amd-com-16-sriovnetwor-59293660-full-loose         dra.cpu-2_dra.memory-2_gpu.amd.com-16_sriovnetwork.k8s-58fc4bfb   full        <none>   loose

@@ -1,0 +1,102 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    attribute: dra.cpu/numaNodeID
+    driver: dra.cpu
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.cpu/numaNodeID","driver":"dra.cpu","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"cpu-numa-rule","namespace":"nodepartition"}}
+    creationTimestamp: "2026-04-14T23:42:25Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: cpu-numa-rule
+    namespace: nodepartition
+    resourceVersion: "53070"
+    uid: f150f20b-6316-490e-b349-8bc2ea49cf51
+- apiVersion: v1
+  data:
+    attribute: numaNode
+    driver: gpu.amd.com
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"gpu.amd.com/numaNode","driver":"gpu.amd.com","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"gpu-numa-rule","namespace":"nodepartition"}}
+    creationTimestamp: "2026-04-14T23:42:25Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: gpu-numa-rule
+    namespace: nodepartition
+    resourceVersion: "229617"
+    uid: 3fa089ec-8126-43cd-b7d6-1dc528bc47d3
+- apiVersion: v1
+  data:
+    attribute: dra.memory/numaNode
+    driver: dra.memory
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.memory/numaNode","driver":"dra.memory","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"memory-numa-rule","namespace":"nodepartition"}}
+    creationTimestamp: "2026-04-14T23:42:25Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: memory-numa-rule
+    namespace: nodepartition
+    resourceVersion: "53073"
+    uid: f994d71c-e434-4470-935a-e22546ac2593
+- apiVersion: v1
+  data:
+    attribute: resource.kubernetes.io/pcieRoot
+    constraint: match
+    description: GPU-NIC tight coupling (same switch) with NUMA fallback
+    driver: gpu.amd.com
+    enforcement: required
+    fallbackAttribute: numaNode
+    type: string
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"resource.kubernetes.io/pcieRoot","constraint":"match","description":"GPU-NIC tight coupling (same switch) with NUMA fallback","driver":"gpu.amd.com","enforcement":"required","fallbackAttribute":"numaNode","type":"string"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"pcie-numa-fallback-rule","namespace":"nodepartition"}}
+    creationTimestamp: "2026-04-17T14:11:05Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: pcie-numa-fallback-rule
+    namespace: nodepartition
+    resourceVersion: "679789"
+    uid: c7283fcf-eba2-4469-9b5d-8a77159dbe13
+- apiVersion: v1
+  data:
+    attribute: dra.net/numaNode
+    driver: sriovnetwork.k8snetworkplumbingwg.io
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.net/numaNode","driver":"sriovnetwork.k8snetworkplumbingwg.io","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"sriov-numa-rule","namespace":"nodepartition"}}
+    creationTimestamp: "2026-04-14T23:42:25Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: sriov-numa-rule
+    namespace: nodepartition
+    resourceVersion: "53071"
+    uid: 82a67ffa-82b9-4f12-91d2-96a36adcd6e0
+kind: List
+metadata:
+  resourceVersion: ""

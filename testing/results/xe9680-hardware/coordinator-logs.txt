@@ -1,0 +1,50 @@
+I0417 14:44:17.513686       1 topology_rules.go:126] Loaded topology rule "gpu-numa-rule": attribute=numaNode driver=gpu.amd.com mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:44:17.513716       1 topology_rules.go:126] Loaded topology rule "memory-numa-rule": attribute=dra.memory/numaNode driver=dra.memory mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:44:17.513736       1 topology_rules.go:126] Loaded topology rule "pcie-numa-fallback-rule": attribute=resource.kubernetes.io/pcieRoot driver=gpu.amd.com mapsTo= partitioning=info constraint=match enforcement=required fallback=numaNode
+I0417 14:44:17.513859       1 topology_rules.go:126] Loaded topology rule "sriov-numa-rule": attribute=dra.net/numaNode driver=sriovnetwork.k8snetworkplumbingwg.io mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:44:19.515240       1 partition_builder.go:174] Node j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com (profile=dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8snetworkplumbingwg.io-32): computed 17 partitions (8 eighth, 8 quarter, 0 half, 1 full)
+I0417 14:44:19.526908       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa0-tight
+I0417 14:44:19.536022       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa2-tight
+I0417 14:44:19.546532       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa3-loose
+I0417 14:44:19.555777       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa2-tight
+I0417 14:44:19.565660       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa3-loose
+I0417 14:44:19.924491       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetwor-da12deaf-full-loose
+I0417 14:44:20.323823       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa1-loose
+I0417 14:44:20.723990       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa0-tight
+I0417 14:44:21.125290       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa1-loose
+I0417 14:44:21.321476       1 deviceclass_manager.go:141] Synced 9 DeviceClasses
+I0417 14:44:21.321522       1 controller.go:163] Reconciliation complete: 1 nodes, 3 DeviceClasses
+I0417 14:49:17.513815       1 topology_rules.go:126] Loaded topology rule "sriov-numa-rule": attribute=dra.net/numaNode driver=sriovnetwork.k8snetworkplumbingwg.io mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:49:17.513914       1 topology_rules.go:126] Loaded topology rule "cpu-numa-rule": attribute=dra.cpu/numaNodeID driver=dra.cpu mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:49:17.513938       1 topology_rules.go:126] Loaded topology rule "gpu-numa-rule": attribute=numaNode driver=gpu.amd.com mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:49:17.513984       1 topology_rules.go:126] Loaded topology rule "memory-numa-rule": attribute=dra.memory/numaNode driver=dra.memory mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:49:17.514003       1 topology_rules.go:126] Loaded topology rule "pcie-numa-fallback-rule": attribute=resource.kubernetes.io/pcieRoot driver=gpu.amd.com mapsTo= partitioning=info constraint=match enforcement=required fallback=numaNode
+I0417 14:49:19.515337       1 partition_builder.go:174] Node j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com (profile=dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8snetworkplumbingwg.io-32): computed 17 partitions (8 eighth, 8 quarter, 0 half, 1 full)
+I0417 14:49:19.527913       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa1-loose
+I0417 14:49:19.539486       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa1-loose
+I0417 14:49:19.548760       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa3-loose
+I0417 14:49:19.560020       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa0-tight
+I0417 14:49:19.571888       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa2-tight
+I0417 14:49:19.924055       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa3-loose
+I0417 14:49:20.324300       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa0-tight
+I0417 14:49:20.725600       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa2-tight
+I0417 14:49:21.124818       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetwor-da12deaf-full-loose
+I0417 14:49:21.322330       1 deviceclass_manager.go:141] Synced 9 DeviceClasses
+I0417 14:49:21.322391       1 controller.go:163] Reconciliation complete: 1 nodes, 3 DeviceClasses
+I0417 14:54:17.514989       1 topology_rules.go:126] Loaded topology rule "pcie-numa-fallback-rule": attribute=resource.kubernetes.io/pcieRoot driver=gpu.amd.com mapsTo= partitioning=info constraint=match enforcement=required fallback=numaNode
+I0417 14:54:17.515160       1 topology_rules.go:126] Loaded topology rule "sriov-numa-rule": attribute=dra.net/numaNode driver=sriovnetwork.k8snetworkplumbingwg.io mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:54:17.515202       1 topology_rules.go:126] Loaded topology rule "cpu-numa-rule": attribute=dra.cpu/numaNodeID driver=dra.cpu mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:54:17.515219       1 topology_rules.go:126] Loaded topology rule "gpu-numa-rule": attribute=numaNode driver=gpu.amd.com mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:54:17.515237       1 topology_rules.go:126] Loaded topology rule "memory-numa-rule": attribute=dra.memory/numaNode driver=dra.memory mapsTo=numaNode partitioning=group constraint=none enforcement=required fallback=
+I0417 14:54:19.516543       1 partition_builder.go:174] Node j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com (profile=dra.cpu-4_dra.memory-4_gpu.amd.com-16_sriovnetwork.k8snetworkplumbingwg.io-32): computed 17 partitions (8 eighth, 8 quarter, 0 half, 1 full)
+I0417 14:54:19.530507       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa0-tight
+I0417 14:54:19.542952       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa1-loose
+I0417 14:54:19.554881       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa2-tight
+I0417 14:54:19.564868       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnet-da12deaf-quarter-numa3-loose
+I0417 14:54:19.576195       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetwor-da12deaf-full-loose
+I0417 14:54:19.926447       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa0-tight
+I0417 14:54:20.325638       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa1-loose
+I0417 14:54:20.725391       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa2-tight
+I0417 14:54:21.126003       1 deviceclass_manager.go:482] Updated DeviceClass dra-cpu-4-dra-memory-4-gpu-amd-com-16-sriovnetw-da12deaf-eighth-numa3-loose
+I0417 14:54:21.323430       1 deviceclass_manager.go:141] Synced 9 DeviceClasses
+I0417 14:54:21.323477       1 controller.go:163] Reconciliation complete: 1 nodes, 3 DeviceClasses

@@ -1,0 +1,39 @@
+0000:02:00.0 numa=0 class=0x020000 02:00.0 Ethernet controller: Broadcom Inc. and subsidiaries NetXtreme BCM5720 Gigabit Ethernet PCIe
+0000:02:00.1 numa=0 class=0x020000 02:00.1 Ethernet controller: Broadcom Inc. and subsidiaries NetXtreme BCM5720 Gigabit Ethernet PCIe
+0000:04:00.0 numa=0 class=0x030000 04:00.0 VGA compatible controller: Matrox Electronics Systems Ltd. Integrated Matrox G200eW3 Graphics Controller (rev 04)
+0000:1d:00.0 numa=0 class=0x020000 1d:00.0 Ethernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:1d:00.1 numa=0 class=0x020000 1d:00.1 Ethernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:1d:00.2 numa=0 class=0x020000 1d:00.2 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.3 numa=0 class=0x020000 1d:00.3 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.4 numa=0 class=0x020000 1d:00.4 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.5 numa=0 class=0x020000 1d:00.5 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.6 numa=0 class=0x020000 1d:00.6 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:00.7 numa=0 class=0x020000 1d:00.7 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.0 numa=0 class=0x020000 1d:01.0 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.1 numa=0 class=0x020000 1d:01.1 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.2 numa=0 class=0x020000 1d:01.2 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.3 numa=0 class=0x020000 1d:01.3 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.4 numa=0 class=0x020000 1d:01.4 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.5 numa=0 class=0x020000 1d:01.5 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.6 numa=0 class=0x020000 1d:01.6 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:01.7 numa=0 class=0x020000 1d:01.7 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:02.0 numa=0 class=0x020000 1d:02.0 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:1d:02.1 numa=0 class=0x020000 1d:02.1 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.0 numa=2 class=0x020000 9f:00.0 Ethernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:9f:00.1 numa=2 class=0x020000 9f:00.1 Ethernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+0000:9f:00.2 numa=2 class=0x020000 9f:00.2 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.3 numa=2 class=0x020000 9f:00.3 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.4 numa=2 class=0x020000 9f:00.4 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.5 numa=2 class=0x020000 9f:00.5 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.6 numa=2 class=0x020000 9f:00.6 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:00.7 numa=2 class=0x020000 9f:00.7 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.0 numa=2 class=0x020000 9f:01.0 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.1 numa=2 class=0x020000 9f:01.1 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.2 numa=2 class=0x020000 9f:01.2 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.3 numa=2 class=0x020000 9f:01.3 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.4 numa=2 class=0x020000 9f:01.4 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.5 numa=2 class=0x020000 9f:01.5 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.6 numa=2 class=0x020000 9f:01.6 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:01.7 numa=2 class=0x020000 9f:01.7 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:02.0 numa=2 class=0x020000 9f:02.0 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function
+0000:9f:02.1 numa=2 class=0x020000 9f:02.1 Ethernet controller: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function

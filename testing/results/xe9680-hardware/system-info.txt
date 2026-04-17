@@ -1,0 +1,36 @@
+# dmidecode 3.6
+Getting SMBIOS data from sysfs.
+SMBIOS 3.3.0 present.
+
+Handle 0x0100, DMI type 1, 27 bytes
+System Information
+	Manufacturer: Dell Inc.
+	Product Name: PowerEdge XE9680
+	Version: Not Specified
+	Serial Number: C6KQQ54
+	UUID: 4c4c4544-0036-4b10-8051-c3c04f513534
+	Wake-up Type: Power Switch
+	SKU Number: SKU=0B73;ModelName=PowerEdge XE9680
+	Family: PowerEdge
+
+Handle 0x0C00, DMI type 12, 5 bytes
+System Configuration Options
+	Option 1: NVRAM_CLR: Clear user settable NVRAM areas and set defaults
+	Option 2: PWRD_EN: Close to enable password
+
+---
+# dmidecode 3.6
+Getting SMBIOS data from sysfs.
+SMBIOS 3.3.0 present.
+
+Handle 0x0000, DMI type 0, 26 bytes
+BIOS Information
+	Vendor: Dell Inc.
+	Version: 2.9.4
+	Release Date: 01/27/2026
+	Address: 0xF0000
+	Runtime Size: 64 kB
+	ROM Size: 32 MB
+	Characteristics:
+		ISA is supported
+		PCI is supported

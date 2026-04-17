@@ -1,0 +1,420 @@
+IOMMU Group 0: 0000:75:00.4 75:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 100: 0000:9c:00.0 9c:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 10: 0000:5d:00.0 5d:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 1: 0000:75:01.0 75:01.0 System peripheral [0880]: Intel Corporation Device [8086:0b25]
+IOMMU Group 101: 0000:9d:00.0 9d:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 102: 0000:9f:00.0 9f:00.0 Ethernet controller [0200]: Mellanox Technologies MT2892 Family [ConnectX-6 Dx] [15b3:101d]
+IOMMU Group 103: 0000:9f:00.1 9f:00.1 Ethernet controller [0200]: Mellanox Technologies MT2892 Family [ConnectX-6 Dx] [15b3:101d]
+IOMMU Group 104: 0000:a0:00.0 a0:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 105: 0000:00:00.0 00:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 106: 0000:00:00.1 00:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 107: 0000:00:00.2 00:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 108: 0000:00:00.4 00:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 109: 0000:00:0a.0 00:0a.0 PCI bridge [0604]: Intel Corporation Device [8086:1bba] (rev 11)
+IOMMU Group 110: 0000:00:0c.0 00:0c.0 PCI bridge [0604]: Intel Corporation Device [8086:1bbc] (rev 11)
+IOMMU Group 11: 0000:5e:00.0 5e:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 111: 0000:00:0e.0 00:0e.0 PCI bridge [0604]: Intel Corporation Device [8086:1bbe] (rev 11)
+IOMMU Group 112: 0000:00:14.0 00:14.0 USB controller [0c03]: Intel Corporation Emmitsburg (C740 Family) USB 3.2 Gen 1 xHCI Controller [8086:1bcd] (rev 11)
+IOMMU Group 112: 0000:00:14.2 00:14.2 RAM memory [0500]: Intel Corporation Device [8086:1bce] (rev 11)
+IOMMU Group 113: 0000:00:14.4 00:14.4 Host bridge [0600]: Intel Corporation Device [8086:1bfe] (rev 11)
+IOMMU Group 114: 0000:00:15.0 00:15.0 System peripheral [0880]: Intel Corporation Device [8086:1bff] (rev 11)
+IOMMU Group 115: 0000:00:16.0 00:16.0 Communication controller [0780]: Intel Corporation Device [8086:1be0] (rev 11)
+IOMMU Group 116: 0000:00:18.0 00:18.0 SATA controller [0106]: Intel Corporation Sapphire Rapids SATA AHCI Controller [8086:1bf2] (rev 11)
+IOMMU Group 117: 0000:00:19.0 00:19.0 SATA controller [0106]: Intel Corporation Sapphire Rapids SATA AHCI Controller [8086:1bd2] (rev 11)
+IOMMU Group 118: 0000:00:1f.0 00:1f.0 ISA bridge [0601]: Intel Corporation Device [8086:1b81] (rev 11)
+IOMMU Group 118: 0000:00:1f.4 00:1f.4 SMBus [0c05]: Intel Corporation Device [8086:1bc9] (rev 11)
+IOMMU Group 118: 0000:00:1f.5 00:1f.5 Serial bus controller [0c80]: Intel Corporation Device [8086:1bca] (rev 11)
+IOMMU Group 119: 0000:01:00.0 01:00.0 Non-Volatile memory controller [0108]: Marvell Technology Group Ltd. 88NR2241 Non-Volatile memory controller [1b4b:2241] (rev 20)
+IOMMU Group 120: 0000:02:00.0 02:00.0 Ethernet controller [0200]: Broadcom Inc. and subsidiaries NetXtreme BCM5720 Gigabit Ethernet PCIe [14e4:165f]
+IOMMU Group 120: 0000:02:00.1 02:00.1 Ethernet controller [0200]: Broadcom Inc. and subsidiaries NetXtreme BCM5720 Gigabit Ethernet PCIe [14e4:165f]
+IOMMU Group 12: 0000:5f:00.0 5f:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 121: 0000:03:00.0 03:00.0 PCI bridge [0604]: PLDA PCI Express Bridge [1556:be00] (rev 02)
+IOMMU Group 121: 0000:04:00.0 04:00.0 VGA compatible controller [0300]: Matrox Electronics Systems Ltd. Integrated Matrox G200eW3 Graphics Controller [102b:0536] (rev 04)
+IOMMU Group 122: 0000:15:00.0 15:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 123: 0000:15:00.1 15:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 124: 0000:15:00.2 15:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 125: 0000:26:00.0 26:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 126: 0000:26:00.1 26:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 127: 0000:26:00.2 26:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 128: 0000:37:00.0 37:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 129: 0000:37:00.1 37:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 130: 0000:37:00.2 37:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 13: 0000:61:00.0 61:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 131: 0000:48:00.0 48:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 132: 0000:48:00.1 48:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 133: 0000:48:00.2 48:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 134: 0000:59:00.0 59:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 135: 0000:59:00.1 59:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 136: 0000:59:00.2 59:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 137: 0000:75:00.0 75:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 138: 0000:75:00.1 75:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 139: 0000:75:00.2 75:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 140: 0000:75:03.0 75:03.0 System peripheral [0880]: Intel Corporation Ice Lake MSM [8086:09a6]
+IOMMU Group 14: 0000:48:00.4 48:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 141: 0000:75:03.1 75:03.1 System peripheral [0880]: Intel Corporation Ice Lake PMON MSM [8086:09a7]
+IOMMU Group 142: 0000:7e:00.0 7e:00.0 System peripheral [0880]: Intel Corporation Device [8086:3250]
+IOMMU Group 143: 0000:7e:00.1 7e:00.1 System peripheral [0880]: Intel Corporation Device [8086:3251]
+IOMMU Group 144: 0000:7e:00.2 7e:00.2 System peripheral [0880]: Intel Corporation Device [8086:3252]
+IOMMU Group 145: 0000:7e:00.3 7e:00.3 Host bridge [0600]: Intel Corporation Ice Lake IEH [8086:0998]
+IOMMU Group 146: 0000:7e:00.5 7e:00.5 System peripheral [0880]: Intel Corporation Device [8086:3255]
+IOMMU Group 147: 0000:7e:01.0 7e:01.0 System peripheral [0880]: Intel Corporation Device [8086:3240]
+IOMMU Group 148: 0000:7e:01.1 7e:01.1 System peripheral [0880]: Intel Corporation Device [8086:3241]
+IOMMU Group 149: 0000:7e:01.2 7e:01.2 System peripheral [0880]: Intel Corporation Device [8086:3242]
+IOMMU Group 150: 0000:7e:02.0 7e:02.0 System peripheral [0880]: Intel Corporation Device [8086:3240]
+IOMMU Group 15: 0000:48:01.0 48:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 151: 0000:7e:02.1 7e:02.1 System peripheral [0880]: Intel Corporation Device [8086:3241]
+IOMMU Group 152: 0000:7e:02.2 7e:02.2 System peripheral [0880]: Intel Corporation Device [8086:3242]
+IOMMU Group 153: 0000:7e:03.0 7e:03.0 System peripheral [0880]: Intel Corporation Device [8086:3240]
+IOMMU Group 154: 0000:7e:03.1 7e:03.1 System peripheral [0880]: Intel Corporation Device [8086:3241]
+IOMMU Group 155: 0000:7e:03.2 7e:03.2 System peripheral [0880]: Intel Corporation Device [8086:3242]
+IOMMU Group 156: 0000:7e:05.0 7e:05.0 System peripheral [0880]: Intel Corporation Device [8086:3245]
+IOMMU Group 157: 0000:7e:05.1 7e:05.1 System peripheral [0880]: Intel Corporation Device [8086:3246]
+IOMMU Group 158: 0000:7e:05.2 7e:05.2 System peripheral [0880]: Intel Corporation Device [8086:3247]
+IOMMU Group 159: 0000:7e:06.0 7e:06.0 System peripheral [0880]: Intel Corporation Device [8086:3245]
+IOMMU Group 160: 0000:7e:06.1 7e:06.1 System peripheral [0880]: Intel Corporation Device [8086:3246]
+IOMMU Group 16: 0000:49:00.0 49:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 161: 0000:7e:06.2 7e:06.2 System peripheral [0880]: Intel Corporation Device [8086:3247]
+IOMMU Group 162: 0000:7e:07.0 7e:07.0 System peripheral [0880]: Intel Corporation Device [8086:3245]
+IOMMU Group 163: 0000:7e:07.1 7e:07.1 System peripheral [0880]: Intel Corporation Device [8086:3246]
+IOMMU Group 164: 0000:7e:07.2 7e:07.2 System peripheral [0880]: Intel Corporation Device [8086:3247]
+IOMMU Group 165: 0000:7e:0c.0 7e:0c.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 166: 0000:7e:0d.0 7e:0d.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 167: 0000:7e:0e.0 7e:0e.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 168: 0000:7e:0f.0 7e:0f.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 169: 0000:7e:1a.0 7e:1a.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 170: 0000:7e:1b.0 7e:1b.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 17: 0000:4a:00.0 4a:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 171: 0000:7e:1c.0 7e:1c.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 172: 0000:7e:1d.0 7e:1d.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 173: 0000:7f:00.0 7f:00.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 174: 0000:7f:00.1 7f:00.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 175: 0000:7f:00.2 7f:00.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 176: 0000:7f:00.3 7f:00.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 177: 0000:7f:00.4 7f:00.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 178: 0000:7f:00.5 7f:00.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 179: 0000:7f:00.6 7f:00.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 180: 0000:7f:00.7 7f:00.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 18: 0000:4a:01.0 4a:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 181: 0000:7f:01.0 7f:01.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 182: 0000:7f:01.1 7f:01.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 183: 0000:7f:01.2 7f:01.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 184: 0000:7f:01.3 7f:01.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 185: 0000:7f:01.4 7f:01.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 186: 0000:7f:01.5 7f:01.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 187: 0000:7f:01.6 7f:01.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 188: 0000:7f:01.7 7f:01.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 189: 0000:7f:02.0 7f:02.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 190: 0000:7f:02.1 7f:02.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 19: 0000:4a:02.0 4a:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 191: 0000:7f:02.2 7f:02.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 192: 0000:7f:02.3 7f:02.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 193: 0000:7f:02.4 7f:02.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 194: 0000:7f:02.5 7f:02.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 195: 0000:7f:02.6 7f:02.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 196: 0000:7f:02.7 7f:02.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 197: 0000:7f:03.0 7f:03.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 198: 0000:7f:03.1 7f:03.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 199: 0000:7f:03.2 7f:03.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 200: 0000:7f:03.3 7f:03.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 20: 0000:4a:1f.0 4a:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 2: 0000:59:00.4 59:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 201: 0000:7f:03.4 7f:03.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 202: 0000:7f:03.5 7f:03.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 203: 0000:7f:03.6 7f:03.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 204: 0000:7f:03.7 7f:03.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 205: 0000:7f:0a.0 7f:0a.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 206: 0000:7f:0a.1 7f:0a.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 207: 0000:7f:0a.2 7f:0a.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 208: 0000:7f:0a.3 7f:0a.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 209: 0000:7f:0a.4 7f:0a.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 210: 0000:7f:0a.5 7f:0a.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 21: 0000:4b:00.0 4b:00.0 Non-Volatile memory controller [0108]: Samsung Electronics Co Ltd NVMe SSD Controller PM173Xa [144d:a825]
+IOMMU Group 211: 0000:7f:0a.6 7f:0a.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 212: 0000:7f:0a.7 7f:0a.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 213: 0000:7f:0b.0 7f:0b.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 214: 0000:7f:0b.1 7f:0b.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 215: 0000:7f:0b.2 7f:0b.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 216: 0000:7f:0b.3 7f:0b.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 217: 0000:7f:0b.4 7f:0b.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 218: 0000:7f:0b.5 7f:0b.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 219: 0000:7f:0b.6 7f:0b.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 220: 0000:7f:0b.7 7f:0b.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 22: 0000:4c:00.0 4c:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 221: 0000:7f:0c.0 7f:0c.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 222: 0000:7f:0c.1 7f:0c.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 223: 0000:7f:0c.2 7f:0c.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 224: 0000:7f:0c.3 7f:0c.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 225: 0000:7f:0c.4 7f:0c.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 226: 0000:7f:0c.5 7f:0c.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 227: 0000:7f:0c.6 7f:0c.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 228: 0000:7f:0c.7 7f:0c.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 229: 0000:7f:0d.0 7f:0d.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 230: 0000:7f:0d.1 7f:0d.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 23: 0000:4d:00.0 4d:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 231: 0000:7f:0d.2 7f:0d.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 232: 0000:7f:0d.3 7f:0d.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 233: 0000:7f:0d.4 7f:0d.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 234: 0000:7f:0d.5 7f:0d.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 235: 0000:7f:0d.6 7f:0d.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 236: 0000:7f:0d.7 7f:0d.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 237: 0000:7f:1d.0 7f:1d.0 System peripheral [0880]: Intel Corporation Ice Lake CHA Registers [8086:344f]
+IOMMU Group 238: 0000:7f:1d.1 7f:1d.1 System peripheral [0880]: Intel Corporation Ice Lake CHA Registers [8086:3457]
+IOMMU Group 239: 0000:7f:1e.0 7f:1e.0 System peripheral [0880]: Intel Corporation Device [8086:3258] (rev 08)
+IOMMU Group 239: 0000:7f:1e.1 7f:1e.1 System peripheral [0880]: Intel Corporation Device [8086:3259] (rev 08)
+IOMMU Group 239: 0000:7f:1e.2 7f:1e.2 System peripheral [0880]: Intel Corporation Device [8086:325a] (rev 08)
+IOMMU Group 239: 0000:7f:1e.3 7f:1e.3 System peripheral [0880]: Intel Corporation Device [8086:325b] (rev 08)
+IOMMU Group 239: 0000:7f:1e.4 7f:1e.4 System peripheral [0880]: Intel Corporation Device [8086:325c] (rev 08)
+IOMMU Group 239: 0000:7f:1e.5 7f:1e.5 System peripheral [0880]: Intel Corporation Device [8086:325d] (rev 08)
+IOMMU Group 239: 0000:7f:1e.6 7f:1e.6 System peripheral [0880]: Intel Corporation Device [8086:325e] (rev 08)
+IOMMU Group 239: 0000:7f:1e.7 7f:1e.7 System peripheral [0880]: Intel Corporation Device [8086:325f] (rev 08)
+IOMMU Group 240: 0000:80:00.0 80:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 24: 0000:4e:00.0 4e:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 241: 0000:80:00.1 80:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 242: 0000:80:00.2 80:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 243: 0000:97:00.0 97:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 244: 0000:97:00.1 97:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 245: 0000:97:00.2 97:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 246: 0000:a7:00.0 a7:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 247: 0000:a7:00.1 a7:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 248: 0000:a7:00.2 a7:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 249: 0000:b7:00.0 b7:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 250: 0000:b7:00.1 b7:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 25: 0000:50:00.0 50:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 251: 0000:b7:00.2 b7:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 252: 0000:c7:00.0 c7:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 253: 0000:c7:00.1 c7:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 254: 0000:c7:00.2 c7:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 255: 0000:d7:00.0 d7:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 256: 0000:d7:00.1 d7:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 257: 0000:d7:00.2 d7:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 258: 0000:f2:00.0 f2:00.0 System peripheral [0880]: Intel Corporation Ice Lake Memory Map/VT-d [8086:09a2] (rev 20)
+IOMMU Group 259: 0000:f2:00.1 f2:00.1 System peripheral [0880]: Intel Corporation Ice Lake Mesh 2 PCIe [8086:09a4] (rev 20)
+IOMMU Group 260: 0000:f2:00.2 f2:00.2 System peripheral [0880]: Intel Corporation Ice Lake RAS [8086:09a3] (rev 20)
+IOMMU Group 26: 0000:37:00.4 37:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 261: 0000:f2:03.0 f2:03.0 System peripheral [0880]: Intel Corporation Ice Lake MSM [8086:09a6]
+IOMMU Group 262: 0000:f2:03.1 f2:03.1 System peripheral [0880]: Intel Corporation Ice Lake PMON MSM [8086:09a7]
+IOMMU Group 263: 0000:fe:00.0 fe:00.0 System peripheral [0880]: Intel Corporation Device [8086:3250]
+IOMMU Group 264: 0000:fe:00.1 fe:00.1 System peripheral [0880]: Intel Corporation Device [8086:3251]
+IOMMU Group 265: 0000:fe:00.2 fe:00.2 System peripheral [0880]: Intel Corporation Device [8086:3252]
+IOMMU Group 266: 0000:fe:00.3 fe:00.3 Host bridge [0600]: Intel Corporation Ice Lake IEH [8086:0998]
+IOMMU Group 267: 0000:fe:00.5 fe:00.5 System peripheral [0880]: Intel Corporation Device [8086:3255]
+IOMMU Group 268: 0000:fe:01.0 fe:01.0 System peripheral [0880]: Intel Corporation Device [8086:3240]
+IOMMU Group 269: 0000:fe:01.1 fe:01.1 System peripheral [0880]: Intel Corporation Device [8086:3241]
+IOMMU Group 270: 0000:fe:01.2 fe:01.2 System peripheral [0880]: Intel Corporation Device [8086:3242]
+IOMMU Group 27: 0000:37:01.0 37:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 271: 0000:fe:02.0 fe:02.0 System peripheral [0880]: Intel Corporation Device [8086:3240]
+IOMMU Group 272: 0000:fe:02.1 fe:02.1 System peripheral [0880]: Intel Corporation Device [8086:3241]
+IOMMU Group 273: 0000:fe:02.2 fe:02.2 System peripheral [0880]: Intel Corporation Device [8086:3242]
+IOMMU Group 274: 0000:fe:03.0 fe:03.0 System peripheral [0880]: Intel Corporation Device [8086:3240]
+IOMMU Group 275: 0000:fe:03.1 fe:03.1 System peripheral [0880]: Intel Corporation Device [8086:3241]
+IOMMU Group 276: 0000:fe:03.2 fe:03.2 System peripheral [0880]: Intel Corporation Device [8086:3242]
+IOMMU Group 277: 0000:fe:05.0 fe:05.0 System peripheral [0880]: Intel Corporation Device [8086:3245]
+IOMMU Group 278: 0000:fe:05.1 fe:05.1 System peripheral [0880]: Intel Corporation Device [8086:3246]
+IOMMU Group 279: 0000:fe:05.2 fe:05.2 System peripheral [0880]: Intel Corporation Device [8086:3247]
+IOMMU Group 280: 0000:fe:06.0 fe:06.0 System peripheral [0880]: Intel Corporation Device [8086:3245]
+IOMMU Group 28: 0000:38:00.0 38:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 281: 0000:fe:06.1 fe:06.1 System peripheral [0880]: Intel Corporation Device [8086:3246]
+IOMMU Group 282: 0000:fe:06.2 fe:06.2 System peripheral [0880]: Intel Corporation Device [8086:3247]
+IOMMU Group 283: 0000:fe:07.0 fe:07.0 System peripheral [0880]: Intel Corporation Device [8086:3245]
+IOMMU Group 284: 0000:fe:07.1 fe:07.1 System peripheral [0880]: Intel Corporation Device [8086:3246]
+IOMMU Group 285: 0000:fe:07.2 fe:07.2 System peripheral [0880]: Intel Corporation Device [8086:3247]
+IOMMU Group 286: 0000:fe:0c.0 fe:0c.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 287: 0000:fe:0d.0 fe:0d.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 288: 0000:fe:0e.0 fe:0e.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 289: 0000:fe:0f.0 fe:0f.0 Performance counters [1101]: Intel Corporation Device [8086:324a]
+IOMMU Group 290: 0000:fe:1a.0 fe:1a.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 29: 0000:39:00.0 39:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 291: 0000:fe:1b.0 fe:1b.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 292: 0000:fe:1c.0 fe:1c.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 293: 0000:fe:1d.0 fe:1d.0 Performance counters [1101]: Intel Corporation Ice Lake DDRIO Registers [8086:2880]
+IOMMU Group 294: 0000:ff:00.0 ff:00.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 295: 0000:ff:00.1 ff:00.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 296: 0000:ff:00.2 ff:00.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 297: 0000:ff:00.3 ff:00.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 298: 0000:ff:00.4 ff:00.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 299: 0000:ff:00.5 ff:00.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 300: 0000:ff:00.6 ff:00.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 30: 0000:39:01.0 39:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 3: 0000:59:01.0 59:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 301: 0000:ff:00.7 ff:00.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 302: 0000:ff:01.0 ff:01.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 303: 0000:ff:01.1 ff:01.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 304: 0000:ff:01.2 ff:01.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 305: 0000:ff:01.3 ff:01.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 306: 0000:ff:01.4 ff:01.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 307: 0000:ff:01.5 ff:01.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 308: 0000:ff:01.6 ff:01.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 309: 0000:ff:01.7 ff:01.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 310: 0000:ff:02.0 ff:02.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 31: 0000:39:02.0 39:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 311: 0000:ff:02.1 ff:02.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 312: 0000:ff:02.2 ff:02.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 313: 0000:ff:02.3 ff:02.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 314: 0000:ff:02.4 ff:02.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 315: 0000:ff:02.5 ff:02.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 316: 0000:ff:02.6 ff:02.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 317: 0000:ff:02.7 ff:02.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 318: 0000:ff:03.0 ff:03.0 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 319: 0000:ff:03.1 ff:03.1 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 320: 0000:ff:03.2 ff:03.2 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 32: 0000:39:1f.0 39:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 321: 0000:ff:03.3 ff:03.3 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 322: 0000:ff:03.4 ff:03.4 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 323: 0000:ff:03.5 ff:03.5 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 324: 0000:ff:03.6 ff:03.6 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 325: 0000:ff:03.7 ff:03.7 System peripheral [0880]: Intel Corporation Device [8086:324c]
+IOMMU Group 326: 0000:ff:0a.0 ff:0a.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 327: 0000:ff:0a.1 ff:0a.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 328: 0000:ff:0a.2 ff:0a.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 329: 0000:ff:0a.3 ff:0a.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 330: 0000:ff:0a.4 ff:0a.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 33: 0000:3a:00.0 3a:00.0 Non-Volatile memory controller [0108]: Samsung Electronics Co Ltd NVMe SSD Controller PM173Xa [144d:a825]
+IOMMU Group 331: 0000:ff:0a.5 ff:0a.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 332: 0000:ff:0a.6 ff:0a.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 333: 0000:ff:0a.7 ff:0a.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 334: 0000:ff:0b.0 ff:0b.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 335: 0000:ff:0b.1 ff:0b.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 336: 0000:ff:0b.2 ff:0b.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 337: 0000:ff:0b.3 ff:0b.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 338: 0000:ff:0b.4 ff:0b.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 339: 0000:ff:0b.5 ff:0b.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 340: 0000:ff:0b.6 ff:0b.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 34: 0000:3b:00.0 3b:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 341: 0000:ff:0b.7 ff:0b.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 342: 0000:ff:0c.0 ff:0c.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 343: 0000:ff:0c.1 ff:0c.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 344: 0000:ff:0c.2 ff:0c.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 345: 0000:ff:0c.3 ff:0c.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 346: 0000:ff:0c.4 ff:0c.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 347: 0000:ff:0c.5 ff:0c.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 348: 0000:ff:0c.6 ff:0c.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 349: 0000:ff:0c.7 ff:0c.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 350: 0000:ff:0d.0 ff:0d.0 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 35: 0000:3c:00.0 3c:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 351: 0000:ff:0d.1 ff:0d.1 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 352: 0000:ff:0d.2 ff:0d.2 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 353: 0000:ff:0d.3 ff:0d.3 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 354: 0000:ff:0d.4 ff:0d.4 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 355: 0000:ff:0d.5 ff:0d.5 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 356: 0000:ff:0d.6 ff:0d.6 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 357: 0000:ff:0d.7 ff:0d.7 System peripheral [0880]: Intel Corporation Device [8086:324d]
+IOMMU Group 358: 0000:ff:1d.0 ff:1d.0 System peripheral [0880]: Intel Corporation Ice Lake CHA Registers [8086:344f]
+IOMMU Group 359: 0000:ff:1d.1 ff:1d.1 System peripheral [0880]: Intel Corporation Ice Lake CHA Registers [8086:3457]
+IOMMU Group 360: 0000:ff:1e.0 ff:1e.0 System peripheral [0880]: Intel Corporation Device [8086:3258] (rev 08)
+IOMMU Group 360: 0000:ff:1e.1 ff:1e.1 System peripheral [0880]: Intel Corporation Device [8086:3259] (rev 08)
+IOMMU Group 360: 0000:ff:1e.2 ff:1e.2 System peripheral [0880]: Intel Corporation Device [8086:325a] (rev 08)
+IOMMU Group 360: 0000:ff:1e.3 ff:1e.3 System peripheral [0880]: Intel Corporation Device [8086:325b] (rev 08)
+IOMMU Group 360: 0000:ff:1e.4 ff:1e.4 System peripheral [0880]: Intel Corporation Device [8086:325c] (rev 08)
+IOMMU Group 360: 0000:ff:1e.5 ff:1e.5 System peripheral [0880]: Intel Corporation Device [8086:325d] (rev 08)
+IOMMU Group 360: 0000:ff:1e.6 ff:1e.6 System peripheral [0880]: Intel Corporation Device [8086:325e] (rev 08)
+IOMMU Group 360: 0000:ff:1e.7 ff:1e.7 System peripheral [0880]: Intel Corporation Device [8086:325f] (rev 08)
+IOMMU Group 36: 0000:3d:00.0 3d:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 361: 0000:cd:02.0 cd:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 362: 0000:3d:02.0 3d:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 363: 0000:4e:02.0 4e:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 364: 0000:dd:02.0 dd:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 365: 0000:1b:02.0 1b:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 366: 0000:9d:02.0 9d:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 367: 0000:5f:02.0 5f:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 368: 0000:bd:02.0 bd:02.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X VF] [1002:74b5]
+IOMMU Group 369: 0000:9f:00.2 9f:00.2 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 370: 0000:9f:00.3 9f:00.3 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 37: 0000:3f:00.0 3f:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 371: 0000:9f:00.4 9f:00.4 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 372: 0000:9f:00.5 9f:00.5 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 373: 0000:9f:00.6 9f:00.6 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 374: 0000:9f:00.7 9f:00.7 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 375: 0000:9f:01.0 9f:01.0 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 376: 0000:9f:01.1 9f:01.1 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 377: 0000:9f:01.2 9f:01.2 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 378: 0000:9f:01.3 9f:01.3 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 379: 0000:9f:01.4 9f:01.4 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 380: 0000:9f:01.5 9f:01.5 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 38: 0000:26:00.4 26:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 381: 0000:9f:01.6 9f:01.6 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 382: 0000:9f:01.7 9f:01.7 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 383: 0000:9f:02.0 9f:02.0 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 384: 0000:9f:02.1 9f:02.1 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 385: 0000:1d:00.2 1d:00.2 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 386: 0000:1d:00.3 1d:00.3 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 387: 0000:1d:00.4 1d:00.4 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 388: 0000:1d:00.5 1d:00.5 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 389: 0000:1d:00.6 1d:00.6 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 390: 0000:1d:00.7 1d:00.7 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 39: 0000:15:00.4 15:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 391: 0000:1d:01.0 1d:01.0 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 392: 0000:1d:01.1 1d:01.1 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 393: 0000:1d:01.2 1d:01.2 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 394: 0000:1d:01.3 1d:01.3 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 395: 0000:1d:01.4 1d:01.4 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 396: 0000:1d:01.5 1d:01.5 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 397: 0000:1d:01.6 1d:01.6 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 398: 0000:1d:01.7 1d:01.7 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 399: 0000:1d:02.0 1d:02.0 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 400: 0000:1d:02.1 1d:02.1 Ethernet controller [0200]: Mellanox Technologies ConnectX Family mlx5Gen Virtual Function [15b3:101e]
+IOMMU Group 40: 0000:15:01.0 15:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 4: 0000:5a:00.0 5a:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 41: 0000:16:00.0 16:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 42: 0000:17:00.0 17:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 43: 0000:17:01.0 17:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 44: 0000:17:02.0 17:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 45: 0000:17:03.0 17:03.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 46: 0000:17:1f.0 17:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 47: 0000:18:00.0 18:00.0 Non-Volatile memory controller [0108]: Samsung Electronics Co Ltd NVMe SSD Controller PM173Xa [144d:a825]
+IOMMU Group 48: 0000:19:00.0 19:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 49: 0000:1a:00.0 1a:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 50: 0000:1b:00.0 1b:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 5: 0000:5b:00.0 5b:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 51: 0000:1d:00.0 1d:00.0 Ethernet controller [0200]: Mellanox Technologies MT2892 Family [ConnectX-6 Dx] [15b3:101d]
+IOMMU Group 52: 0000:1d:00.1 1d:00.1 Ethernet controller [0200]: Mellanox Technologies MT2892 Family [ConnectX-6 Dx] [15b3:101d]
+IOMMU Group 53: 0000:1e:00.0 1e:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 54: 0000:f2:00.4 f2:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 55: 0000:f2:01.0 f2:01.0 System peripheral [0880]: Intel Corporation Device [8086:0b25]
+IOMMU Group 56: 0000:80:00.4 80:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 57: 0000:d7:00.4 d7:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 58: 0000:d7:01.0 d7:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 59: 0000:d8:00.0 d8:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 60: 0000:d9:00.0 d9:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 6: 0000:5b:01.0 5b:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 61: 0000:d9:01.0 d9:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 62: 0000:d9:02.0 d9:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 63: 0000:d9:1f.0 d9:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 64: 0000:db:00.0 db:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 65: 0000:dc:00.0 dc:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 66: 0000:dd:00.0 dd:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 67: 0000:df:00.0 df:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 68: 0000:c7:00.4 c7:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 69: 0000:c7:01.0 c7:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 70: 0000:c8:00.0 c8:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 7: 0000:5b:02.0 5b:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 71: 0000:c9:00.0 c9:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 72: 0000:c9:01.0 c9:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 73: 0000:c9:02.0 c9:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 74: 0000:c9:1f.0 c9:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 75: 0000:cb:00.0 cb:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 76: 0000:cc:00.0 cc:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 77: 0000:cd:00.0 cd:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 78: 0000:cf:00.0 cf:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 79: 0000:b7:00.4 b7:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 80: 0000:b7:01.0 b7:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 8: 0000:5b:1f.0 5b:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 81: 0000:b8:00.0 b8:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 82: 0000:b9:00.0 b9:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 83: 0000:b9:01.0 b9:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 84: 0000:b9:02.0 b9:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 85: 0000:b9:1f.0 b9:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 86: 0000:bb:00.0 bb:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
+IOMMU Group 87: 0000:bc:00.0 bc:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD/ATI] Device [1002:1501]
+IOMMU Group 88: 0000:bd:00.0 bd:00.0 Processing accelerators [1200]: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI300X] [1002:74a1]
+IOMMU Group 89: 0000:bf:00.0 bf:00.0 Serial Attached SCSI controller [0107]: Broadcom / LSI PCIe Switch management endpoint [1000:00b2] (rev b0)
+IOMMU Group 90: 0000:a7:00.4 a7:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 9: 0000:5c:00.0 5c:00.0 Non-Volatile memory controller [0108]: Samsung Electronics Co Ltd NVMe SSD Controller PM173Xa [144d:a825]
+IOMMU Group 91: 0000:97:00.4 97:00.4 Root Complex Event Collector [0807]: Intel Corporation Device [8086:0b23]
+IOMMU Group 92: 0000:97:01.0 97:01.0 PCI bridge [0604]: Intel Corporation Device [8086:352a] (rev 04)
+IOMMU Group 93: 0000:98:00.0 98:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 94: 0000:99:00.0 99:00.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 95: 0000:99:01.0 99:01.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 96: 0000:99:02.0 99:02.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 97: 0000:99:03.0 99:03.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 98: 0000:99:1f.0 99:1f.0 PCI bridge [0604]: Broadcom / LSI PEX890xx PCIe Gen 5 Switch [1000:c030] (rev b0)
+IOMMU Group 99: 0000:9b:00.0 9b:00.0 PCI bridge [0604]: Advanced Micro Devices, Inc. [AMD] Device [1022:1500]
