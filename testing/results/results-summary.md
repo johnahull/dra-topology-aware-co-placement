@@ -1,7 +1,7 @@
 # Test Results Summary
 
-**Date:** 2026-04-16
-**Hardware:** Dell XE9680 (2-socket, 2 NUMA, 8x MI300X GPUs, 2x ConnectX-6 NICs, 128 CPUs, ~2 TiB RAM)
+**Date:** 2026-04-09 through 2026-04-17
+**Hardware:** Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM)
 
 ## Test Progression
 
@@ -16,7 +16,8 @@
 | Hardware topology capture (SNC on) | Fedora 43 | 1.36.0-rc.0 | All 4 | 4 NUMA, 9 DeviceClasses (4 tight + 4 loose + 1 full) | 2026-04-17 |
 | Hardware topology capture (SNC off) | Fedora 43 | 1.36.0-rc.0 | All 4 | 2 NUMA, 5 DeviceClasses (4 tight + 1 full) | 2026-04-17 |
 | E2E pod scheduling (SNC off) | Fedora 43 | 1.36.0-rc.0 | All 4 | 2 eighth pods running, full 4-driver NUMA alignment | 2026-04-17 |
-| KubeVirt VFIO guest NUMA (VEP 115+DRA) | Fedora 43 | 1.36.0-rc.0 | GPU, NIC | VM running, pxb-pcie placement from KEP-5304 metadata | 2026-04-17 |
+| KubeVirt single-NUMA VFIO (VEP 115+DRA) | Fedora 43 | 1.36.0-rc.0 | GPU, NIC | VM running, GPU+NIC on guest NUMA 0 via pxb-pcie | 2026-04-17 |
+| KubeVirt dual-NUMA VFIO (VEP 115+DRA) | Fedora 43 | 1.36.0-rc.0 | GPU, NIC | VM with 2 guest NUMA nodes, device-only cell for NUMA 1 | 2026-04-17 |
 
 ## Feature Matrix
 
@@ -54,7 +55,8 @@
 | Eighth-machine (coordinator) | 8 | 8 CPUs + 1 GPU + 2 NICs + memory | Auto | Working |
 | Quarter-machine (coordinator) | 4 | 16 CPUs + 1 GPU + 2 NICs + 8 GiB | Auto | Working |
 | Full-machine (coordinator) | 1 | All devices | N/A | Working |
-| KubeVirt VM (DRA VFIO) | 1 | 8 vCPUs + 2 GPUs + 2 NICs + 16 GiB hugepages | Guest NUMA | Working (patched) |
+| KubeVirt VM single-NUMA (DRA VFIO) | 1 | 4 vCPUs + 1 GPU + 1 NIC + 4 GiB hugepages | 1 guest NUMA | Working (patched) |
+| KubeVirt VM dual-NUMA (DRA VFIO) | 1 | 4 vCPUs + 2 GPUs + 2 NICs + 4 GiB hugepages | 2 guest NUMA | Working (patched) |
 | Mixed pod + VM | 2 | Pod: CPUs+NICs, VM: GPUs+NICs | Both | Working |
 
 ## SNC-2 On vs Off Comparison
@@ -97,4 +99,11 @@ Key finding: the coordinator adapts automatically to SNC changes without configu
 
 ### E2E Test Results (2026-04-17)
 - [Pod scheduling test](xe9680-hardware-snc-off/e2e-test-running.txt) — 2 eighth pods with 4-driver NUMA alignment
-- [KubeVirt VFIO NUMA test](xe9680-hardware-snc-off/kubevirt-vfio-numa-test.txt) — VM with GPU+NIC, VEP 115 pxb-pcie placement
+- [KubeVirt single-NUMA test](xe9680-hardware-snc-off/kubevirt-vfio-numa-test.txt) — VM with 1 GPU + 1 NIC on guest NUMA 0
+- [KubeVirt dual-NUMA test](xe9680-hardware-snc-off/kubevirt-dual-numa-test.txt) — VM with devices from both NUMA nodes, 2 pxb-pcie expanders, device-only guest NUMA cell
+
+### Upstream Proposals
+- [Standardize numaNode with pcieRoot fallback](../../docs/upstream-proposals/standardize-numanode-with-pcieroot-fallback.md)
+- [KEP-5304 auto-populate metadata](../../docs/upstream-proposals/kep5304-auto-populate-metadata.md)
+- [KubeVirt multi-device DRA requests](../../docs/upstream-proposals/kubevirt-multi-device-dra-requests.md)
+- [SNC/NPS topology gap](../../docs/upstream-proposals/numa-snc-nps-topology-gap.md)

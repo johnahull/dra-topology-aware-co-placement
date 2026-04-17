@@ -1,6 +1,6 @@
 # DRA Topology-Aware Co-Placement: Project Narrative
 
-**Date:** 2026-04-16
+**Date:** 2026-04-17 (updated)
 
 This project demonstrates end-to-end topology-aware device placement using Kubernetes DRA, from plain pods through KubeVirt VMs, and proposes upstream enhancements based on what we learned.
 
@@ -72,7 +72,8 @@ On a Dell XE9680 (2-socket, 8x MI300X GPU, ConnectX-6 NIC, 128 CPUs, 2 TB memory
 ### Components
 
 - [Topology Coordinator](topology-coordinator.md) — partition builder, webhook, per-driver CEL
-- Fork: [`johnahull/k8s-dra-topology-coordinator`](https://github.com/johnahull/k8s-dra-topology-coordinator), branch `test/all-fixes-combined`
+- Fork: [`johnahull/k8s-dra-topology-coordinator`](https://github.com/johnahull/k8s-dra-topology-coordinator) — branches: `fix/distance-based-fallback`, `fix/per-driver-cel-selectors`, `fix/webhook-forward-cel-selectors`, `fix/pcieroot-constraint-non-pci-drivers`, `fix/numanode-attribute-namespace`
+- [Patched repos inventory](patched-repos.md) — all 7 repos with forks and branches
 
 ---
 
@@ -102,18 +103,24 @@ Additional patches for VFIO passthrough:
 
 ### What We Proved
 
-Fedora 43 VM on the XE9680 with:
-- GPU from NUMA 0 → `numa_node=0` in guest
-- GPU from NUMA 1 → `numa_node=1` in guest
-- NIC from NUMA 0 → `numa_node=0` in guest
-- NIC from NUMA 1 → `numa_node=1` in guest
+**Single-NUMA VM** (1 GPU + 1 NIC from NUMA 0):
+- KEP-5304 metadata provides PCI address + NUMA node for each DRA device
+- pxb-pcie expander on guest NUMA 0 hosts both devices
+- VM boots and runs Fedora 41
+
+**Dual-NUMA VM** (1 GPU + 1 NIC from each NUMA node):
+- Two pxb-pcie expanders, one per guest NUMA node
+- Guest NUMA 0: vCPUs + GPU `0000:3d:02.0` + NIC `0000:1d:01.1`
+- Guest NUMA 1: device-only cell (no vCPUs, 1 hugepage) + GPU `0000:9d:02.0` + NIC `0000:9f:00.2`
+- Guest `numactl --hardware` shows 2 NUMA nodes with correct device placement
 
 ```
-Guest PCI NUMA mapping:
-  0000:ff:00.0: numa=0  GPU  (MI300X VF, host NUMA 0)
-  0000:fe:00.0: numa=0  NIC  (ConnectX-6 VF, host NUMA 0)
-  0000:fc:00.0: numa=1  GPU  (MI300X VF, host NUMA 1)
-  0000:fb:00.0: numa=1  NIC  (ConnectX-6 VF, host NUMA 1)
+Libvirt domain XML:
+  <cell id='0' cpus='0-15' memory='4192256' unit='KiB'/>   # CPU cell
+  <cell id='1' memory='2048' unit='KiB'/>                   # Device-only cell
+
+  pxb-pcie numa_node=0: GPU 0000:3d:02.0 (bus 0x05) + NIC 0000:1d:01.1 (bus 0x06)
+  pxb-pcie numa_node=1: GPU 0000:9d:02.0 (bus 0x02) + NIC 0000:9f:00.2 (bus 0x03)
 ```
 
 The full chain: topology coordinator → DRA CEL selectors → device allocation → VFIO binding → KEP-5304 metadata → VEP 115 pxb-pcie → guest NUMA topology.
@@ -122,17 +129,20 @@ The full chain: topology coordinator → DRA CEL selectors → device allocation
 
 | Item | Status |
 |------|--------|
-| GIM kernel module patched for kernel 6.17 | Done |
-| AMD GPU DRA driver VFIO bind/unbind | Done |
+| GIM kernel module patched for kernel 6.17 | Done — [`johnahull/MxGPU-Virtualization`](https://github.com/johnahull/MxGPU-Virtualization) `fix/kernel-6.17-compat` |
+| AMD GPU DRA driver VFIO bind/unbind | Done — [`johnahull/k8s-gpu-dra-driver`](https://github.com/johnahull/k8s-gpu-dra-driver) `feature/vfio-passthrough` |
 | SR-IOV NIC VFs pre-bound to vfio-pci | Manual (driver doesn't have VFIO mode) |
-| Multi-driver KEP-5304 metadata per claim | Kubelet bug — workaround: separate claims per driver |
+| Multi-device DRA requests in KubeVirt | Gap — KubeVirt expects 1 device per request ([upstream proposal](upstream-proposals/kubevirt-multi-device-dra-requests.md)) |
+| KEP-5304 metadata path for templates | Fixed — search both `resourceclaims/` and `resourceclaimtemplates/` |
+| virt-launcher build for RHEL base images | Must build on CentOS Stream 9 for ABI compatibility |
 | Kubelet CPU/memory pinning to match DRA | Gap — DRA and topology manager don't coordinate |
 
 ### Components
 
-- KubeVirt patches: `virt-controller` (root mode, capabilities, seccomp, launcher override) + `virt-launcher` (DRA NUMA cells, KEP-5304 reading)
+- KubeVirt patches: [`johnahull/kubevirt`](https://github.com/johnahull/kubevirt) branch `feature/dra-vfio-numa-passthrough` — 12 files across virt-controller + virt-launcher
 - GPU VFIO: GIM patched for kernel 6.17, DRA driver VF binding fix
 - [Full documentation](kubevirt-integration.md)
+- [Patched repos](patched-repos.md)
 
 ---
 
