@@ -1,0 +1,124 @@
+=== Quarter Pod Test (SNC OFF, 2 NUMA nodes) ===
+Date: 2026-04-17T18:32:04Z
+
+=== Pod Status ===
+quarter-numa0   1/1   Running   0     66s   192.168.63.130   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   <none>   <none>
+quarter-numa1   1/1   Running   0     66s   192.168.63.164   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   <none>   <none>
+
+=== Constraints ===
+--- quarter-numa0-partition-229l5 ---
+[
+    {
+        "matchAttribute": "resource.kubernetes.io/pcieRoot",
+        "requests": [
+            "partition-gpu-amd-com",
+            "partition-sriovnetwork-k8snetworkplumbingwg-io"
+        ]
+    }
+]
+--- quarter-numa1-partition-vqwcg ---
+[
+    {
+        "matchAttribute": "resource.kubernetes.io/pcieRoot",
+        "requests": [
+            "partition-sriovnetwork-k8snetworkplumbingwg-io",
+            "partition-gpu-amd-com"
+        ]
+    }
+]
+
+=== Allocations ===
+--- quarter-numa0-partition-229l5 ---
+[
+    {
+        "consumedCapacity": {
+            "size": "264080720Ki"
+        },
+        "device": "memory-6sqt5h",
+        "driver": "dra.memory",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-memory",
+        "shareID": "3dc0e2f6-15b5-4bf0-bf45-e02a905830c8"
+    },
+    {
+        "device": "gpu-vfio-4",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "gpu-vfio-9",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "0000-1d-01-1",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    },
+    {
+        "device": "0000-1d-00-7",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    },
+    {
+        "consumedCapacity": {
+            "dra.cpu/cpu": "16"
+        },
+        "device": "cpudevnuma000",
+        "driver": "dra.cpu",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-cpu",
+        "shareID": "334e252d-ac14-4bb2-9bac-81ae504cae50"
+    }
+]
+--- quarter-numa1-partition-vqwcg ---
+[
+    {
+        "device": "0000-9f-00-2",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    },
+    {
+        "device": "0000-9f-00-4",
+        "driver": "sriovnetwork.k8snetworkplumbingwg.io",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-sriovnetwork-k8snetworkplumbingwg-io"
+    },
+    {
+        "consumedCapacity": {
+            "dra.cpu/cpu": "16"
+        },
+        "device": "cpudevnuma001",
+        "driver": "dra.cpu",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-cpu",
+        "shareID": "9688e683-c642-4e29-9359-6999cc3dae21"
+    },
+    {
+        "consumedCapacity": {
+            "size": "264232840Ki"
+        },
+        "device": "memory-zspwlm",
+        "driver": "dra.memory",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-dra-memory",
+        "shareID": "76a3b81f-35ff-4b57-9378-381acdceb725"
+    },
+    {
+        "device": "gpu-vfio-0",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    },
+    {
+        "device": "gpu-vfio-13",
+        "driver": "gpu.amd.com",
+        "pool": "j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com",
+        "request": "partition-gpu-amd-com"
+    }
+]
