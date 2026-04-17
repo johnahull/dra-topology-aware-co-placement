@@ -1,0 +1,93 @@
+=== Dual-NUMA KubeVirt VFIO Guest Topology Test ===
+Date: 2026-04-17T18:24:17Z
+
+=== VMI Status ===
+vm-2numa   2m49s   Running   192.168.63.183   j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   True
+
+=== DRA NUMA Overrides ===
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=claim-nic0 request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:53.589362Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=claim-nic0 request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.692356Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=claim-nic0 request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.802119Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:1d:01.1 (claim=claim-nic0 request=nic) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.882923Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=claim-gpu0 request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:53.588129Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=claim-gpu0 request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.691314Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=claim-gpu0 request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.801249Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:3d:02.0 (claim=claim-gpu0 request=gpu) → NUMA 0","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.881929Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9d:02.0 (claim=claim-gpu1 request=gpu) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:53.588710Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9d:02.0 (claim=claim-gpu1 request=gpu) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.691893Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9d:02.0 (claim=claim-gpu1 request=gpu) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.801722Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9d:02.0 (claim=claim-gpu1 request=gpu) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.882473Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9f:00.2 (claim=claim-nic1 request=nic) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:53.589783Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9f:00.2 (claim=claim-nic1 request=nic) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.692801Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9f:00.2 (claim=claim-nic1 request=nic) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.802563Z"}
+{"component":"virt-launcher","level":"info","msg":"DRA NUMA override: device 0000:9f:00.2 (claim=claim-nic1 request=nic) → NUMA 1","pos":"converter.go:1445","timestamp":"2026-04-17T18:21:56.883423Z"}
+
+=== Guest NUMA Cells ===
+    <numa>
+      <cell id='0' cpus='0-15' memory='4192256' unit='KiB'/>
+      <cell id='1' memory='2048' unit='KiB'/>
+    </numa>
+
+=== pxb-pcie Expanders ===
+    <controller type='pci' index='1' model='pcie-expander-bus'>
+      <model name='pxb-pcie'/>
+      <target busNr='253'>
+        <node>1</node>
+      </target>
+      <alias name='pci.1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+--
+    <controller type='pci' index='4' model='pcie-expander-bus'>
+      <model name='pxb-pcie'/>
+      <target busNr='250'>
+        <node>0</node>
+      </target>
+      <alias name='pci.4'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+
+=== Host Devices Placement ===
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x3d' slot='0x02' function='0x0'/>
+      </source>
+      <alias name='ua-dra-hostdevice-gpu0'/>
+      <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x9d' slot='0x02' function='0x0'/>
+      </source>
+      <alias name='ua-dra-hostdevice-gpu1'/>
+      <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x1d' slot='0x01' function='0x1'/>
+      </source>
+      <alias name='ua-dra-hostdevice-nic0'/>
+      <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='no'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x9f' slot='0x00' function='0x2'/>
+      </source>
+      <alias name='ua-dra-hostdevice-nic1'/>
+      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
+    </hostdev>
+    <watchdog model='itco' action='reset'>
+      <alias name='watchdog0'/>
+    </watchdog>
+    <memballoon model='virtio-non-transitional' freePageReporting='off'>
+      <stats period='10'/>
+      <alias name='balloon0'/>
+      <address type='pci' domain='0x0000' bus='0x12' slot='0x00' function='0x0'/>
+    </memballoon>
+
+=== Summary ===
+Guest NUMA 0: CPUs 0-15 + GPU 0000:3d:02.0 (bus 0x05) + NIC 0000:1d:01.1 (bus 0x06)
+Guest NUMA 1: No CPUs (device-only) + GPU 0000:9d:02.0 (bus 0x02) + NIC 0000:9f:00.2 (bus 0x03)
+Both pxb-pcie expanders present, devices correctly placed per NUMA node
