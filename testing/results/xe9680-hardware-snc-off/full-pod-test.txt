@@ -1,0 +1,20 @@
+=== Full-Machine Pod Test (SNC OFF, 2 NUMA nodes) ===
+Date: 2026-04-17T18:33Z
+
+=== Result: FAILED (K8s claim device limit) ===
+
+The full partition requests all devices on the machine:
+- GPU: 16 (8 PFs + 8 VFs)
+- NIC: 16 (2 PFs + 14 VFs)
+- CPU: 2 (one per NUMA)
+- Memory: 2 (one per NUMA)
+- Total: 36 devices
+
+K8s ResourceClaim has a hard limit of 32 devices per claim.
+Error: "number of requested devices 36 exceeds the claim limit of 32"
+
+This is a Kubernetes scheduler limit, not a topology coordinator issue.
+Workaround: split the full partition into 2 half-partition claims.
+
+The full DeviceClass exists and the webhook expands correctly — the
+constraint is purely on claim size.
