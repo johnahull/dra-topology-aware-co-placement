@@ -61,7 +61,7 @@ Driver fixes needed for topology-aware pod placement:
 | Gap | Driver | Change | Status |
 |-----|--------|--------|--------|
 | AMD vendor-specific `pciBusID` | AMD GPU DRA | Publish `resource.kubernetes.io/pciBusID` instead of `pciAddr` | Patched, not upstream |
-| NVIDIA no NUMA for standard GPUs | NVIDIA GPU DRA | Read `/sys/bus/pci/devices/<BDF>/numa_node` for GPU and MIG types | Not started |
+| NVIDIA NUMA attribute | NVIDIA GPU DRA | Published as vendor-specific `gpu.nvidia.com/numa`, no standard name | Vendor-specific |
 | KEP-5304 opt-in | GPU + NIC drivers | Enable metadata API (k8s 1.36+) | Patched, not upstream |
 
 ### 3. Additional Changes (for KubeVirt VMs)
@@ -94,7 +94,7 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 | No standard topology attribute beyond pcieRoot | 🟠 Actively debated upstream | Coordinator (now) / Upstream (later) |
 | No cross-driver constraints | 🟠 Coordinator solves with per-driver CEL selectors | Coordinator (now) / Upstream (later) |
 | AMD vendor-specific `pciBusID` | 🟡 Patched, not upstream | AMD GPU DRA driver |
-| NVIDIA no NUMA for standard GPUs | 🔴 Not started | NVIDIA GPU DRA driver |
+| NVIDIA NUMA attribute | 🟡 Published as `gpu.nvidia.com/numa`, no standard name | NVIDIA GPU DRA driver |
 | KEP-5304 opt-in | 🟡 Patched for AMD GPU + SR-IOV NIC | Each PCI DRA driver |
 | GPU interconnect topology | ⬜ Future | Driver attributes + coordinator |
 
@@ -128,7 +128,7 @@ graph TD
     end
 
     subgraph "Driver Gaps"
-        NVIDIA_NUMA["NVIDIA: Add numaNode<br/>for standard GPUs & MIG"]
+        NVIDIA_NUMA["NVIDIA: publishes numa<br/>as gpu.nvidia.com/numa<br/>(no standard name)"]
         AMD_VFIO["AMD: VFIO passthrough<br/>(patched, not upstream)"]
         AMD_PCIBUSID["AMD: standard pciBusID<br/>(patched, not upstream)"]
         KEP5304["GPU + NIC drivers:<br/>KEP-5304 opt-in<br/>(patched, not upstream)"]
@@ -146,7 +146,7 @@ graph TD
     STD_NUMA --> CROSS_MATCH
     CROSS_MATCH --> GOAL
 
-    NVIDIA_NUMA -.->|"blocks coordinator<br/>for NVIDIA GPUs"| COORD
+    NVIDIA_NUMA -.->|"vendor-specific name<br/>needs topology rule"| COORD
     AMD_PCIBUSID --> KEP5304
     AMD_VFIO --> KV_VFIO
     KEP5304 --> KV_FULL
@@ -165,7 +165,7 @@ graph TD
     style COORD fill:#4af,color:#fff
     style PERDRIVER fill:#4af,color:#fff
     style FALLBACK fill:#4af,color:#fff
-    style NVIDIA_NUMA fill:#f44,color:#fff
+    style NVIDIA_NUMA fill:#fa4,color:#000
     style AMD_VFIO fill:#fa4,color:#000
     style AMD_PCIBUSID fill:#fa4,color:#000
     style KEP5304 fill:#fa4,color:#000
@@ -182,7 +182,7 @@ graph TD
 ### Phases
 
 **Pods:**
-1. **NUMA-aligned containers** — Topology coordinator with per-driver CEL selectors and distance-based fallback. Tested with 4 DRA drivers (GPU, NIC, CPU, memory) on XE9680 with SNC on and off. Working for AMD GPUs; blocked for NVIDIA until they publish `numaNode`.
+1. **NUMA-aligned containers** — Topology coordinator with per-driver CEL selectors and distance-based fallback. Tested with 4 DRA drivers (GPU, NIC, CPU, memory) on XE9680 with SNC on and off. Both AMD (`gpu.amd.com/numaNode`) and NVIDIA (`gpu.nvidia.com/numa`) publish NUMA under vendor-specific names — the coordinator handles both via ConfigMap topology rules.
 2. **Close driver gaps** — NVIDIA NUMA for standard GPUs, upstream the AMD pciBusID/KEP-5304 patches. Independent changes, can proceed in parallel.
 
 **KubeVirt:**
