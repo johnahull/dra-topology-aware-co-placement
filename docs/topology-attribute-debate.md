@@ -12,24 +12,23 @@ See also: [Detailed tradeoff diagrams](../testing/diagrams/topology-attribute-tr
 
 The two standardized attributes (`pcieRoot` and `pciBusID`) are necessary for PCI device identity and same-switch grouping, but they are **insufficient for cross-device NUMA alignment** on their own. Additional topology information is needed for four reasons:
 
-### 1. GPUs and NICs rarely share a PCIe root complex
+### 1. Only some GPUs share a PCIe root with the NIC
 
-On high-end servers, each GPU typically gets its own dedicated PCIe root complex for maximum bandwidth. On a Dell XE9680 with 8 MI300X GPUs, NUMA node 0 has:
+On high-end servers, each GPU typically gets its own dedicated PCIe root complex for maximum bandwidth. On a Dell XE9680 with 8 MI300X GPUs (SNC off, 2 NUMA nodes), NUMA node 0 has:
 
 ```
 NUMA node 0
-├── pci0000:15  →  MI300X GPU 0
-├── pci0000:37  →  MI300X GPU 1
-├── pci0000:48  →  MI300X GPU 2
-├── pci0000:59  →  MI300X GPU 3
-└── pci0000:XX  →  ConnectX-6 NIC VFs
+├── pci0000:15  →  MI300X GPU (1b:00.0) + ConnectX-6 NIC (1d:00.0)  ← share a switch
+├── pci0000:37  →  MI300X GPU (3d:00.0)
+├── pci0000:48  →  MI300X GPU (4e:00.0)
+└── pci0000:59  →  MI300X GPU (5f:00.0)
 ```
 
-Five different PCIe root complexes on a single NUMA node. A `matchAttribute: resource.kubernetes.io/pcieRoot` constraint across GPU + NIC is **unsatisfiable** — they never share a root — even though they are on the same NUMA node and would perform well together. This was confirmed during testing ([topology coordinator issue #4](upstream-roadmap.md)).
+GPU `1b` and NIC `1d` share PCIe root `0000:15` — `matchAttribute: pcieRoot` works for that pair. But GPUs `3d`, `4e`, `5f` are on different switches with no NIC. A pcieRoot constraint across GPU + NIC excludes 3 of 4 GPUs per socket, even though they're on the same NUMA node and would perform well together.
 
-On simpler hardware (e.g., GKE `a4-highgpu-8g` nodes with NVIDIA B200 GPUs), GPU+NIC pairs may share PCIe roots, and pcieRoot-based alignment works ([Ojea 2025](https://arxiv.org/abs/2506.23628)). But this is a hardware design choice, not a universal property.
+With SNC-2 on (4 NUMA nodes), the pattern is the same: NUMA 0 and 2 each have one GPU+NIC pair sharing a switch (tight coupling), while NUMA 1 and 3 have GPUs but no NIC at all. The topology coordinator handles this with [distance-based fallback](topology-coordinator.md) — pcieRoot for tight coupling where hardware supports it, NUMA-only for the rest.
 
-**Update:** On this XE9680, GPU `1b:00.0` and NIC `1d:00.0` DO share a PCIe switch (both under PEX890xx on root `0000:15`). So `matchAttribute: pcieRoot` works for **that specific GPU-NIC pair**. But GPUs `3d`, `4e`, `5f` are on different switches (`0000:37`, `0000:48`, `0000:59`) with no NIC — `pcieRoot` matching fails for 3 of 4 GPUs per socket. With SNC on, the split is the same: NUMA 0 gets 1 GPU+NIC pair on `0000:15` and 1 GPU-only on `0000:59`. pcieRoot matching works for tight coupling (the GPU+NIC on the same switch) but excludes GPUs that only need NUMA-level proximity.
+On simpler hardware (e.g., GKE `a4-highgpu-8g` nodes with NVIDIA B200 GPUs), GPU+NIC pairs may share PCIe roots, and pcieRoot-based alignment works directly ([Ojea 2025](https://arxiv.org/abs/2506.23628)). But this is a hardware design choice, not a universal property.
 
 ### 2. CPUs and memory are not PCIe devices
 
