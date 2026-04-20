@@ -73,8 +73,6 @@ Additional patches needed to extend topology-aware placement into KubeVirt VMs w
 | AMD VFIO passthrough | AMD GPU DRA driver | VFIO bind/unbind, CDI spec for `/dev/vfio/*` | Patched, not upstream |
 | VEP 115 + DRA NUMA cells | KubeVirt virt-launcher | Guest NUMA topology from KEP-5304 metadata, device-only cells | Patched, not upstream |
 | VFIO capabilities/security | KubeVirt virt-controller | Root mode, memlock, seccomp, permittedHostDevices skip | Patched, not upstream |
-| GIM kernel 6.17 compat | AMD MxGPU-Virtualization | `vm_flags_set()` for kernel 6.3+ | Patched, not upstream |
-
 See [Upstream Roadmap](docs/upstream-roadmap.md) for the full patch inventory, and [Patched Repos](docs/patched-repos.md) for all forks and branches.
 
 ### 4. Upstream Standardization (longer-term)
@@ -145,7 +143,6 @@ spec:
 | VEP 115 + DRA NUMA cells | 🟡 Working end-to-end with patches | KubeVirt virt-launcher |
 | VFIO capabilities/security | 🟡 Patched, not upstream | KubeVirt virt-controller |
 | Multi-device DRA requests | 🟠 Workaround (count:1 per claim) | KubeVirt ([proposal](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md)) |
-| GIM kernel 6.17 compat | 🟡 Patched, not upstream | AMD MxGPU-Virtualization |
 
 ---
 
