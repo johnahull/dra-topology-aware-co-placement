@@ -60,7 +60,6 @@ Driver fixes needed for topology-aware pod placement:
 
 | Gap | Driver | Change | Status |
 |-----|--------|--------|--------|
-| AMD vendor-specific `pciBusID` | AMD GPU DRA | Publish `resource.kubernetes.io/pciBusID` instead of `pciAddr` | Patched, not upstream |
 | NVIDIA NUMA attribute | NVIDIA GPU DRA | Published as vendor-specific `gpu.nvidia.com/numa`, no standard name | Vendor-specific |
 
 ### 3. Additional Changes (for KubeVirt VMs)
@@ -69,6 +68,7 @@ Additional patches needed to extend topology-aware placement into KubeVirt VMs w
 
 | Gap | Component | Change | Status |
 |-----|-----------|--------|--------|
+| AMD standard `pciBusID` | AMD GPU DRA driver | Publish `resource.kubernetes.io/pciBusID` for virt-launcher | Patched, not upstream |
 | KEP-5304 opt-in | GPU + NIC drivers | Enable metadata API so virt-launcher can read device attributes | Patched, not upstream |
 | AMD VFIO passthrough | AMD GPU DRA driver | VFIO bind/unbind, CDI spec for `/dev/vfio/*` | Patched, not upstream |
 | VEP 115 + DRA NUMA cells | KubeVirt virt-launcher | Guest NUMA topology from KEP-5304 metadata, device-only cells | Patched, not upstream |
@@ -93,7 +93,6 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 |-----|--------|-----------|
 | No standard topology attribute beyond pcieRoot | 🟠 Actively debated upstream | Coordinator (now) / Upstream (later) |
 | No cross-driver constraints | 🟠 Coordinator solves with per-driver CEL selectors | Coordinator (now) / Upstream (later) |
-| AMD vendor-specific `pciBusID` | 🟡 Patched, not upstream | AMD GPU DRA driver |
 | NVIDIA NUMA attribute | 🟡 Published as `gpu.nvidia.com/numa`, no standard name | NVIDIA GPU DRA driver |
 | GPU interconnect topology | ⬜ Future | Driver attributes + coordinator |
 
@@ -101,6 +100,7 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 
 | Gap | Status | Solved By |
 |-----|--------|-----------|
+| AMD standard `pciBusID` | 🟡 Patched, not upstream | AMD GPU DRA driver |
 | KEP-5304 opt-in | 🟡 Patched for AMD GPU + SR-IOV NIC | Each PCI DRA driver |
 | AMD VFIO passthrough | 🟡 Patched, not upstream | AMD GPU DRA driver |
 | VEP 115 + DRA NUMA cells | 🟡 Working end-to-end with patches | KubeVirt virt-launcher |
