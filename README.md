@@ -1,6 +1,6 @@
 # DRA Topology-Aware Device Co-Placement
 
-**Date:** 2026-04-16
+**Date:** 2026-04-20 (updated)
 
 ## Goal
 
@@ -58,14 +58,14 @@ See [Topology Coordinator Design](docs/topology-coordinator.md) for architecture
 
 Independent driver fixes that must happen regardless of the coordination approach:
 
-| Gap | Driver | Change |
-|-----|--------|--------|
-| AMD vendor-specific `pciBusID` | AMD GPU DRA | Publish `resource.kubernetes.io/pciBusID` instead of `pciAddr` |
-| NVIDIA no NUMA for standard GPUs | NVIDIA GPU DRA | Read `/sys/bus/pci/devices/<BDF>/numa_node` for GPU and MIG types |
-| AMD no VFIO passthrough | AMD GPU DRA | Implement VFIO mode for VM passthrough |
-| KEP-5304 opt-in | All PCI drivers | Enable metadata API (k8s 1.36+) |
+| Gap | Driver | Change | Status |
+|-----|--------|--------|--------|
+| AMD vendor-specific `pciBusID` | AMD GPU DRA | Publish `resource.kubernetes.io/pciBusID` instead of `pciAddr` | Patched, not upstream |
+| NVIDIA no NUMA for standard GPUs | NVIDIA GPU DRA | Read `/sys/bus/pci/devices/<BDF>/numa_node` for GPU and MIG types | Not started |
+| AMD no VFIO passthrough | AMD GPU DRA | Implement VFIO mode for VM passthrough | Patched, not upstream |
+| KEP-5304 opt-in | GPU + NIC drivers | Enable metadata API (k8s 1.36+) | Patched, not upstream |
 
-See [Upstream Roadmap](docs/upstream-roadmap.md) for the full 23-patch inventory with status and owners.
+See [Upstream Roadmap](docs/upstream-roadmap.md) for the full patch inventory with status and owners, and [Patched Repos](docs/patched-repos.md) for all forks and branches.
 
 ### 3. Upstream Standardization (longer-term)
 
@@ -79,13 +79,13 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 
 | Gap | Status | Solved By | Phase |
 |-----|--------|-----------|-------|
-| 1. No standard topology attribute beyond pcieRoot | 🟠 Actively debated — `numaNode` objected to (SNC/NPS concerns), `cpuSocketNumber` also contested, CPUs-publish-pcieRoot-as-list is WIP | Coordinator (now) / Upstream (later) | 1 / 4 |
-| 2. No cross-driver constraints | 🟠 Needs KEP work (KEP-5491 does not address this) | Coordinator (now) / Upstream (later) | 1 / 4 |
-| 3. AMD vendor-specific `pciBusID` | 🔴 Not started | AMD GPU DRA driver | 2 |
+| 1. No standard topology attribute beyond pcieRoot | 🟠 Actively debated — `numaNode` objected to (SNC/NPS concerns), CPUs-publish-pcieRoot-as-list is WIP | Coordinator (now) / Upstream (later) | 1 / 4 |
+| 2. No cross-driver constraints | 🟠 Coordinator solves this with per-driver CEL selectors; needs KEP work for native support | Coordinator (now) / Upstream (later) | 1 / 4 |
+| 3. AMD vendor-specific `pciBusID` | 🟡 Patched, not upstream — [`johnahull/k8s-gpu-dra-driver`](https://github.com/johnahull/k8s-gpu-dra-driver) | AMD GPU DRA driver | 2 |
 | 4. NVIDIA no NUMA for standard GPUs | 🔴 Not started | NVIDIA GPU DRA driver | 2 |
-| 5. AMD no VFIO passthrough | 🔴 Not started | AMD GPU DRA driver | 2 |
-| 6. KEP-5304 opt-in | 🟠 NVIDIA in progress | Each PCI DRA driver | 2 |
-| 7. KubeVirt placement | 🟠 VEP 115 done, needs coordination | Coordinator + driver gaps | 3 |
+| 5. AMD no VFIO passthrough | 🟡 Patched, not upstream — [`johnahull/k8s-gpu-dra-driver`](https://github.com/johnahull/k8s-gpu-dra-driver) `feature/vfio-passthrough` | AMD GPU DRA driver | 2 |
+| 6. KEP-5304 opt-in | 🟡 Patched for AMD GPU + SR-IOV NIC, not upstream | Each PCI DRA driver | 2 |
+| 7. KubeVirt placement | 🟡 Working end-to-end with patches — VEP 115 + DRA NUMA cells + VFIO passthrough | Coordinator + driver patches + KubeVirt patches | 3 |
 | 8. GPU interconnect topology | ⬜ Future | Driver attributes + coordinator | 5 |
 
 ---
@@ -108,15 +108,15 @@ graph TD
 
     subgraph "Driver Gaps"
         NVIDIA_NUMA["NVIDIA: Add numaNode<br/>for standard GPUs & MIG<br/>(read from sysfs)"]
-        AMD_VFIO["AMD: Implement VFIO<br/>passthrough mode in<br/>DRA driver"]
-        AMD_PCIBUSID["AMD: Publish<br/>resource.k8s.io/pciBusID<br/>(not vendor pciAddr)"]
-        KEP5304["All PCI drivers:<br/>KEP-5304 opt-in<br/>(k8s 1.36+)"]
+        AMD_VFIO["AMD: VFIO passthrough<br/>(patched, not upstream)"]
+        AMD_PCIBUSID["AMD: standard pciBusID<br/>(patched, not upstream)"]
+        KEP5304["GPU + NIC drivers:<br/>KEP-5304 opt-in<br/>(patched, not upstream)"]
     end
 
     subgraph "KubeVirt"
-        VEP115["VEP 115: PCIe NUMA<br/>topology in guest ✅"]
-        KV_DRA["KubeVirt DRA<br/>claim support ✅"]
-        KV_FULL["End-to-end<br/>NUMA-aware VMs"]
+        VEP115["VEP 115: PCIe NUMA<br/>topology in guest"]
+        KV_DRA["KubeVirt DRA<br/>claim support"]
+        KV_FULL["End-to-end<br/>NUMA-aware VMs<br/>(working with patches)"]
     end
 
     POC_DONE --> GOAL
@@ -146,8 +146,8 @@ graph TD
     style VEP115 fill:#4a4,color:#fff
     style KV_DRA fill:#4a4,color:#fff
     style NVIDIA_NUMA fill:#f44,color:#fff
-    style AMD_VFIO fill:#f44,color:#fff
-    style AMD_PCIBUSID fill:#f44,color:#fff
+    style AMD_VFIO fill:#fa4,color:#000
+    style AMD_PCIBUSID fill:#fa4,color:#000
     style KEP5304 fill:#fa4,color:#000
     style STD_NUMA fill:#fa4,color:#000
     style CROSS_MATCH fill:#fa4,color:#000
@@ -155,7 +155,7 @@ graph TD
     style GPU_TOPO fill:#ddd,color:#666
 ```
 
-**Legend:** 🟢 Done  🔵 POC (works today)  🟠 In progress / needs work  🔴 Not started  ⬜ Future
+**Legend:** 🟢 Upstream  🔵 POC (works today)  🟠 Patched / in progress  🔴 Not started  ⬜ Future
 
 ### Phases
 
@@ -182,26 +182,47 @@ The transition happens as GPU vendors migrate from device plugins to DRA drivers
 
 ---
 
+## Testing
+
+Tested on Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM) with K8s 1.36.0-rc.0, Fedora 43.
+
+| Test | Result |
+|------|--------|
+| 4-driver eighth pods (SNC off) | Running — 2 pods, each with CPU + memory + 2 GPUs + 2 NICs, NUMA-aligned |
+| 4-driver quarter pods (SNC off) | Running — 2 pods, each with CPU + 258GB + 2 GPUs + 2 NICs |
+| Tight vs loose coupling (SNC on) | Both running — tight (pcieRoot matched) + loose (NUMA-only) |
+| KubeVirt single-NUMA VM | Running — GPU + NIC on guest NUMA 0 via pxb-pcie |
+| KubeVirt dual-NUMA VM (SNC off) | Running — 2 pxb-pcie expanders, device-only guest NUMA cell |
+| KubeVirt dual-NUMA VM (SNC on) | Running — host NUMA 0→guest 0, host NUMA 2→guest 1 |
+| SNC-2 on vs off comparison | Coordinator adapts automatically — 9 vs 5 DeviceClasses |
+
+See [Test Results Summary](testing/results/results-summary.md) for full details, hardware captures, and SNC comparison.
+
+---
+
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [Gap Analysis](docs/gap-analysis.md) | Detailed technical analysis of 8 gaps, driver comparisons, attribute tables, capability matrix |
-| [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems, worked examples |
-| [Architecture](docs/architecture.md) | Component diagrams, hardware layout, allocation flows, Mermaid diagrams |
-| [Topology Coordinator Design](docs/topology-coordinator.md) | Partition abstraction, webhook expansion, constraint modes, Solution A (pcieRoot-as-list) |
-| [KubeVirt Integration](docs/kubevirt-integration.md) | KEP-5304, VEP 115, VFIO passthrough, guest NUMA topology, test results |
-| [Upstream Roadmap](docs/upstream-roadmap.md) | 23 patches across 5 projects with status and upstream actions |
-| [Test Results Summary](testing/results/results-summary.md) | Comparison matrix across K8s versions and configurations |
+| [Project Narrative](docs/project-narrative.md) | 3 stories: pod placement → KubeVirt VMs → upstream proposals |
+| [Gap Analysis](docs/gap-analysis.md) | Detailed technical analysis of 8 gaps, driver comparisons, attribute tables |
+| [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems |
+| [Architecture](docs/architecture.md) | Component diagrams, hardware layout, allocation flows |
+| [Topology Coordinator Design](docs/topology-coordinator.md) | Partition abstraction, webhook expansion, distance-based fallback |
+| [KubeVirt Integration](docs/kubevirt-integration.md) | KEP-5304, VEP 115, VFIO passthrough, guest NUMA topology |
+| [Upstream Roadmap](docs/upstream-roadmap.md) | Patches across 7 repos with status and upstream actions |
+| [Patched Repos](docs/patched-repos.md) | All forks, branches, and descriptions |
+| [Test Results Summary](testing/results/results-summary.md) | Comparison matrix across K8s versions, SNC on/off, bugs found |
 | [Topology Attribute Tradeoffs (diagrams)](testing/diagrams/topology-attribute-tradeoffs.md) | Mermaid visualizations of NPS1, NPS4, SNC cases |
 
 ### Upstream Proposals
 
 | Proposal | Description |
 |----------|-------------|
+| [Standardize numaNode with pcieRoot Fallback](docs/upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) | Propose `resource.kubernetes.io/numaNode` as companion to pcieRoot with distance-based fallback |
 | [KEP-5304 Auto-Populate Metadata](docs/upstream-proposals/kep5304-auto-populate-metadata.md) | Kubelet auto-copies ResourceSlice attributes into KEP-5304 metadata |
 | [NUMA/SNC/NPS Topology Gap](docs/upstream-proposals/numa-snc-nps-topology-gap.md) | DRA ↔ kubelet topology manager coordination gap |
-| [Standardize numaNode with pcieRoot Fallback](docs/upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) | Propose `resource.kubernetes.io/numaNode` as companion to pcieRoot with distance-based fallback |
+| [KubeVirt Multi-Device DRA Requests](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md) | KubeVirt hostDevices with count>1 DRA requests |
 
 ---
 
