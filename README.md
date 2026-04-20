@@ -167,21 +167,6 @@ graph TD
 
 ---
 
-## Relationship to the NUMA Resources Operator
-
-The [NUMA Resources Operator](https://github.com/openshift-kni/numaresources-operator) is the existing OpenShift solution for NUMA-aware scheduling, but for the **device plugin resource model**, not DRA:
-
-| | NUMA Resources Operator | DRA Topology Coordinator |
-|---|---|---|
-| Resource model | Device plugins + `resources.requests` | DRA ResourceSlices + ResourceClaims |
-| Topology data | RTE daemon → NRT CRD | Drivers publish in ResourceSlices directly |
-| Scheduling | Secondary scheduler plugin | Mutating webhook + existing DRA allocator |
-| DRA awareness | None | Native |
-
-The transition happens as GPU vendors migrate from device plugins to DRA drivers and `dra-driver-cpu` / `dra-driver-memory` reach production maturity.
-
----
-
 ## Testing
 
 Tested on Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM) with K8s 1.36.0-rc.0, Fedora 43.
