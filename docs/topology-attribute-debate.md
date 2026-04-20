@@ -28,6 +28,21 @@ NUMA node 0
 
 GPU `1b` and NIC `1d` share PCIe root `0000:15` — `matchAttribute: pcieRoot` works for that pair. But GPUs `3d`, `4e`, `5f` are on different switches with no NIC. A pcieRoot constraint across GPU + NIC excludes 3 of 4 GPUs per socket, even though they're on the same NUMA node and would perform well together.
 
+Full PCIe switch mapping (SNC off, 2 NUMA nodes):
+
+| PCIe Root | NUMA | GPU PF | GPU VF | NIC PF | Shares Switch? |
+|-----------|------|--------|--------|--------|----------------|
+| `pci0000:15` | 0 | `1b:00.0` | `1b:02.0` | `1d:00.0`, `1d:00.1` | **Yes** (tight) |
+| `pci0000:37` | 0 | `3d:00.0` | `3d:02.0` | — | No (loose) |
+| `pci0000:48` | 0 | `4e:00.0` | `4e:02.0` | — | No (loose) |
+| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No (loose) |
+| `pci0000:97` | 1 | `9d:00.0` | `9d:02.0` | `9f:00.0`, `9f:00.1` | **Yes** (tight) |
+| `pci0000:b7` | 1 | `bd:00.0` | `bd:02.0` | — | No (loose) |
+| `pci0000:c7` | 1 | `cd:00.0` | `cd:02.0` | — | No (loose) |
+| `pci0000:d7` | 1 | `dd:00.0` | `dd:02.0` | — | No (loose) |
+
+2 of 8 GPU+NIC pairs share a PCIe switch (tight). The other 6 are on the same NUMA but different switches (loose). All 8 support GPUDirect RDMA — loose coupling adds one hop through the root complex but stays within the local memory controller.
+
 With SNC-2 on (4 NUMA nodes), the pattern is the same: NUMA 0 and 2 each have one GPU+NIC pair sharing a switch (tight coupling), while NUMA 1 and 3 have GPUs but no NIC at all. The topology coordinator handles this with [distance-based fallback](topology-coordinator.md) — pcieRoot for tight coupling where hardware supports it, NUMA-only for the rest.
 
 On simpler hardware (e.g., GKE `a4-highgpu-8g` nodes with NVIDIA B200 GPUs), GPU+NIC pairs may share PCIe roots, and pcieRoot-based alignment works directly ([Ojea 2025](https://arxiv.org/abs/2506.23628)). But this is a hardware design choice, not a universal property.
