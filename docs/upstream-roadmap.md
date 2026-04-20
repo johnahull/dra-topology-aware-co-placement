@@ -1,5 +1,7 @@
 # DRA Topology-Aware Co-Placement — All Issues & Patches
 
+> **TL;DR:** Patch inventory across 7 repos (AMD GPU, SR-IOV NIC, memory, topology coordinator, KubeVirt, GIM, containerd). Each patch listed with file, change description, and upstream action needed.
+
 **Platform:** Fedora 43 + K8s 1.36.0-rc.0 on Dell XE9680
 **Date:** 2026-04-14/15
 

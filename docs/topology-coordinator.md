@@ -2,6 +2,8 @@
 
 **Date:** 2026-04-16
 
+> **TL;DR:** A controller + webhook that turns a one-line partition claim into a multi-driver NUMA-aligned allocation. Discovers devices from 4 DRA drivers, builds eighth/quarter/half/full machine partitions, and generates per-driver CEL selectors with distance-based pcieRoot→numaNode fallback.
+
 ---
 
 ## Overview

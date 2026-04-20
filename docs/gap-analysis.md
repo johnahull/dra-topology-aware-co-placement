@@ -2,6 +2,8 @@
 
 **Date:** 2026-04-16
 
+> **TL;DR:** 8 specific gaps preventing cross-driver NUMA alignment in DRA today. Each driver publishes NUMA under a different attribute name, `matchAttribute` can't span drivers, and CPU/memory have no `pcieRoot`.
+
 Detailed technical analysis of DRA's topology gaps and driver capabilities for cross-driver NUMA-aware device co-placement.
 
 See also: [Topology Attribute Debate](topology-attribute-debate.md) for the upstream discussion on numaNode vs pcieRoot standardization.

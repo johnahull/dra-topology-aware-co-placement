@@ -2,6 +2,8 @@
 
 **Date:** 2026-04-17 (updated)
 
+> **TL;DR:** Three stories: (1) topology coordinator aligns GPU + NIC + CPU + memory on the same NUMA for pods, (2) KubeVirt patches carry that alignment into guest VM NUMA topology, (3) upstream should standardize `numaNode` so the coordinator isn't needed for basic alignment.
+
 This project demonstrates end-to-end topology-aware device placement using Kubernetes DRA, from plain pods through KubeVirt VMs, and proposes upstream enhancements based on what we learned.
 
 ---

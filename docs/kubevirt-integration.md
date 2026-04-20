@@ -1,6 +1,8 @@
 # KubeVirt DRA Integration
 **Date:** 2026-04-16
 
+> **TL;DR:** GPU + NIC VFIO passthrough to KubeVirt VMs via DRA, with correct guest NUMA topology. KEP-5304 provides device metadata, VEP 115 pxb-pcie places devices on the right guest NUMA node. Requires patches across 7 components.
+
 ## Overview
 
 KubeVirt VMs can receive VFIO-passthrough GPU and NIC devices allocated via Kubernetes DRA (Dynamic Resource Allocation). This document consolidates the full integration picture: the architecture from DRA allocation through guest NUMA topology, the KEP-5304 device metadata mechanism that makes it work, the VEP 115 guest NUMA topology gap that limits it, and the test results from running MI300X GPUs and ConnectX-6 NICs inside KubeVirt VMs on K8s 1.36.

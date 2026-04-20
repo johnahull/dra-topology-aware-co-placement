@@ -2,6 +2,8 @@
 
 **Date:** 2026-04-16
 
+> **TL;DR:** `pcieRoot` only aligns PCI devices and over-constrains (same switch vs same NUMA). `numaNode` aligns everything but is contested (SNC/NPS changes what NUMA IDs mean). If CPU+memory drivers merge, pcieRoot-as-list covers all resource types. Otherwise, `numaNode` is still needed.
+
 There is no single topology attribute that works perfectly across all hardware configurations. The upstream Kubernetes community has **active technical disagreement** about what to standardize beyond `pcieRoot`. This document covers the debate, the tradeoffs, and how each approach works in practice.
 
 See also: [Detailed tradeoff diagrams](../testing/diagrams/topology-attribute-tradeoffs.md) for Mermaid visualizations of each scenario.

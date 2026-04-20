@@ -2,6 +2,8 @@
 
 **Date:** 2026-04-16
 
+> **TL;DR:** How the topology coordinator, 4 DRA drivers, and webhook fit together on a Dell XE9680. Component diagrams, hardware layout, and allocation flows.
+
 ## Overview
 
 DRA (Dynamic Resource Allocation) enables NUMA-aware device co-placement across multiple drivers. The topology coordinator discovers devices from all DRA drivers, creates partition DeviceClasses with NUMA alignment constraints, and a webhook expands simple partition claims into multi-driver requests. This document consolidates the component architecture, hardware layout, allocation flows, and known issues across the 3-driver and 4-driver deployment models on a Dell XE9680 with AMD MI300X GPUs.
