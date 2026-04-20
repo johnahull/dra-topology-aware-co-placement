@@ -96,42 +96,43 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 graph TD
     GOAL["🎯 Cross-driver NUMA<br/>co-placement for<br/>pods and VMs"]
 
-    subgraph "Topology Coordinator (works today)"
-        POC_DONE["✅ Coordinator<br/>ConfigMap rules + webhook +<br/>partition abstraction"]
-        SOFT_DONE["✅ Soft affinity<br/>preferred enforcement"]
+    subgraph "Topology Coordinator"
+        COORD["Coordinator<br/>ConfigMap rules + webhook +<br/>partition abstraction"]
+        PERDRIVER["Per-driver CEL selectors<br/>(no common attribute needed)"]
+        FALLBACK["Distance-based fallback<br/>pcieRoot → numaNode<br/>(tight / loose coupling)"]
     end
 
     subgraph "Upstream (longer-term)"
-        STD_NUMA["Define standard<br/>resource.k8s.io/numaNode<br/>(KEP-5491 mechanism shipped,<br/>attribute not yet defined)"]
+        STD_NUMA["Define standard<br/>resource.k8s.io/numaNode"]
         CROSS_MATCH["Cross-driver<br/>MatchAttribute<br/>in scheduler"]
     end
 
     subgraph "Driver Gaps"
-        NVIDIA_NUMA["NVIDIA: Add numaNode<br/>for standard GPUs & MIG<br/>(read from sysfs)"]
+        NVIDIA_NUMA["NVIDIA: Add numaNode<br/>for standard GPUs & MIG"]
         AMD_VFIO["AMD: VFIO passthrough<br/>(patched, not upstream)"]
         AMD_PCIBUSID["AMD: standard pciBusID<br/>(patched, not upstream)"]
         KEP5304["GPU + NIC drivers:<br/>KEP-5304 opt-in<br/>(patched, not upstream)"]
     end
 
     subgraph "KubeVirt"
-        VEP115["VEP 115: PCIe NUMA<br/>topology in guest"]
-        KV_DRA["KubeVirt DRA<br/>claim support"]
+        VEP115["VEP 115 + DRA NUMA cells<br/>(patched, not upstream)"]
+        KV_VFIO["VFIO passthrough via DRA<br/>(patched, not upstream)"]
         KV_FULL["End-to-end<br/>NUMA-aware VMs<br/>(working with patches)"]
     end
 
-    POC_DONE --> GOAL
-    SOFT_DONE --> POC_DONE
+    COORD --> GOAL
+    PERDRIVER --> COORD
+    FALLBACK --> COORD
     STD_NUMA --> CROSS_MATCH
     CROSS_MATCH --> GOAL
 
-    NVIDIA_NUMA --> GOAL
-    NVIDIA_NUMA -.->|"blocks coordinator<br/>for NVIDIA GPUs"| POC_DONE
+    NVIDIA_NUMA -.->|"blocks coordinator<br/>for NVIDIA GPUs"| COORD
     AMD_PCIBUSID --> KEP5304
-    AMD_VFIO --> KV_FULL
+    AMD_VFIO --> KV_VFIO
     KEP5304 --> KV_FULL
 
     VEP115 --> KV_FULL
-    KV_DRA --> KV_FULL
+    KV_VFIO --> KV_FULL
     KV_FULL --> GOAL
 
     subgraph "Future"
@@ -141,28 +142,29 @@ graph TD
     GPU_TOPO -.->|"future"| GOAL
 
     style GOAL fill:#4a4,color:#fff
-    style POC_DONE fill:#4af,color:#fff
-    style SOFT_DONE fill:#4af,color:#fff
-    style VEP115 fill:#4a4,color:#fff
-    style KV_DRA fill:#4a4,color:#fff
+    style COORD fill:#4af,color:#fff
+    style PERDRIVER fill:#4af,color:#fff
+    style FALLBACK fill:#4af,color:#fff
     style NVIDIA_NUMA fill:#f44,color:#fff
     style AMD_VFIO fill:#fa4,color:#000
     style AMD_PCIBUSID fill:#fa4,color:#000
     style KEP5304 fill:#fa4,color:#000
     style STD_NUMA fill:#fa4,color:#000
     style CROSS_MATCH fill:#fa4,color:#000
+    style VEP115 fill:#fa4,color:#000
+    style KV_VFIO fill:#fa4,color:#000
     style KV_FULL fill:#fa4,color:#000
     style GPU_TOPO fill:#ddd,color:#666
 ```
 
-**Legend:** 🟢 Upstream  🔵 POC (works today)  🟠 Patched / in progress  🔴 Not started  ⬜ Future
+**Legend:** 🔵 Working (POC)  🟠 Patched, not upstream  🔴 Not started  ⬜ Future
 
 ### Phases
 
-1. **NUMA-aligned containers (works now)** — Deploy the topology coordinator with ConfigMap rules. Validates with GPU + NIC + CPU partitions. Provides immediate value for AMD GPUs. Blocked for NVIDIA GPUs until Gap 4 is closed.
-2. **Close driver gaps** — NVIDIA NUMA for standard GPUs, AMD `pciBusID` + VFIO, KEP-5304 opt-in for all PCI drivers. Independent changes, can proceed in parallel.
-3. **End-to-end NUMA-aware VMs** — Topology coordinator + KEP-5304 + VEP 115 = guest AI frameworks detect GPU-NIC co-locality and enable GPU Direct RDMA.
-4. **Upstream standardization** — `resource.kubernetes.io/numaNode` + cross-driver `MatchAttribute`. Coordinator remains valuable for partition abstraction and soft affinity.
+1. **NUMA-aligned containers** — Topology coordinator with per-driver CEL selectors and distance-based fallback. Tested with 4 DRA drivers (GPU, NIC, CPU, memory) on XE9680 with SNC on and off. Working for AMD GPUs; blocked for NVIDIA until they publish `numaNode`.
+2. **Close driver gaps** — NVIDIA NUMA for standard GPUs, upstream the AMD pciBusID/VFIO/KEP-5304 patches. Independent changes, can proceed in parallel.
+3. **End-to-end NUMA-aware VMs** — Topology coordinator + KEP-5304 + VEP 115 + KubeVirt VFIO patches. Tested: single-NUMA and dual-NUMA VMs with correct guest pxb-pcie placement. Needs upstream KubeVirt PRs.
+4. **Upstream standardization** — `resource.kubernetes.io/numaNode` + cross-driver `MatchAttribute`. Coordinator remains valuable for partition abstraction and distance-based fallback.
 5. **GPU interconnect topology (future)** — NVLink / xGMI attributes for intra-node GPU-to-GPU topology.
 
 ---
