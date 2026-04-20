@@ -131,6 +131,21 @@ PCIe root complexes per sub-NUMA:
 - NUMA 2: `0000:97`, `0000:d7` (2 GPUs + NIC)
 - NUMA 3: `0000:b7`, `0000:c7` (2 GPUs, no NIC)
 
+### PCIe Switch to Device Mapping (SNC off)
+
+| PCIe Root | NUMA | GPU PF | GPU VF | NIC PF | Shares Switch? | Coupling |
+|-----------|------|--------|--------|--------|----------------|----------|
+| `pci0000:15` | 0 | `1b:00.0` | `1b:02.0` | `1d:00.0`, `1d:00.1` | **Yes** | Tight |
+| `pci0000:37` | 0 | `3d:00.0` | `3d:02.0` | — | No | Loose |
+| `pci0000:48` | 0 | `4e:00.0` | `4e:02.0` | — | No | Loose |
+| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No | Loose |
+| `pci0000:97` | 1 | `9d:00.0` | `9d:02.0` | `9f:00.0`, `9f:00.1` | **Yes** | Tight |
+| `pci0000:b7` | 1 | `bd:00.0` | `bd:02.0` | — | No | Loose |
+| `pci0000:c7` | 1 | `cd:00.0` | `cd:02.0` | — | No | Loose |
+| `pci0000:d7` | 1 | `dd:00.0` | `dd:02.0` | — | No | Loose |
+
+2 of 8 GPU+NIC pairs share a PCIe switch (tight). The other 6 are on the same NUMA but different switches (loose). All 8 support GPUDirect RDMA — loose coupling adds one hop through the root complex but stays within the local memory controller.
+
 ### Key Observations
 
 1. **PCIe tree is identical** — same physical devices, same switches. SNC only changes which CPU/memory controller services each root complex.
