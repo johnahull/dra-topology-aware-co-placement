@@ -79,9 +79,21 @@ Three approaches are under discussion with no resolution:
 | Standardize `cpuSocketNumber` | Meaningful on multi-socket systems | Too coarse for intra-socket topology; same objections about not reflecting real hardware |
 | CPUs publish `pcieRoot` as list | Uses existing standard attribute; no new API | Complex; CPU-to-PCIe mapping is vendor-specific; memory has no pcieRoot |
 
-### The memory gap nobody is discussing
+### The memory gap and the CPU/memory driver merge
 
-None of the upstream topology alignment conversations mention memory alignment. The debate is entirely focused on GPU + NIC + CPU. Memory as a fourth DRA resource type that needs NUMA alignment is not on anyone's radar. If the community converges on pcieRoot-as-list as the standard approach, memory alignment will be left out entirely unless someone raises it.
+None of the upstream topology alignment conversations mention memory alignment. The debate is entirely focused on GPU + NIC + CPU. Memory as a fourth DRA resource type that needs NUMA alignment is not on anyone's radar.
+
+If the community converges on pcieRoot-as-list, the memory gap depends on whether the CPU and memory drivers merge:
+
+| Scenario | GPU+NIC+CPU alignment | Memory alignment | Need `numaNode`? |
+|----------|----------------------|------------------|-------------------|
+| pcieRoot-as-list, memory is separate driver | Yes (CPU-as-pivot) | No — memory has no pcieRoot | Yes |
+| pcieRoot-as-list, memory merged into CPU driver | Yes (CPU-as-pivot) | Yes — same device, same pcieRoot list | No |
+| Standard `numaNode` | Yes (one constraint) | Yes (one constraint) | Yes (it IS the solution) |
+
+The CPU driver maintainer (`kad`) also maintains the memory driver, and merging them is under consideration. If that happens, pcieRoot-as-list covers all four resource types without needing `numaNode`. Without the merge, `numaNode` remains necessary for full alignment.
+
+Even with pcieRoot-as-list covering alignment, `numaNode` is a simpler mental model: one attribute, one constraint, all drivers. pcieRoot-as-list requires the CPU-as-pivot pattern with multiple constraints — GPU and NIC don't share a pcieRoot with each other, but they each share one with the CPU, so they're *transitively* co-located on the same NUMA boundary. This indirection makes claims harder to write and debug.
 
 ---
 

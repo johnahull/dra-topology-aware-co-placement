@@ -125,7 +125,7 @@ spec:
 
 **What's blocking this:**
 - No consensus on a standard NUMA attribute name ([SNC/NPS debate](docs/topology-attribute-debate.md))
-- CPU and memory can't publish `pcieRoot` (not PCI devices), so the pcieRoot-as-list workaround doesn't cover all resource types
+- The alternative — [CPUs publish `pcieRoot` as a list](https://github.com/kubernetes/kubernetes/pull/138297) — covers GPU + NIC + CPU via the CPU-as-pivot pattern, but memory has no `pcieRoot`. If the CPU and memory drivers are [merged into one](https://github.com/kubernetes-sigs/dra-driver-cpu), memory would come for free. Without that merge, `numaNode` is still needed for memory alignment
 
 **What the coordinator still adds even with native support:**
 - Machine partition abstraction (eighth/quarter/half) — users request a "slice" instead of listing individual drivers
