@@ -62,7 +62,6 @@ Driver fixes needed for topology-aware pod placement:
 |-----|--------|--------|--------|
 | AMD vendor-specific `pciBusID` | AMD GPU DRA | Publish `resource.kubernetes.io/pciBusID` instead of `pciAddr` | Patched, not upstream |
 | NVIDIA NUMA attribute | NVIDIA GPU DRA | Published as vendor-specific `gpu.nvidia.com/numa`, no standard name | Vendor-specific |
-| KEP-5304 opt-in | GPU + NIC drivers | Enable metadata API (k8s 1.36+) | Patched, not upstream |
 
 ### 3. Additional Changes (for KubeVirt VMs)
 
@@ -70,6 +69,7 @@ Additional patches needed to extend topology-aware placement into KubeVirt VMs w
 
 | Gap | Component | Change | Status |
 |-----|-----------|--------|--------|
+| KEP-5304 opt-in | GPU + NIC drivers | Enable metadata API so virt-launcher can read device attributes | Patched, not upstream |
 | AMD VFIO passthrough | AMD GPU DRA driver | VFIO bind/unbind, CDI spec for `/dev/vfio/*` | Patched, not upstream |
 | VEP 115 + DRA NUMA cells | KubeVirt virt-launcher | Guest NUMA topology from KEP-5304 metadata, device-only cells | Patched, not upstream |
 | VFIO capabilities/security | KubeVirt virt-controller | Root mode, memlock, seccomp, permittedHostDevices skip | Patched, not upstream |
@@ -95,13 +95,13 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 | No cross-driver constraints | 🟠 Coordinator solves with per-driver CEL selectors | Coordinator (now) / Upstream (later) |
 | AMD vendor-specific `pciBusID` | 🟡 Patched, not upstream | AMD GPU DRA driver |
 | NVIDIA NUMA attribute | 🟡 Published as `gpu.nvidia.com/numa`, no standard name | NVIDIA GPU DRA driver |
-| KEP-5304 opt-in | 🟡 Patched for AMD GPU + SR-IOV NIC | Each PCI DRA driver |
 | GPU interconnect topology | ⬜ Future | Driver attributes + coordinator |
 
 ### KubeVirt VMs (VFIO passthrough + guest NUMA)
 
 | Gap | Status | Solved By |
 |-----|--------|-----------|
+| KEP-5304 opt-in | 🟡 Patched for AMD GPU + SR-IOV NIC | Each PCI DRA driver |
 | AMD VFIO passthrough | 🟡 Patched, not upstream | AMD GPU DRA driver |
 | VEP 115 + DRA NUMA cells | 🟡 Working end-to-end with patches | KubeVirt virt-launcher |
 | VFIO capabilities/security | 🟡 Patched, not upstream | KubeVirt virt-controller |
