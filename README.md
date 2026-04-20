@@ -96,6 +96,45 @@ See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full 
 | NVIDIA NUMA attribute | 🟡 Published as `gpu.nvidia.com/numa`, no standard name | NVIDIA GPU DRA driver |
 | GPU interconnect topology | ⬜ Future | Driver attributes + coordinator |
 
+### What native K8s support would look like
+
+If the upstream community standardized a common NUMA attribute (e.g., `resource.kubernetes.io/numaNode`) and all drivers published it, cross-driver NUMA alignment would be a single constraint — no coordinator needed:
+
+```yaml
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.nvidia.com
+        count: 2
+    - name: nic
+      exactly:
+        deviceClassName: sriovnetwork
+        count: 1
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+    - name: mem
+      exactly:
+        deviceClassName: dra.memory
+        count: 1
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [gpu, nic, cpu, mem]
+```
+
+**What's blocking this:**
+- No consensus on a standard NUMA attribute name ([SNC/NPS debate](docs/topology-attribute-debate.md))
+- CPU and memory can't publish `pcieRoot` (not PCI devices), so the pcieRoot-as-list workaround doesn't cover all resource types
+
+**What the coordinator still adds even with native support:**
+- Machine partition abstraction (eighth/quarter/half) — users request a "slice" instead of listing individual drivers
+- Distance-based fallback (pcieRoot tight → numaNode loose)
+- Per-NUMA DeviceClasses with pre-computed resource counts
+- DRAConsumableCapacity for shared CPU/memory capacity division
+
 ### KubeVirt VMs (VFIO passthrough + guest NUMA)
 
 | Gap | Status | Solved By |
