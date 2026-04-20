@@ -43,7 +43,20 @@ Full PCIe switch mapping (SNC off, 2 NUMA nodes):
 
 2 of 8 GPU+NIC pairs share a PCIe switch (tight). The other 6 are on the same NUMA but different switches (loose). All 8 support GPUDirect RDMA — loose coupling adds one hop through the root complex but stays within the local memory controller.
 
-With SNC-2 on (4 NUMA nodes), the pattern is the same: NUMA 0 and 2 each have one GPU+NIC pair sharing a switch (tight coupling), while NUMA 1 and 3 have GPUs but no NIC at all. The topology coordinator handles this with [distance-based fallback](topology-coordinator.md) — pcieRoot for tight coupling where hardware supports it, NUMA-only for the rest.
+PCIe switch mapping (SNC on, 4 NUMA nodes):
+
+| PCIe Root | NUMA | GPU PF | GPU VF | NIC PF | Shares Switch? | Coupling |
+|-----------|------|--------|--------|--------|----------------|----------|
+| `pci0000:15` | 0 | `1b:00.0` | `1b:02.0` | `1d:00.0`, `1d:00.1` | **Yes** | Tight |
+| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No | Loose |
+| `pci0000:37` | 1 | `3d:00.0` | `3d:02.0` | — | No | **No NIC on NUMA** |
+| `pci0000:48` | 1 | `4e:00.0` | `4e:02.0` | — | No | **No NIC on NUMA** |
+| `pci0000:97` | 2 | `9d:00.0` | `9d:02.0` | `9f:00.0`, `9f:00.1` | **Yes** | Tight |
+| `pci0000:d7` | 2 | `dd:00.0` | `dd:02.0` | — | No | Loose |
+| `pci0000:b7` | 3 | `bd:00.0` | `bd:02.0` | — | No | **No NIC on NUMA** |
+| `pci0000:c7` | 3 | `cd:00.0` | `cd:02.0` | — | No | **No NIC on NUMA** |
+
+SNC splits the 6 loose pairs into 2 loose (same sub-NUMA as NIC, different switch) and 4 with no NIC on the sub-NUMA at all. The topology coordinator handles this with [distance-based fallback](topology-coordinator.md) — pcieRoot for tight coupling where hardware supports it, NUMA-only for the rest.
 
 On simpler hardware (e.g., GKE `a4-highgpu-8g` nodes with NVIDIA B200 GPUs), GPU+NIC pairs may share PCIe roots, and pcieRoot-based alignment works directly ([Ojea 2025](https://arxiv.org/abs/2506.23628)). But this is a hardware design choice, not a universal property.
 
