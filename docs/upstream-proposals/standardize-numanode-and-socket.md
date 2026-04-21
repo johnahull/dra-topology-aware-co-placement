@@ -169,6 +169,69 @@ The topology coordinator remains valuable for:
 
 Standardizing `numaNode` and `socket` eliminates the need for the coordinator for basic NUMA alignment. The coordinator adds value at the partition abstraction layer.
 
+## Impact on KubeVirt
+
+The distance hierarchy applies to VMs, but KubeVirt has an additional requirement: the **guest** must see devices on the correct guest NUMA node, not just benefit from host-side placement.
+
+### Scheduling (same as pods)
+
+The VM's launcher pod is scheduled with the same `matchAttribute` constraints. GPU + NIC + CPU + memory land on the same host NUMA. No difference from pods.
+
+### Guest NUMA topology (KubeVirt-specific)
+
+KubeVirt's VEP 115 creates `pxb-pcie` expander buses to place passthrough devices on the correct guest NUMA node. The virt-launcher reads device NUMA from KEP-5304 metadata to determine which guest NUMA cell each device belongs to.
+
+**Today**, the virt-launcher must try multiple vendor-specific attribute names:
+
+```go
+// Current: check every driver's naming convention
+numaAttr := metadata.Attributes["numaNode"]           // AMD GPU
+if numaAttr == nil {
+    numaAttr = metadata.Attributes["numa"]             // NVIDIA GPU
+}
+if numaAttr == nil {
+    numaAttr = metadata.Attributes["dra.net/numaNode"] // SR-IOV NIC
+}
+if numaAttr == nil {
+    // fall back to sysfs
+    numa = readSysfs("/sys/bus/pci/devices/" + pciAddr + "/numa_node")
+}
+```
+
+**With standardization**, one lookup works for every driver:
+
+```go
+// Standardized: one attribute name
+numaAttr := metadata.Attributes["resource.kubernetes.io/numaNode"]
+```
+
+### What the hierarchy means for guest topology
+
+| Level | Host scheduling | Guest NUMA impact |
+|-------|----------------|-------------------|
+| pcieRoot | GPU + NIC on same switch | Both devices on same guest NUMA, same pxb-pcie bus |
+| numaNode | GPU + NIC on same memory controller | Both devices on same guest NUMA, different pxb-pcie buses |
+| socket | GPU + NIC on same package, may cross sub-NUMA | Devices may be on different guest NUMA cells within the same socket |
+| node | No constraint | Guest NUMA topology may not reflect any host locality |
+
+### The kubelet coordination gap
+
+Even with standardized attributes, the kubelet topology manager pins CPUs and memory independently from DRA device placement. For pods, this causes silent cross-NUMA performance loss. For VMs, the impact is more visible:
+
+- Guest sees vCPUs on guest NUMA 0 but GPU on guest NUMA 1
+- `NUMATune` strict mode fails for device-only NUMA cells when the cgroup doesn't allow that sub-NUMA's memory
+- Applications inside the guest detect the wrong topology and may disable optimizations like GPUDirect RDMA
+
+This gap exists regardless of attribute standardization — it requires a DRA topology hint mechanism in the kubelet, which is a separate effort.
+
+### Tested configurations
+
+| Test | Host NUMAs | Guest NUMAs | Result |
+|------|-----------|-------------|--------|
+| Single-NUMA VM (SNC off) | GPU + NIC on NUMA 0 | 1 guest NUMA | Devices on correct guest NUMA via pxb-pcie |
+| Dual-NUMA VM (SNC off) | GPU + NIC from NUMA 0 and 1 | 2 guest NUMAs (1 CPU + 1 device-only) | Correct placement, device-only cell works |
+| Dual-NUMA VM (SNC on) | GPU + NIC from NUMA 0 and 2 | 2 guest NUMAs | Host NUMA 0→guest 0, host NUMA 2→guest 1 |
+
 ## Evidence
 
 Tested on Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X, 2x ConnectX-6 Dx) with K8s 1.36.0-rc.0:
