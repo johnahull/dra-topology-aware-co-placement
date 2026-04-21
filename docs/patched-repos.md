@@ -6,7 +6,8 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 
 | Upstream Repo | Fork | Branch | Description |
 |---------------|------|--------|-------------|
-| [kubevirt/kubevirt](https://github.com/kubevirt/kubevirt) | [johnahull/kubevirt](https://github.com/johnahull/kubevirt) | `feature/dra-vfio-numa-passthrough` | VFIO passthrough via DRA + guest NUMA topology (VEP 115) — 12 files |
+| [kubevirt/kubevirt](https://github.com/kubevirt/kubevirt) | [johnahull/kubevirt](https://github.com/johnahull/kubevirt) | `feature/dra-numa-guest-topology` | DRA → VEP 115 bridge: KEP-5304 metadata → guest NUMA cells + pxb-pcie placement — 5 files |
+| | | `feature/dra-vfio-numa-passthrough` | Full stack: DRA NUMA bridge + VFIO passthrough (locked memory, capabilities, root mode) — 12 files |
 | [k8snetworkplumbingwg/dra-driver-sriov](https://github.com/k8snetworkplumbingwg/dra-driver-sriov) | [johnahull/dra-driver-sriov](https://github.com/johnahull/dra-driver-sriov) | `feature/dra-topology-co-placement` | KEP-5304 metadata, DRA hook/driver fixes |
 | [ffromani/dra-driver-memory](https://github.com/ffromani/dra-driver-memory) | [johnahull/dra-driver-memory](https://github.com/johnahull/dra-driver-memory) | `feature/dra-topology-co-placement` | Dockerfile + preflight + dependency updates |
 | [amd/MxGPU-Virtualization](https://github.com/amd/MxGPU-Virtualization) | [johnahull/MxGPU-Virtualization](https://github.com/johnahull/MxGPU-Virtualization) | `fix/kernel-6.17-compat` | `vm_flags_set()` for kernel 6.3+ |
