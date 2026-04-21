@@ -271,6 +271,7 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | Proposal | Description |
 |----------|-------------|
 | [Standardize numaNode with pcieRoot Fallback](docs/upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) | Propose `resource.kubernetes.io/numaNode` as companion to pcieRoot with distance-based fallback |
+| [Standardize numaNode and socket](docs/upstream-proposals/standardize-numanode-and-socket.md) | Engineering proposal: sysfs sources, helper functions, match coverage tables, SNC/NPS hierarchy |
 | [KEP-5304 Auto-Populate Metadata](docs/upstream-proposals/kep5304-auto-populate-metadata.md) | Kubelet auto-copies ResourceSlice attributes into KEP-5304 metadata |
 | [NUMA/SNC/NPS Topology Gap](docs/upstream-proposals/numa-snc-nps-topology-gap.md) | DRA ↔ kubelet topology manager coordination gap |
 | [KubeVirt Multi-Device DRA Requests](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md) | KubeVirt hostDevices with count>1 DRA requests |
