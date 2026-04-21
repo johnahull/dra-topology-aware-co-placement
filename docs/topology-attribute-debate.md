@@ -334,24 +334,41 @@ This produces `tight` coupling (pcieRoot matched) where hardware supports it, an
 
 ### What upstream would need
 
-A native distance hierarchy in DRA constraints would look like:
+Three things:
+
+**1. Standardize `numaNode` and `socket` alongside `pcieRoot`.** All three are hardware facts derivable from sysfs. Drivers report what the hardware is — policy is the user's job.
+
+| Attribute | Source | What it means |
+|-----------|--------|---------------|
+| `resource.kubernetes.io/pcieRoot` | Already standard | Which PCIe switch |
+| `resource.kubernetes.io/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` | Which memory controller |
+| `resource.kubernetes.io/socket` | `numa_node` → `cpulist` → `physical_package_id` | Which physical CPU package |
+
+For CPU/memory devices (not PCI), `numaNode` and `socket` come directly from sysfs CPU topology. `pcieRoot` would be published as a list (the [WIP PR](https://github.com/kubernetes/kubernetes/pull/138297) approach) or omitted.
+
+**2. Add `enforcement: preferred` to `matchAttribute`.** Today `matchAttribute` is always required — if unsatisfiable, the claim fails. With `preferred`, the scheduler tries the constraint but relaxes if no match exists. This is a scheduler change, but conceptually small — the topology coordinator already implements it.
+
+**3. Users compose the hierarchy in their claims.** The admin decides what level of locality their workload needs. The driver just publishes facts.
 
 ```yaml
+# User's ResourceClaim — admin decides the policy
 constraints:
 - matchAttribute: resource.kubernetes.io/pcieRoot
   requests: [gpu, nic]
-  enforcement: preferred
+  enforcement: preferred        # best: same PCIe switch
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, mem]
-  enforcement: preferred
+  enforcement: preferred        # good: same memory controller
 - matchAttribute: resource.kubernetes.io/socket
   requests: [gpu, nic, cpu, mem]
-  enforcement: required
+  enforcement: required         # minimum: same socket
 ```
 
-Try pcieRoot first (best performance). If unsatisfiable, try numaNode (good performance). If that's also too restrictive (SNC/NPS), require at least same socket. The scheduler picks the tightest satisfiable level. No single attribute needs to be perfect — the hierarchy handles hardware variation.
+The scheduler evaluates top to bottom. If pcieRoot matches — great, tightest coupling. If not, try numaNode. If that's also too restrictive (SNC/NPS hardware), socket is the floor. The workload always gets at least same-socket locality.
 
-This requires standardizing `numaNode` and `socket` alongside `pcieRoot`, plus the `enforcement: preferred` semantics. The topology coordinator already proves the pattern works.
+**No coordinator needed.** No ConfigMap rules. No webhook. Standard attributes, standard constraints, user-defined policy. The topology coordinator remains valuable for partition abstraction (users request a "machine slice" instead of writing these constraints by hand), but basic NUMA alignment becomes native.
+
+The topology coordinator already proves the pattern works — the `fallbackAttribute` mechanism and `enforcement: preferred/required` are the same concept.
 
 ## Impact on This Project
 

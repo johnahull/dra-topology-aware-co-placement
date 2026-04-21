@@ -1,8 +1,10 @@
-# Proposal: Standardize `resource.kubernetes.io/numaNode` as pcieRoot Fallback
+# Proposal: Standardize Topology Distance Attributes for DRA
 
 ## Summary
 
-Standardize `resource.kubernetes.io/numaNode` as a companion to the existing `resource.kubernetes.io/pcieRoot`. Together they form a distance-based alignment system: `pcieRoot` for tight coupling (same PCIe switch), `numaNode` for loose coupling (same memory controller). Neither attribute alone covers all hardware configurations. Both are needed for reliable cross-driver device co-placement.
+Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` as companions to the existing `resource.kubernetes.io/pcieRoot`. Together they form a distance hierarchy: `pcieRoot` (same PCIe switch) → `numaNode` (same memory controller) → `socket` (same physical package). Users compose constraints with `preferred`/`required` enforcement — the scheduler tries the tightest and relaxes until satisfiable. No single attribute needs to be perfect for all hardware; the hierarchy handles variation including SNC/NPS configurations.
+
+See [Topology Attribute Debate](../topology-attribute-debate.md#topology-distance-hierarchy) for the full analysis.
 
 ## Overview Diagram
 
