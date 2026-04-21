@@ -17,7 +17,8 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 | | | `fix/per-driver-cel-selectors` | Per-driver CEL selectors replacing cross-driver matchAttribute |
 | | | `fix/webhook-forward-cel-selectors` | Forward user CEL selectors through webhook |
 | | | `test/all-fixes-combined` | Combined branch with all fixes |
-| [ROCm/k8s-gpu-dra-driver](https://github.com/ROCm/k8s-gpu-dra-driver) | [johnahull/k8s-gpu-dra-driver](https://github.com/johnahull/k8s-gpu-dra-driver) | `feature/vfio-passthrough` | VFIO passthrough, KEP-5304 metadata, K8s 1.36 API |
+| [ROCm/k8s-gpu-dra-driver](https://github.com/ROCm/k8s-gpu-dra-driver) | [johnahull/k8s-gpu-dra-driver](https://github.com/johnahull/k8s-gpu-dra-driver) | `fix/multi-driver-and-metadata` | Bug fixes (multi-driver claim filter, version fallback) + KEP-5304 metadata — 2 commits, no VFIO |
+| | | `feature/vfio-passthrough` | Full stack: bug fixes + KEP-5304 + VFIO discovery + VFIO config/CDI — 4 commits |
 | | (patches also on upstream remote) | `develop` | GPU partition fixes, MI210 support |
 | | | `feature-auto-partition` | Automatic partition discovery |
 
