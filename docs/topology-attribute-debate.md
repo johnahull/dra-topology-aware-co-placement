@@ -293,6 +293,66 @@ For workloads that need GPU + NIC + CPU + memory on the same NUMA node — not n
 
 The topology coordinator abstracts over this: it reads each driver's topology attributes via ConfigMap rules and generates the appropriate CEL selectors. It can use `pcieRoot` for tight GPU-GPU alignment and NUMA for cross-driver partitioning in the same partition config.
 
+## Topology Distance Hierarchy
+
+The debate over which single attribute to standardize may be the wrong framing. No single attribute is the right answer for all hardware and workloads. Instead, a **distance hierarchy** lets the scheduler try the tightest coupling and relax until it finds a match:
+
+| Level | Attribute | What it means | DMA path | Performance |
+|-------|-----------|---------------|----------|-------------|
+| 1 | `pcieRoot` | Same PCIe switch | GPU → switch → NIC | Best — direct peer DMA |
+| 2 | `numaNode` | Same memory controller | GPU → switch → root complex → switch → NIC | Good — local memory, one extra hop |
+| 3 | `socket` | Same physical CPU package | May cross sub-NUMA (SNC/NPS) but within socket interconnect | Acceptable — no inter-socket link |
+| 4 | `node` | Same machine | Crosses inter-socket link (UPI/xGMI) | Bad — 58% throughput loss ([Ojea 2025](https://arxiv.org/abs/2506.23628)) |
+
+On the Dell XE9680:
+
+| Level | GPU+NIC pairs matched (SNC off) | GPU+NIC pairs matched (SNC on) |
+|-------|--------------------------------|-------------------------------|
+| pcieRoot | 2 of 8 (25%) | 2 of 8 (25%) |
+| numaNode | 8 of 8 (100%) | 4 of 8 (50%) |
+| socket | 8 of 8 (100%) | 8 of 8 (100%) |
+
+### Why this resolves the SNC/NPS objection
+
+The objection to `numaNode` is that SNC/NPS makes it too fine-grained — it excludes devices that would perform fine. But in a distance hierarchy, `numaNode` isn't the only option. If `numaNode` matching fails (device on a sub-NUMA without a NIC), the scheduler falls back to `socket` (same physical socket, all sub-NUMAs included). The workload still gets same-socket locality without being excluded.
+
+This is the same pattern `pcieRoot` needs — it's even more restrictive than `numaNode`, excluding 75% of GPU+NIC pairs on the XE9680. Nobody objects to `pcieRoot` being too restrictive because it's understood as a "preferred" constraint. The same tolerance should apply to `numaNode`.
+
+### How the coordinator implements this today
+
+The topology coordinator's `fallbackAttribute` mechanism already implements levels 1-2:
+
+```yaml
+# Topology rule: try pcieRoot, fall back to numaNode
+data:
+  attribute: resource.kubernetes.io/pcieRoot
+  constraint: match
+  fallbackAttribute: numaNode
+```
+
+This produces `tight` coupling (pcieRoot matched) where hardware supports it, and `loose` coupling (numaNode only) everywhere else. Adding `socket` as a third fallback level would handle the SNC/NPS case — if `numaNode` is too restrictive, relax to same socket.
+
+### What upstream would need
+
+A native distance hierarchy in DRA constraints would look like:
+
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/pcieRoot
+  requests: [gpu, nic]
+  enforcement: preferred
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic, cpu, mem]
+  enforcement: preferred
+- matchAttribute: resource.kubernetes.io/socket
+  requests: [gpu, nic, cpu, mem]
+  enforcement: required
+```
+
+Try pcieRoot first (best performance). If unsatisfiable, try numaNode (good performance). If that's also too restrictive (SNC/NPS), require at least same socket. The scheduler picks the tightest satisfiable level. No single attribute needs to be perfect — the hierarchy handles hardware variation.
+
+This requires standardizing `numaNode` and `socket` alongside `pcieRoot`, plus the `enforcement: preferred` semantics. The topology coordinator already proves the pattern works.
+
 ## Impact on This Project
 
 The topology coordinator's ConfigMap-based attribute mapping is specifically designed to handle this uncertainty. It can map whatever attribute name each driver publishes — `dra.cpu/numaNodeID`, `gpu.amd.com/numaNode`, or a future standard — into a common topology concept. If the community eventually standardizes an attribute, the ConfigMap rules simplify but the coordinator architecture doesn't change. Meanwhile, the `dra.net/numaNode` compatibility attribute that CPU, memory, and SR-IOV drivers already publish provides a working (if informal) alignment mechanism today.

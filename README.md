@@ -127,9 +127,11 @@ spec:
 - No consensus on a standard NUMA attribute name ([SNC/NPS debate](docs/topology-attribute-debate.md))
 - The alternative — [CPUs publish `pcieRoot` as a list](https://github.com/kubernetes/kubernetes/pull/138297) — covers GPU + NIC + CPU via the CPU-as-pivot pattern, but memory has no `pcieRoot`. If the CPU and memory drivers are [merged into one](https://github.com/kubernetes-sigs/dra-driver-cpu), memory would come for free. Without that merge, `numaNode` is still needed for memory alignment
 
+**A better approach — topology distance hierarchy:** Rather than debating which single attribute to standardize, support a hierarchy of constraints with preferred/required enforcement: pcieRoot (tightest) → numaNode → socket (loosest). The scheduler tries the tightest and relaxes until it finds a match. This resolves the SNC/NPS objection — if `numaNode` is too restrictive, fall back to `socket`. See [Topology Attribute Debate](docs/topology-attribute-debate.md#topology-distance-hierarchy) for details.
+
 **What the coordinator still adds even with native support:**
 - Machine partition abstraction (eighth/quarter/half) — users request a "slice" instead of listing individual drivers
-- Distance-based fallback (pcieRoot tight → numaNode loose)
+- Distance-based fallback (already implements the hierarchy pattern)
 - Per-NUMA DeviceClasses with pre-computed resource counts
 - DRAConsumableCapacity for shared CPU/memory capacity division
 
