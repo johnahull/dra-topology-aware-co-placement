@@ -48,6 +48,44 @@ func GetSocketByPCIBusID(pciBusID string) (int, error) {
 
 Every DRA driver that calls `GetPCIeRootAttributeByPCIBusID()` today would add two more calls. The sysfs reads are cheap (single file read each).
 
+## The Consumer Problem: KEP-5304 Metadata
+
+The lack of a standard `numaNode` attribute creates a concrete problem for consumers of KEP-5304 device metadata. KubeVirt's virt-launcher reads device metadata to build guest NUMA topology (VEP 115 pxb-pcie placement). It needs the NUMA node for each passthrough device.
+
+**Today's code** tries an unqualified `numaNode`, then falls back to sysfs:
+
+```go
+// Try KEP-5304 metadata — but what attribute name?
+numaAttrName := resourcev1.QualifiedName("numaNode")
+if attr, ok := device.Attributes[numaAttrName]; ok {
+    return *attr.IntValue, nil
+}
+// Fallback: read sysfs directly
+numa = readSysfs("/sys/bus/pci/devices/" + pciAddr + "/numa_node")
+```
+
+This works only if the driver publishes `numaNode` unqualified. In practice:
+
+| Driver | What it publishes in metadata | Lookup finds it? |
+|--------|------------------------------|-----------------|
+| AMD GPU | `numaNode` (unqualified) | Yes |
+| NVIDIA GPU | `numa` (different name) | No |
+| SR-IOV NIC | nothing (no numaNode in metadata) | No → sysfs fallback |
+| CPU | `dra.cpu/numaNodeID` (qualified, different name) | No |
+
+The consumer has to either hardcode every driver's naming convention, or fall back to sysfs. The sysfs fallback works but requires the virt-launcher pod to mount `/sys` and have access to the host's PCI device tree — an unnecessary privilege escalation for what should be a metadata lookup.
+
+**With `resource.kubernetes.io/numaNode` standardized**, every driver publishes the same attribute. One lookup, no fallback, no sysfs mount:
+
+```go
+numaAttrName := resourcev1.QualifiedName("resource.kubernetes.io/numaNode")
+if attr, ok := device.Attributes[numaAttrName]; ok {
+    return *attr.IntValue, nil
+}
+```
+
+This isn't hypothetical — it's the current state of KubeVirt's DRA integration. The code is in [`kubevirt/kubevirt` `pkg/dra/utils.go`](https://github.com/johnahull/kubevirt/blob/feature/dra-vfio-numa-passthrough/pkg/dra/utils.go).
+
 ## The SNC/NPS Objection — and Why the Hierarchy Resolves It
 
 The community removed `numaNode` from KEP-4381 because SNC (Intel) and NPS (AMD) change what NUMA IDs mean:
