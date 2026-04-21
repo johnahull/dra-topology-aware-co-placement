@@ -214,15 +214,13 @@ numaAttr := metadata.Attributes["resource.kubernetes.io/numaNode"]
 | socket | GPU + NIC on same package, may cross sub-NUMA | Devices may be on different guest NUMA cells within the same socket |
 | node | No constraint | Guest NUMA topology may not reflect any host locality |
 
-### The kubelet coordination gap
+### CPU/memory pinning
 
-Even with standardized attributes, the kubelet topology manager pins CPUs and memory independently from DRA device placement. For pods, this causes silent cross-NUMA performance loss. For VMs, the impact is more visible:
+The DRA CPU driver (`dra-driver-cpu`) handles CPU and memory pinning via NRI — it sets `cpuset.cpus` and `cpuset.mems` on the container's cgroup, pinning to the same NUMA as the DRA devices. This replaces the kubelet's built-in CPU manager; you use one or the other.
 
-- Guest sees vCPUs on guest NUMA 0 but GPU on guest NUMA 1
-- `NUMATune` strict mode fails for device-only NUMA cells when the cgroup doesn't allow that sub-NUMA's memory
-- Applications inside the guest detect the wrong topology and may disable optimizations like GPUDirect RDMA
+With the DRA CPU driver, the full stack works: the topology coordinator's CEL selectors place all devices on the same NUMA, and the CPU driver's NRI hook pins CPUs and memory to match. This was tested end-to-end on the XE9680 with pods and KubeVirt VMs.
 
-This gap exists regardless of attribute standardization — it requires a DRA topology hint mechanism in the kubelet, which is a separate effort.
+For clusters that don't use the DRA CPU driver (relying on the kubelet topology manager instead), there is no coordination between DRA device placement and CPU pinning. This is an upstream gap, but it's outside the scope of this proposal — it affects any DRA deployment without the CPU driver, regardless of attribute standardization.
 
 ### Tested configurations
 

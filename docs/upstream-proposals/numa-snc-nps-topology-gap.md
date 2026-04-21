@@ -81,23 +81,19 @@ On NPS1 (2 NUMA nodes), this mostly works because each NUMA is big. On NPS4 (8 N
 
 **Easy**: Auto-populate `numaNode` from sysfs into KEP-5304 metadata for any device with `pciBusID`. Works for all SNC/NPS modes — the number is always correct.
 
-### Kubelet (topology manager + DRA coordination)
+### CPU/memory pinning (with DRA CPU driver)
 
-**Hard**: The topology manager needs to know which NUMA nodes DRA chose for devices, and pin CPUs and memory to the same nodes. Today these are independent systems:
+**Solved**: The DRA CPU driver (`dra-driver-cpu`) handles CPU and memory pinning via NRI — it sets `cpuset.cpus` and `cpuset.mems` on the container's cgroup, pinning to the same NUMA as the DRA devices. The topology coordinator's CEL selectors place all device types (GPU, NIC, CPU, memory) on the same NUMA, and the CPU driver's NRI hook enforces the pinning. This replaces the kubelet's built-in CPU manager.
 
-- Topology manager uses topology hints from device plugins
-- DRA uses ResourceClaims with CEL selectors
-- Neither tells the other what it chose
+Tested end-to-end on the XE9680 with SNC on and off — all pods and VMs had CPUs on the correct NUMA.
 
-A DRA topology hint mechanism would let the scheduler tell the kubelet "this pod's devices are on NUMA 0 and 3 — pin CPUs accordingly."
+### CPU/memory pinning (without DRA CPU driver)
+
+**Gap**: Clusters using the kubelet topology manager (instead of the DRA CPU driver) have no coordination between DRA device placement and CPU pinning. The topology manager uses its own hints independently from DRA's CEL selectors. On NPS4 (8 NUMA nodes), the probability of choosing different sub-NUMAs is high. This would require a DRA topology hint mechanism in the kubelet, which doesn't exist today.
 
 ### Topology Coordinator
 
-**Already handles device placement**: The coordinator creates per-NUMA partitions with per-driver CEL selectors. On NPS4, it would create per-sub-NUMA partitions. The coordinator reads the topology from ResourceSlices and understands SNC/NPS automatically — each sub-NUMA has its own set of devices. But the coordinator can't control CPU/memory pinning — that's the kubelet's job.
-
-### Pods with dedicated CPUs
-
-**Affected**: Any pod using `cpu-manager-policy: static` (Guaranteed QoS with integer CPU requests) gets CPUs pinned by the topology manager. If DRA places a GPU on NUMA 0 and the topology manager pins CPUs to NUMA 1, every GPU kernel launch and buffer copy crosses NUMA. The performance penalty is silent — no error, just worse throughput and higher latency.
+**Already handles device placement**: The coordinator creates per-NUMA partitions with per-driver CEL selectors. On NPS4, it would create per-sub-NUMA partitions. The coordinator reads the topology from ResourceSlices and understands SNC/NPS automatically — each sub-NUMA has its own set of devices.
 
 ### KubeVirt
 
@@ -190,20 +186,25 @@ SNC splits the 6 loose GPU+NIC pairs (SNC off) into two categories: 2 remain loo
 - **Per-driver CEL selectors**: `device.attributes["gpu.amd.com"].numaNode == 2` works because the driver reads from sysfs.
 - **KubeVirt device placement**: VEP 115 pxb-pcie reads NUMA from sysfs or KEP-5304 metadata. Correct for any topology.
 
-### What Breaks
+### What Breaks (without the DRA CPU driver)
 
-- **Any pod with dedicated CPUs + DRA devices**: The topology manager doesn't coordinate with DRA. On SNC with 4 NUMA nodes, DRA places a GPU on sub-NUMA 3, but the topology manager might pin CPUs on sub-NUMA 0. The result is cross-NUMA GPU↔CPU communication with no error — just degraded performance.
-- **KubeVirt guest NUMA**: The mismatch is more visible — guest sees GPU on one NUMA and vCPUs on another. Device-only guest NUMA cells need memory from the device's sub-NUMA, but the cgroup restricts it.
+- **Pods using kubelet CPU manager + DRA devices**: The kubelet topology manager doesn't coordinate with DRA. On SNC with 4 NUMA nodes, DRA places a GPU on sub-NUMA 3, but the topology manager might pin CPUs on sub-NUMA 0. Cross-NUMA GPU↔CPU communication with no error — just degraded performance.
+- **KubeVirt without DRA CPU driver**: Guest sees GPU on one NUMA and vCPUs on another. Device-only guest NUMA cells need memory from the device's sub-NUMA, but the cgroup restricts it.
+
+### What Works (with the DRA CPU driver)
+
+- **CPU/memory pinning via NRI**: The DRA CPU driver sets `cpuset.cpus` and `cpuset.mems` via NRI, pinning to the same NUMA as DRA devices. Replaces the kubelet CPU manager.
+- **KubeVirt guest NUMA**: Device-only guest NUMA cells work correctly. Tested with SNC on and off.
+
+### Remaining Issues (regardless of CPU driver)
+
 - **Partition symmetry assumptions**: Some workloads assume all partitions are identical. With SNC, NUMA 0 has GPU+NIC while NUMA 1 has GPU-only.
 
-### The Fundamental Gap
+### The Remaining Gap
 
-DRA and the kubelet topology manager are separate systems:
-- DRA knows which NUMA each device is on (from driver ResourceSlice attributes)
-- Topology manager knows which NUMA each CPU/memory allocation is on (from cgroup)
-- Neither tells the other what it chose
+For clusters using the DRA CPU driver, the full stack works — device placement and CPU/memory pinning are coordinated through the topology coordinator's CEL selectors and the CPU driver's NRI hook.
 
-A DRA topology hint mechanism would let the scheduler tell the kubelet: "this pod's devices are on NUMA 0 and 3 — pin CPUs and memory to those nodes." This doesn't exist today.
+For clusters using the kubelet topology manager instead, DRA and the topology manager are separate systems with no coordination. A DRA topology hint mechanism would let the scheduler tell the kubelet: "this pod's devices are on NUMA 0 and 3 — pin CPUs and memory to those nodes." This doesn't exist today, but is only relevant for deployments without the DRA CPU driver.
 
 ## Summary
 
@@ -212,9 +213,9 @@ A DRA topology hint mechanism would let the scheduler tell the kubelet: "this po
 | Can we get the NUMA number for a device? | Yes — sysfs, always correct for SNC/NPS |
 | Can the kubelet auto-populate it in metadata? | Proposed — one-time K8s change, no driver changes |
 | Does the topology coordinator handle SNC/NPS? | Yes — per-sub-NUMA partitions automatically |
-| Do pods with dedicated CPUs + DRA get correct NUMA? | No — topology manager and DRA don't coordinate |
-| Does KubeVirt guest NUMA work with SNC/NPS? | Partially — device placement works, CPU/memory coordination doesn't |
-| Can DRA and topology manager coordinate? | No — this is the fundamental gap |
+| Do pods with DRA CPU driver get correct NUMA? | Yes — NRI hook pins CPUs/memory to match DRA devices |
+| Do pods without DRA CPU driver get correct NUMA? | No — kubelet topology manager and DRA don't coordinate |
+| Does KubeVirt guest NUMA work with SNC/NPS? | Yes (with DRA CPU driver) — tested on XE9680 SNC on/off |
 | Are partitions asymmetric with SNC/NPS? | Yes — NUMA 1/3 have no NICs on XE9680 |
 
-The topology coordinator solves the device placement problem. The kubelet auto-populate solves the metadata problem. The remaining gap is CPU/memory pinning to match DRA device placement — that requires a DRA topology hint mechanism in the kubelet, which doesn't exist today.
+The topology coordinator + DRA CPU driver solve both device placement and CPU/memory pinning. The kubelet auto-populate proposal solves the metadata problem. The remaining gap — kubelet topology manager coordination with DRA — only affects clusters that don't use the DRA CPU driver.
