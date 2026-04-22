@@ -13,20 +13,42 @@ Today, `pcieRoot` is the only standard topology attribute, but CPUs and memory d
 | Near | `socket` | Within socket interconnect — no inter-socket crossing | Dense inference on SNC/NPS hardware |
 | None | (no constraint) | May cross inter-socket link | Batch processing where latency doesn't matter |
 
+**Example claims for each level:**
+
+Most workloads just need NUMA alignment — one constraint, all four resource types:
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic, cpu, mem]
+```
+
+For tightest GPU↔NIC coupling with CPU/memory local to that switch:
 ```yaml
 constraints:
 - matchAttribute: resource.kubernetes.io/pcieRoot
   requests: [gpu, nic]
-  enforcement: preferred
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, mem]
-  enforcement: preferred
-- matchAttribute: resource.kubernetes.io/socket
-  requests: [gpu, nic, cpu, mem]
-  enforcement: required
 ```
 
-Scheduler tries tightest first, relaxes until satisfiable. No single attribute needs to be perfect — the hierarchy handles hardware variation including SNC/NPS.
+For hardware where no single level always works (SNC/NPS), `enforcement: preferred` lets the scheduler try tighter and fall back to looser. This doesn't exist today — it's one of the three changes needed:
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/pcieRoot
+  requests: [gpu, nic]
+  enforcement: preferred        # try same switch, accept if not
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic, cpu, mem]
+  enforcement: preferred        # try same NUMA, accept if not (SNC)
+- matchAttribute: resource.kubernetes.io/socket
+  requests: [gpu, nic, cpu, mem]
+  enforcement: required         # must be same socket
+```
+
+**What's needed upstream:**
+1. Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` (sysfs reads, added to `deviceattribute` helper package)
+2. All DRA drivers publish them (same two function calls alongside existing `pcieRoot`)
+3. `enforcement: preferred` on `matchAttribute` (scheduler tries constraint, relaxes if unsatisfiable)
 
 **Tested on Dell XE9680 (8x MI300X, ConnectX-6, K8s 1.36):** 4-driver pods with GPU+NIC+CPU+memory aligned at each level, both SNC on (4 NUMA nodes) and off (2 NUMA nodes). KubeVirt VMs with correct guest topology via pxb-pcie placement.
 
