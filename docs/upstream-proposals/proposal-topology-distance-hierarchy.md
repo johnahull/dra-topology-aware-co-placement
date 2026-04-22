@@ -1,4 +1,4 @@
-# Proposal: Topology Distance Hierarchy for DRA — standardize `numaNode` and `socket`
+# Proposal: Topology Distance Hierarchy for DRA — standardize `numaNode` and `cpuSocketID`
 
 **Goal:** Enable users to co-locate GPU, NIC, CPU, and memory for optimal DMA performance with a single ResourceClaim
 
