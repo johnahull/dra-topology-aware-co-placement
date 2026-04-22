@@ -23,8 +23,7 @@ Unblocks real-world deployment on current hardware.
 | 4 | AMD GPU bug fixes | Multi-driver claim filter + version fallback | `johnahull/k8s-gpu-dra-driver` `fix/multi-driver-claim-filter` | Patched, not upstream |
 | 5 | KEP-5304 for AMD GPU | pciBusID + numaNode in PrepareResult metadata | `johnahull/k8s-gpu-dra-driver` `feat/kep5304-device-metadata` | Patched, not upstream |
 | 6 | KEP-5304 for SR-IOV NIC | pciBusID in PrepareResult metadata | `johnahull/dra-driver-sriov` `feature/dra-topology-co-placement` | Patched, not upstream |
-| 7 | Memory driver fixes | Dockerfile golang 1.26 + cgroup2 preflight for Calico | `johnahull/dra-driver-memory` `feature/dra-topology-co-placement` | Patched, not upstream |
-| 8 | KEP-5304 auto-populate | Kubelet reads numaNode from sysfs for any device with pciBusID — no driver changes | Proposal only | Not started |
+| 7 | KEP-5304 auto-populate | Kubelet reads numaNode from sysfs for any device with pciBusID — no driver changes | Proposal only | Not started |
 
 ## Phase 3: Topology Coordinator
 
