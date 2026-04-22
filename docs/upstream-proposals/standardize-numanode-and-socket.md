@@ -1,6 +1,6 @@
-# Proposal: Standardize `numaNode` and `socket` as DRA Device Attributes
+# Proposal: Standardize `numaNode` and `cpuSocketID` as DRA Device Attributes
 
-> **TL;DR:** Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` alongside the existing `pcieRoot`. All three are hardware facts readable from sysfs. Combined with `enforcement: preferred` on `matchAttribute`, they form a distance hierarchy that handles all hardware configurations including SNC/NPS.
+> **TL;DR:** Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` alongside the existing `pcieRoot`. All three are hardware facts readable from sysfs. Combined with `enforcement: preferred` on `matchAttribute`, they form a distance hierarchy that handles all hardware configurations including SNC/NPS.
 
 ## Overview
 
@@ -16,7 +16,7 @@ graph TB
         direction TB
         S1["pcieRoot<br/>(already standard)"]
         S2["numaNode<br/>(proposed)"]
-        S3["socket<br/>(proposed)"]
+        S3["cpuSocketID<br/>(proposed)"]
         S1 -->|"tight coupling"| T["Same switch"]
         S2 -->|"local coupling"| L["Same memory controller"]
         S3 -->|"near coupling"| N["Same socket"]
@@ -58,11 +58,11 @@ Two attributes, both derivable from sysfs on any Linux host:
 
 **Type:** `int`
 
-### `resource.kubernetes.io/socket`
+### `resource.kubernetes.io/cpuSocketID`
 
 **Source:** For a PCI device: read `numa_node`, find a CPU on that NUMA (`/sys/devices/system/node/node<N>/cpulist`), read that CPU's `physical_package_id` (`/sys/devices/system/cpu/cpu<X>/topology/physical_package_id`). For CPU devices: `physical_package_id` directly.
 
-**What it means:** Which physical CPU package this device is local to. Devices with the same `socket` are within the same package's interconnect — no inter-socket link (UPI/xGMI).
+**What it means:** Which physical CPU package this device is local to. Devices with the same `cpuSocketID` are within the same package's interconnect — no inter-socket link (UPI/xGMI).
 
 **Type:** `int`
 
@@ -151,7 +151,7 @@ constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, mem]
   enforcement: preferred        # try same memory controller
-- matchAttribute: resource.kubernetes.io/socket
+- matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu, mem]
   enforcement: required         # require same socket
 ```
@@ -201,7 +201,7 @@ No single attribute needs to handle all hardware. The hierarchy adapts.
 
 ### 1. Standardize the attributes
 
-Add `resource.kubernetes.io/numaNode` (int) and `resource.kubernetes.io/socket` (int) to the standard device attribute list alongside `pcieRoot` and `pciBusID`.
+Add `resource.kubernetes.io/numaNode` (int) and `resource.kubernetes.io/cpuSocketID` (int) to the standard device attribute list alongside `pcieRoot` and `pciBusID`.
 
 ### 2. Add helper functions
 
@@ -239,7 +239,7 @@ The topology coordinator remains valuable for:
 - **DRAConsumableCapacity** — proportional CPU/memory division across partitions
 - **Per-NUMA DeviceClasses** — pre-computed resource inventories per partition
 
-Standardizing `numaNode` and `socket` eliminates the need for the coordinator for basic NUMA alignment. The coordinator adds value at the partition abstraction layer.
+Standardizing `numaNode` and `cpuSocketID` eliminates the need for the coordinator for basic NUMA alignment. The coordinator adds value at the partition abstraction layer.
 
 ## Impact on KubeVirt
 

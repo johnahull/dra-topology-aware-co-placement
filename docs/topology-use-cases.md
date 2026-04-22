@@ -131,7 +131,7 @@ constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, mem]
   enforcement: preferred          # try NUMA first
-- matchAttribute: resource.kubernetes.io/socket
+- matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu, mem]
   enforcement: required           # fall back to socket
 ```
@@ -172,10 +172,10 @@ constraints: []
 |-------|-----------|-------------|---------|----------------------|---------------------|
 | pcieRoot | Same switch | Ultra-low-latency inference with GDR | 1:1 | 2 of 8 (25%) | 2 of 8 (25%) |
 | numaNode | Same memory controller | Multi-GPU training with per-GPU RDMA | 4:4 VFs | 8 of 8 (100%) | 4 of 8 (50%) |
-| socket | Same package | Dense inference on SNC/NPS hardware | 4:4 VFs | 8 of 8 (100%) | 8 of 8 (100%) |
+| cpuSocketID | Same package | Dense inference on SNC/NPS hardware | 4:4 VFs | 8 of 8 (100%) | 8 of 8 (100%) |
 | node | None | Batch processing | any | 8 of 8 (100%) | 8 of 8 (100%) |
 
-The distance hierarchy lets users choose the right trade-off. The topology coordinator implements levels 1-2 today via the `fallbackAttribute` mechanism. Level 3 requires `socket` as an explicit attribute. Level 4 is the default (no constraints).
+The distance hierarchy lets users choose the right trade-off. The topology coordinator implements levels 1-2 today via the `fallbackAttribute` mechanism. Level 3 requires `cpuSocketID` as an explicit attribute. Level 4 is the default (no constraints).
 
 ## How the Coordinator Maps to This
 

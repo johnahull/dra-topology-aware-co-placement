@@ -188,7 +188,7 @@ graph TD
 |-----------|---------|--------|
 | pcieRoot | 2 of 8 (25%) | 2 of 8 (25%) |
 | numaNode | 8 of 8 (100%) | 4 of 8 (50%) — NUMA 1,3 have no NIC |
-| socket | 8 of 8 (100%) | 8 of 8 (100%) |
+| cpuSocketID | 8 of 8 (100%) | 8 of 8 (100%) |
 
 Green = tight (same switch as NIC). Blue = local (same NUMA, different switch). Red = no NIC on this NUMA — needs near (same socket) fallback.
 

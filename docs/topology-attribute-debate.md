@@ -342,7 +342,7 @@ Three things:
 |-----------|--------|---------------|
 | `resource.kubernetes.io/pcieRoot` | Already standard | Which PCIe switch |
 | `resource.kubernetes.io/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` | Which memory controller |
-| `resource.kubernetes.io/socket` | `numa_node` → `cpulist` → `physical_package_id` | Which physical CPU package |
+| `resource.kubernetes.io/cpuSocketID` | `numa_node` → `cpulist` → `physical_package_id` | Which physical CPU package |
 
 For CPU/memory devices (not PCI), `numaNode` and `socket` come directly from sysfs CPU topology. `pcieRoot` would be published as a list (the [WIP PR](https://github.com/kubernetes/kubernetes/pull/138297) approach) or omitted.
 
@@ -359,7 +359,7 @@ constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, mem]
   enforcement: preferred        # good: same memory controller
-- matchAttribute: resource.kubernetes.io/socket
+- matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu, mem]
   enforcement: required         # minimum: same socket
 ```

@@ -4,13 +4,13 @@
 
 Today, `pcieRoot` is the only standard topology attribute, but CPUs and memory don't have one, and GPUs don't always share a PCIe switch with NICs. Every driver publishes NUMA under a different name (`gpu.nvidia.com/numa`, `gpu.amd.com/numaNode`, `dra.cpu/numaNodeID`, `dra.net/numaNode`), so `matchAttribute` can't work cross-driver.
 
-**Proposal:** Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` alongside `pcieRoot`. All three are hardware facts from sysfs. Add `enforcement: preferred` to `matchAttribute`. Users choose the performance level their workload needs:
+**Proposal:** Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` alongside `pcieRoot`. All three are hardware facts from sysfs. Add `enforcement: preferred` to `matchAttribute`. Users choose the performance level their workload needs:
 
 | Coupling | Attribute | DMA path | Use case |
 |----------|-----------|----------|----------|
 | Tight | `pcieRoot` | Within PCIe switch — lowest latency | Real-time inference with GPUDirect RDMA |
 | Local | `numaNode` | One hop through root complex — local memory | Multi-GPU training with per-GPU RDMA |
-| Near | `socket` | Within socket interconnect — no inter-socket crossing | Dense inference on SNC/NPS hardware |
+| Near | `cpuSocketID` | Within socket interconnect — no inter-socket crossing | Dense inference on SNC/NPS hardware |
 | None | (no constraint) | May cross inter-socket link | Batch processing where latency doesn't matter |
 
 **Example claims for each level:**
@@ -40,13 +40,13 @@ constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu, mem]
   enforcement: preferred        # try same NUMA, accept if not (SNC)
-- matchAttribute: resource.kubernetes.io/socket
+- matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu, mem]
   enforcement: required         # must be same socket
 ```
 
 **What's needed upstream:**
-1. Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` (sysfs reads, added to `deviceattribute` helper package)
+1. Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` (sysfs reads, added to `deviceattribute` helper package)
 2. All DRA drivers publish them (same two function calls alongside existing `pcieRoot`)
 3. `enforcement: preferred` on `matchAttribute` (scheduler tries constraint, relaxes if unsatisfiable)
 
