@@ -5,40 +5,43 @@
 
 ## Current Upstream Gaps (without patches)
 
-As of KubeVirt v1.8.1 and K8s 1.36, these gaps prevent DRA device passthrough from working correctly without patches:
+As of KubeVirt v1.8.1 and K8s 1.36, these gaps prevent DRA device passthrough from working correctly without patches. Listed in implementation order — each builds on the previous.
 
-### Guest NUMA Topology
+### 1. Basic DRA device passthrough (minimum viable)
 
-| Gap | Impact | Our Fix |
-|-----|--------|---------|
-| No DRA metadata path in VEP 115 | VEP 115 reads NUMA from sysfs for device-plugin devices but has no path to read KEP-5304 metadata. DRA devices show `numa_node=-1` in the guest. | `buildDRANUMAOverrides()` reads KEP-5304 metadata, falls back to sysfs |
-| No device-only guest NUMA cells | If DRA devices are on a NUMA node without vCPUs, there's no guest NUMA cell — pxb-pcie can't reference a non-existent guest NUMA node | `numaMapping()` creates device-only cells with 1 hugepage, no CPUs |
-| No standard `numaNode` attribute name | Each driver publishes NUMA under a different name. Consumer must hardcode every driver's convention or fall back to sysfs (requires `/sys` mount) | `GetNUMANodeForClaim()` tries unqualified `numaNode`, falls back to sysfs. Standardizing `resource.kubernetes.io/numaNode` eliminates this |
-| KEP-5304 metadata path mismatch | Template-generated claims put metadata under `resourceclaimtemplates/` not `resourceclaims/`. Resolver only searches one path | `resolveClaimMetadata()` searches both directories |
+| # | Gap | Impact | Our Fix |
+|---|-----|--------|---------|
+| 1 | No PCI address from DRA metadata | virt-launcher can't determine which PCI device to pass through as `<hostdev>` | `GetPCIAddressForClaim()` reads `resource.kubernetes.io/pciBusID` from KEP-5304 metadata |
+| 2 | KEP-5304 metadata path mismatch | Template-generated claims put metadata under `resourceclaimtemplates/` not `resourceclaims/`. Lookup fails for most real-world claims | `resolveClaimMetadata()` searches both directories |
+| 3 | `permittedHostDevices` blocks DRA | DRA host devices have no `deviceName`, validation rejects them | Partially fixed upstream with `HostDevicesWithDRA` feature gate |
 
-### VFIO Passthrough
+### 2. VFIO passthrough (required for GPU/NIC VMs)
 
-| Gap | Impact | Our Fix |
-|-----|--------|---------|
-| No `<locked/>` memory backing | VFIO devices need DMA page pinning. Without `<locked/>`, libvirt generates `-overcommit mem-lock=off` and QEMU SIGABRT on VFIO device init | Add `MemoryBacking.Locked` when `IsVFIOVMI()` |
-| Insufficient capabilities | virt-launcher container lacks SYS_RESOURCE, IPC_LOCK for VFIO memlock and DMA mapping | Add capabilities for VFIO host device pods |
-| Non-root mode breaks VFIO | KubeVirt defaults to non-root. VFIO needs root for capability propagation to QEMU | Force root mode when host devices present |
-| Unlimited memlock for VFIO BARs | MI300X GPU VF has 256GB BAR. Container memlock limit (8MB default) is far too low | Set `memlockSize = math.MaxInt64` for VFIO VMIs |
+| # | Gap | Impact | Our Fix |
+|---|-----|--------|---------|
+| 4 | Insufficient capabilities + non-root | virt-launcher lacks SYS_RESOURCE, IPC_LOCK. Non-root mode can't propagate capabilities to QEMU | Add capabilities for VFIO pods, force root mode when host devices present |
+| 5 | No `<locked/>` memory backing + memlock limit | VFIO needs DMA page pinning. Without it, QEMU SIGABRT. Default 8MB memlock too low for GPU BARs (MI300X VF = 256GB) | Add `MemoryBacking.Locked`, set unlimited memlock for VFIO VMIs |
 
-### DRA API
+### 3. Guest NUMA topology (correct device placement in guest)
 
-| Gap | Impact | Our Fix |
-|-----|--------|---------|
-| No PCI address from DRA metadata | virt-launcher can't determine PCI address of DRA device for libvirt `<hostdev>` | `GetPCIAddressForClaim()` reads `resource.kubernetes.io/pciBusID` from KEP-5304 metadata |
-| Multi-device DRA requests | KubeVirt maps 1 hostDevices entry → 1 physical device. `count > 1` fails | Workaround: `count: 1` per claim. Needs upstream KubeVirt fix |
-| `permittedHostDevices` blocks DRA | DRA host devices have no `deviceName`, validation rejects them | Partially fixed upstream with `HostDevicesWithDRA` feature gate |
+| # | Gap | Impact | Our Fix |
+|---|-----|--------|---------|
+| 6 | No DRA metadata path in VEP 115 | VEP 115 reads NUMA from sysfs for device-plugin devices but not KEP-5304 metadata. DRA devices show `numa_node=-1` in guest | `buildDRANUMAOverrides()` reads KEP-5304 metadata, falls back to sysfs |
+| 7 | No device-only guest NUMA cells | DRA devices on a NUMA node without vCPUs have no guest NUMA cell — pxb-pcie can't place them | `numaMapping()` creates device-only cells with 1 hugepage, no CPUs |
 
-### Deployment
+### 4. Quality of life (simplify and improve)
 
-| Gap | Impact | Workaround |
-|-----|--------|------------|
-| Operator reconciliation | KubeVirt operator reverts patched controller/launcher images | Scale down operator before deploying patches |
-| virt-launcher ABI mismatch | Binary built on Fedora 43 can't run in RHEL 9 base container (libnbd/glibc) | Build on CentOS Stream 9 |
+| # | Gap | Impact | Our Fix |
+|---|-----|--------|---------|
+| 8 | No standard `numaNode` attribute name | Consumer must hardcode every driver's NUMA attribute name or fall back to sysfs (requires `/sys` mount) | Workaround: try unqualified `numaNode` + sysfs fallback. Fix: standardize `resource.kubernetes.io/numaNode` |
+| 9 | Multi-device DRA requests | KubeVirt maps 1 hostDevices entry → 1 physical device. `count > 1` fails | Workaround: `count: 1` per claim. Needs upstream KubeVirt fix |
+
+### 5. Deployment (operational)
+
+| # | Gap | Impact | Workaround |
+|---|-----|--------|------------|
+| 10 | Operator reconciliation | KubeVirt operator reverts patched controller/launcher images | Scale down operator before deploying patches |
+| 11 | virt-launcher ABI mismatch | Binary built on Fedora 43 can't run in RHEL 9 base container (libnbd/glibc) | Build on CentOS Stream 9 |
 
 ## Overview
 
