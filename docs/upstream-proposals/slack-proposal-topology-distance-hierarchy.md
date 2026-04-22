@@ -6,11 +6,10 @@ Today, `pcieRoot` is the only standard topology attribute, but CPUs and memory d
 
 **Proposal:** Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` alongside `pcieRoot`. All three are hardware facts from sysfs. Add `enforcement: preferred` to `matchAttribute`. Users choose the performance level their workload needs:
 
-| Level | Attribute | DMA path | Use case |
-|-------|-----------|----------|----------|
 | Coupling | Attribute | DMA path | Use case |
+|----------|-----------|----------|----------|
 | Tight | `pcieRoot` | Within PCIe switch — lowest latency | Real-time inference with GPUDirect RDMA |
-| Loose | `numaNode` | One hop through root complex — local memory | Multi-GPU training with per-GPU RDMA |
+| Local | `numaNode` | One hop through root complex — local memory | Multi-GPU training with per-GPU RDMA |
 | Near | `socket` | Within socket interconnect — no inter-socket crossing | Dense inference on SNC/NPS hardware |
 | None | (no constraint) | May cross inter-socket link | Batch processing where latency doesn't matter |
 

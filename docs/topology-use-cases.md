@@ -1,6 +1,6 @@
 # Topology Distance Hierarchy: AI Use Cases
 
-> **TL;DR:** Different AI workloads need different levels of device co-placement. The topology distance hierarchy (pcieRoot → numaNode → socket → node) lets users choose the right trade-off: tighter coupling = better performance but fewer GPUs qualify; looser coupling = all GPUs available but slightly higher DMA latency.
+> **TL;DR:** Different AI workloads need different levels of device co-placement. The topology distance hierarchy (pcieRoot → numaNode → socket → node) lets users choose the right trade-off: tight coupling = best performance but fewer GPUs qualify; local/near coupling = all GPUs available but slightly higher DMA latency.
 
 All examples use a Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM).
 
@@ -19,7 +19,7 @@ A financial trading or autonomous vehicle inference service where latency matter
 
 - 1 GPU + 1 NIC per partition, same PCIe switch
 - Latency: sub-microsecond DMA within the switch
-- The extra hop through the root complex for loose coupling (level 2) is measurable and matters for this workload
+- The extra hop through the root complex for local coupling (level 2) is measurable and matters for this workload
 
 ### XE9680 (SNC off)
 
@@ -38,7 +38,7 @@ A financial trading or autonomous vehicle inference service where latency matter
 
 ### Trade-off
 
-You sacrifice 75% of your GPUs to get the lowest-latency DMA path. Only worth it when the latency difference between tight and loose coupling actually matters for the workload.
+You sacrifice 75% of your GPUs to get the lowest-latency DMA path. Only worth it when the latency difference between tight and local coupling actually matters for the workload.
 
 ### Claim
 
@@ -182,7 +182,7 @@ The distance hierarchy lets users choose the right trade-off. The topology coord
 | Level | Coordinator partition | Coupling label |
 |-------|----------------------|----------------|
 | pcieRoot | eighth | `tight` |
-| numaNode | eighth or quarter | `loose` |
+| numaNode | eighth or quarter | `local` |
 | socket | half | (not yet implemented) |
 | node | full | — |
 
