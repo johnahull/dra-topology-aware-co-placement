@@ -8,10 +8,11 @@ Today, `pcieRoot` is the only standard topology attribute, but CPUs and memory d
 
 | Level | Attribute | DMA path | Use case |
 |-------|-----------|----------|----------|
-| Highest | `pcieRoot` | Within PCIe switch — lowest latency | Real-time inference with GPUDirect RDMA |
-| Good | `numaNode` | One hop through root complex — local memory | Multi-GPU training with per-GPU RDMA |
-| Acceptable | `socket` | Within socket interconnect — no inter-socket crossing | Dense inference on SNC/NPS hardware |
-| None | (no constraint) | May cross inter-socket link — 58% throughput loss | Batch processing where latency doesn't matter |
+| Coupling | Attribute | DMA path | Use case |
+| Tight | `pcieRoot` | Within PCIe switch — lowest latency | Real-time inference with GPUDirect RDMA |
+| Loose | `numaNode` | One hop through root complex — local memory | Multi-GPU training with per-GPU RDMA |
+| Near | `socket` | Within socket interconnect — no inter-socket crossing | Dense inference on SNC/NPS hardware |
+| None | (no constraint) | May cross inter-socket link | Batch processing where latency doesn't matter |
 
 ```yaml
 constraints:

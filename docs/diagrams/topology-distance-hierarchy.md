@@ -179,7 +179,7 @@ graph TD
 **DMA paths:**
 - **Tight (pcieRoot):** GPU 1b ↔ Switch ↔ NIC 1d — no root complex hop
 - **Loose (numaNode):** GPU 5f ↔ Switch ↔ Root Complex ↔ Switch ↔ NIC 1d — one hop, local memory
-- **Cross sub-NUMA (socket):** GPU 3d ↔ Switch ↔ Root Complex ↔ Switch ↔ NIC 1d — same socket, crosses sub-NUMA boundary
+- **Near (socket):** GPU 3d ↔ Switch ↔ Root Complex ↔ Switch ↔ NIC 1d — same socket, crosses sub-NUMA boundary
 - **Cross-socket:** GPU 3d ↔ Root Complex 0 ↔ UPI ↔ Root Complex 1 ↔ Switch ↔ NIC 9f — inter-socket penalty
 
 **SNC impact on match coverage:**
@@ -190,7 +190,7 @@ graph TD
 | numaNode | 8 of 8 (100%) | 4 of 8 (50%) — NUMA 1,3 have no NIC |
 | socket | 8 of 8 (100%) | 8 of 8 (100%) |
 
-Green = tight (same switch as NIC). Blue = loose (same NUMA, different switch). Red = no NIC on this NUMA (SNC on only).
+Green = tight (same switch as NIC). Blue = loose (same NUMA, different switch). Red = no NIC on this NUMA — needs near (same socket) fallback.
 
 ---
 
@@ -288,7 +288,7 @@ graph TD
 | Middle | `numaNode` | 8 of 8 | 4 of 8 |
 | Outer | `socket` | 8 of 8 | 8 of 8 |
 
-Green = tight. Blue = loose. Red = no NIC on this NUMA (needs `socket` fallback).
+Green = tight. Blue = loose. Red = no NIC on this NUMA (needs near/socket fallback).
 
 ---
 
