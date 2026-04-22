@@ -72,3 +72,5 @@ Dense multi-tenant inference on SNC/NPS hardware. With SNC-2 enabled, some sub-N
 
 **No constraint**
 Batch processing where throughput matters but individual request latency doesn't. Use whatever's available.
+
+Detailed use cases with XE9680 hardware examples and example claims: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/topology-use-cases.md
