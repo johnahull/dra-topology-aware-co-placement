@@ -53,6 +53,7 @@ constraints:
 **Tested on Dell XE9680 (8x MI300X, ConnectX-6, K8s 1.36):** 4-driver pods with GPU+NIC+CPU+memory aligned at each level, both SNC on (4 NUMA nodes) and off (2 NUMA nodes). KubeVirt VMs with correct guest topology via pxb-pcie placement.
 
 Details: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/upstream-proposals/standardize-numanode-and-socket.md
+Diagrams: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/diagrams/topology-distance-hierarchy.md
 
 ---
 
