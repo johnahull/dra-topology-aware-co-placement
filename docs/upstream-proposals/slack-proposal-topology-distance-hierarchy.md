@@ -50,6 +50,8 @@ constraints:
 2. All DRA drivers publish them (same two function calls alongside existing `pcieRoot`)
 3. `enforcement: preferred` on `matchAttribute` (scheduler tries constraint, relaxes if unsatisfiable)
 
+Note: today `matchAttribute` has no `enforcement` field — constraints are always required. Items 1-2 are valuable without item 3: a single required `numaNode` constraint aligns all four resource types on any hardware where every NUMA has the devices it needs. Item 3 adds the fallback chain for SNC/NPS hardware where `numaNode` is too restrictive.
+
 **Tested on Dell XE9680 (8x MI300X, ConnectX-6, K8s 1.36):** 4-driver pods with GPU+NIC+CPU+memory aligned at each level, both SNC on (4 NUMA nodes) and off (2 NUMA nodes). KubeVirt VMs with correct guest topology via pxb-pcie placement.
 
 Details: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/upstream-proposals/standardize-numanode-and-socket.md

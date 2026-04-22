@@ -216,7 +216,11 @@ func GetSocketForCPU(cpuID int) (int, error)
 
 ### 3. Add `enforcement: preferred` to `matchAttribute`
 
-Today `matchAttribute` is always required. With `preferred`, the scheduler tries the constraint but relaxes if unsatisfiable. This is the key mechanism that makes the hierarchy work.
+Today `matchAttribute` has no `enforcement` field — constraints are always implicitly required. If the constraint can't be satisfied, the claim fails. There's no way to express "try this but accept if it doesn't work."
+
+With `preferred`, the scheduler tries the constraint but relaxes if unsatisfiable. This enables the distance hierarchy (try pcieRoot → try numaNode → require cpuSocketID).
+
+**This is separable from items 1-2.** Standardizing `numaNode` and `cpuSocketID` is valuable without `preferred`: a single required `numaNode` constraint aligns all four resource types on hardware where every NUMA has the devices it needs. `enforcement: preferred` adds the fallback chain for SNC/NPS hardware where `numaNode` is too restrictive — it's an enhancement, not a prerequisite.
 
 ### 4. Drivers publish the attributes
 
