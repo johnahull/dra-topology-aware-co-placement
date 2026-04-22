@@ -138,15 +138,15 @@ PCIe root complexes per sub-NUMA:
 | PCIe Root | NUMA | GPU PF | GPU VF | NIC PF | Shares Switch? | Coupling |
 |-----------|------|--------|--------|--------|----------------|----------|
 | `pci0000:15` | 0 | `1b:00.0` | `1b:02.0` | `1d:00.0`, `1d:00.1` | **Yes** | Tight |
-| `pci0000:37` | 0 | `3d:00.0` | `3d:02.0` | — | No | Loose |
-| `pci0000:48` | 0 | `4e:00.0` | `4e:02.0` | — | No | Loose |
-| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No | Loose |
+| `pci0000:37` | 0 | `3d:00.0` | `3d:02.0` | — | No | Local |
+| `pci0000:48` | 0 | `4e:00.0` | `4e:02.0` | — | No | Local |
+| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No | Local |
 | `pci0000:97` | 1 | `9d:00.0` | `9d:02.0` | `9f:00.0`, `9f:00.1` | **Yes** | Tight |
-| `pci0000:b7` | 1 | `bd:00.0` | `bd:02.0` | — | No | Loose |
-| `pci0000:c7` | 1 | `cd:00.0` | `cd:02.0` | — | No | Loose |
-| `pci0000:d7` | 1 | `dd:00.0` | `dd:02.0` | — | No | Loose |
+| `pci0000:b7` | 1 | `bd:00.0` | `bd:02.0` | — | No | Local |
+| `pci0000:c7` | 1 | `cd:00.0` | `cd:02.0` | — | No | Local |
+| `pci0000:d7` | 1 | `dd:00.0` | `dd:02.0` | — | No | Local |
 
-2 of 8 GPU+NIC pairs share a PCIe switch (tight). The other 6 are on the same NUMA but different switches (loose). All 8 support GPUDirect RDMA — loose coupling adds one hop through the root complex but stays within the local memory controller.
+2 of 8 GPU+NIC pairs share a PCIe switch (tight). The other 6 are on the same NUMA but different switches (local). All 8 support GPUDirect RDMA — local coupling adds one hop through the root complex but stays within the local memory controller.
 
 ### PCIe Switch to Device Mapping (SNC on, 4 NUMA nodes)
 
@@ -155,15 +155,15 @@ Same physical PCIe tree, but devices now distributed across 4 sub-NUMA nodes:
 | PCIe Root | NUMA | GPU PF | GPU VF | NIC PF | Shares Switch? | Coupling |
 |-----------|------|--------|--------|--------|----------------|----------|
 | `pci0000:15` | 0 | `1b:00.0` | `1b:02.0` | `1d:00.0`, `1d:00.1` | **Yes** | Tight |
-| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No | Loose |
+| `pci0000:59` | 0 | `5f:00.0` | `5f:02.0` | — | No | Local |
 | `pci0000:37` | 1 | `3d:00.0` | `3d:02.0` | — | No | **No NIC on NUMA** |
 | `pci0000:48` | 1 | `4e:00.0` | `4e:02.0` | — | No | **No NIC on NUMA** |
 | `pci0000:97` | 2 | `9d:00.0` | `9d:02.0` | `9f:00.0`, `9f:00.1` | **Yes** | Tight |
-| `pci0000:d7` | 2 | `dd:00.0` | `dd:02.0` | — | No | Loose |
+| `pci0000:d7` | 2 | `dd:00.0` | `dd:02.0` | — | No | Local |
 | `pci0000:b7` | 3 | `bd:00.0` | `bd:02.0` | — | No | **No NIC on NUMA** |
 | `pci0000:c7` | 3 | `cd:00.0` | `cd:02.0` | — | No | **No NIC on NUMA** |
 
-SNC splits the 6 loose GPU+NIC pairs (SNC off) into two categories: 2 remain loose (same sub-NUMA as NIC, different switch) and 4 have no NIC on their sub-NUMA at all. The 2 tight pairs are unchanged — same switch, same sub-NUMA.
+SNC splits the 6 local GPU+NIC pairs (SNC off) into two categories: 2 remain local (same sub-NUMA as NIC, different switch) and 4 have no NIC on their sub-NUMA at all. The 2 tight pairs are unchanged — same switch, same sub-NUMA.
 
 ### Key Observations
 

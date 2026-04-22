@@ -157,7 +157,7 @@ graph TD
     subgraph "Topology Coordinator"
         COORD["Coordinator<br/>ConfigMap rules + webhook +<br/>partition abstraction"]
         PERDRIVER["Per-driver CEL selectors<br/>(no common attribute needed)"]
-        FALLBACK["Distance-based fallback<br/>pcieRoot → numaNode<br/>(tight / loose coupling)"]
+        FALLBACK["Distance-based fallback<br/>pcieRoot → numaNode<br/>(tight / local coupling)"]
     end
 
     subgraph "Upstream (longer-term)"
@@ -264,16 +264,17 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | [Upstream Roadmap](docs/upstream-roadmap.md) | Patches across 7 repos with status and upstream actions |
 | [Patched Repos](docs/patched-repos.md) | All forks, branches, and descriptions |
 | [Test Results Summary](testing/results/results-summary.md) | Comparison matrix across K8s versions, SNC on/off, bugs found |
-| [Topology Attribute Tradeoffs (diagrams)](testing/diagrams/topology-attribute-tradeoffs.md) | Mermaid visualizations of NPS1, NPS4, SNC cases |
+| [Distance Hierarchy Diagrams](docs/diagrams/topology-distance-hierarchy.md) | PCIe tree, distance rings, scheduler flowchart (SNC on/off) |
+| [Topology Attribute Tradeoffs (diagrams)](docs/diagrams/topology-attribute-tradeoffs.md) | Mermaid visualizations of NPS1, NPS4, SNC cases |
 
 ### Upstream Proposals
 
 | Proposal | Description |
 |----------|-------------|
-| [Standardize numaNode with pcieRoot Fallback](docs/upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) | Propose `resource.kubernetes.io/numaNode` as companion to pcieRoot with distance-based fallback |
-| [Standardize numaNode and socket](docs/upstream-proposals/standardize-numanode-and-socket.md) | Engineering proposal: sysfs sources, helper functions, match coverage tables, SNC/NPS hierarchy |
+| [Standardize numaNode and socket](docs/upstream-proposals/standardize-numanode-and-socket.md) | Engineering proposal: sysfs sources, helper functions, distance hierarchy, SNC/NPS |
+| [Slack Proposal](docs/upstream-proposals/slack-proposal-topology-distance-hierarchy.md) | Condensed pitch for upstream working group |
 | [KEP-5304 Auto-Populate Metadata](docs/upstream-proposals/kep5304-auto-populate-metadata.md) | Kubelet auto-copies ResourceSlice attributes into KEP-5304 metadata |
-| [NUMA/SNC/NPS Topology Gap](docs/upstream-proposals/numa-snc-nps-topology-gap.md) | DRA ↔ kubelet topology manager coordination gap |
+| [NUMA/SNC/NPS Topology Gap](docs/upstream-proposals/numa-snc-nps-topology-gap.md) | DRA + kubelet topology manager coordination gap |
 | [KubeVirt Multi-Device DRA Requests](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md) | KubeVirt hostDevices with count>1 DRA requests |
 
 ---

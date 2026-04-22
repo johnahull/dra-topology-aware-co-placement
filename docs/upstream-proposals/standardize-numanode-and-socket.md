@@ -2,6 +2,40 @@
 
 > **TL;DR:** Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/socket` alongside the existing `pcieRoot`. All three are hardware facts readable from sysfs. Combined with `enforcement: preferred` on `matchAttribute`, they form a distance hierarchy that handles all hardware configurations including SNC/NPS.
 
+## Overview
+
+```mermaid
+graph TB
+    subgraph PROBLEM["The Problem: No Single Attribute Works"]
+        direction TB
+        P1["pcieRoot only<br/>✓ GPU+NIC on same switch<br/>✗ Most GPUs excluded<br/>✗ CPU/memory can't participate"]
+        P2["numaNode only<br/>✓ All device types<br/>✓ 100% coverage (SNC off)<br/>✗ Not standardized<br/>✗ 50% coverage with SNC on"]
+    end
+
+    subgraph SOLUTION["Proposed: Distance Hierarchy"]
+        direction TB
+        S1["pcieRoot<br/>(already standard)"]
+        S2["numaNode<br/>(proposed)"]
+        S3["socket<br/>(proposed)"]
+        S1 -->|"tight coupling"| T["Same switch"]
+        S2 -->|"local coupling"| L["Same memory controller"]
+        S3 -->|"near coupling"| N["Same socket"]
+        S1 -->|"preferred"| S2
+        S2 -->|"preferred"| S3
+    end
+
+    PROBLEM --> SOLUTION
+
+    style P1 fill:#e44,color:#fff
+    style P2 fill:#fa4,color:#000
+    style T fill:#2a6,color:#fff
+    style L fill:#49a,color:#fff
+    style N fill:#fa4,color:#000
+    style S1 fill:#2a6,color:#fff
+    style S2 fill:#49a,color:#fff
+    style S3 fill:#fa4,color:#000
+```
+
 ## Problem
 
 DRA has one standardized topology attribute: `resource.kubernetes.io/pcieRoot`. This is insufficient for cross-driver device co-placement because:
@@ -155,11 +189,11 @@ No single attribute needs to handle all hardware. The hierarchy adapts.
 | PCIe Root | NUMA | GPU | NIC | Coupling |
 |-----------|------|-----|-----|----------|
 | `pci0000:15` | 0 | `1b:00.0` | `1d:00.0`, `1d:00.1` | Tight |
-| `pci0000:59` | 0 | `5f:00.0` | — | Loose |
+| `pci0000:59` | 0 | `5f:00.0` | — | Local |
 | `pci0000:37` | 1 | `3d:00.0` | — | No NIC on NUMA |
 | `pci0000:48` | 1 | `4e:00.0` | — | No NIC on NUMA |
 | `pci0000:97` | 2 | `9d:00.0` | `9f:00.0`, `9f:00.1` | Tight |
-| `pci0000:d7` | 2 | `dd:00.0` | — | Loose |
+| `pci0000:d7` | 2 | `dd:00.0` | — | Local |
 | `pci0000:b7` | 3 | `bd:00.0` | — | No NIC on NUMA |
 | `pci0000:c7` | 3 | `cd:00.0` | — | No NIC on NUMA |
 
@@ -273,7 +307,7 @@ For clusters that don't use the DRA CPU driver (relying on the kubelet topology 
 Tested on Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X, 2x ConnectX-6 Dx) with K8s 1.36.0-rc.0:
 
 - 4-driver pods (GPU + NIC + CPU + memory) with NUMA alignment — both SNC on and off
-- Distance-based fallback producing tight and loose coupling DeviceClasses
+- Distance-based fallback producing tight and local coupling DeviceClasses
 - KubeVirt VMs with correct guest NUMA topology from DRA metadata
 - Coordinator adapts automatically to SNC toggle without configuration changes
 

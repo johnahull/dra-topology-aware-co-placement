@@ -270,7 +270,7 @@ All branches on [`johnahull/k8s-dra-topology-coordinator`](https://github.com/jo
 | [`fix/per-driver-cel-selectors`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/per-driver-cel-selectors) | `d90e6ae` | Replaces cross-driver `matchAttribute` with per-driver CEL selectors. Each driver keeps its own NUMA attribute namespace. Coordinator translates between them. | [#2](../all-issues.md) (alternative approach) |
 | [`fix/webhook-forward-cel-selectors`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/webhook-forward-cel-selectors) | `b6de0ce` | Forwards user CEL selectors from the partition request to expanded sub-requests. Without this, user selectors are silently dropped. | [#7](../all-issues.md) |
 | [`test/all-fixes-combined`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/test/all-fixes-combined) | `83ec774` | Merge of all fixes into one testable branch. Includes NUMA label dash fix (`39b2ae1`). | All above |
-| [`fix/distance-based-fallback`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/distance-based-fallback) | `109fbf4` | Distance-based constraint fallback: try pcieRoot (tight) first, fall back to numaNode (loose). Labels DeviceClasses with coupling level. Tested on XE9680: NUMA 0/2 tight, NUMA 1/3 loose. | New feature |
+| [`fix/distance-based-fallback`](https://github.com/johnahull/k8s-dra-topology-coordinator/tree/fix/distance-based-fallback) | `109fbf4` | Distance-based constraint fallback: try pcieRoot (tight) first, fall back to numaNode (local). Labels DeviceClasses with coupling level. Tested on XE9680: NUMA 0/2 tight, NUMA 1/3 local. | New feature |
 
 ### Branch Dependency Order
 
@@ -432,7 +432,7 @@ Coordinator builds partition config:
 
   Result:
     Partition with GPU 1b: pcieRoot constraint (tight, same switch)
-    Partition with GPU 3d: numaNode constraint (loose, same NUMA)
+    Partition with GPU 3d: numaNode constraint (local, same NUMA)
 ```
 
 ### Distance Levels
@@ -442,7 +442,7 @@ This naturally creates a distance hierarchy:
 | Level | Attribute | What It Means | Latency |
 |-------|-----------|---------------|---------|
 | Tight | `pcieRoot` | Same PCIe switch | Lowest (no root complex hop) |
-| Loose | `numaNode` | Same memory controller | Low (crosses PCIe fabric, same NUMA) |
+| Local | `numaNode` | Same memory controller | Low (crosses PCIe fabric, same NUMA) |
 | Cross-NUMA | none | Different sockets | High (crosses UPI/xGMI) |
 
 The coordinator would label each partition with its coupling level, so users can request specific tightness:
@@ -450,7 +450,7 @@ The coordinator would label each partition with its coupling level, so users can
 ```yaml
 # DeviceClass labels
 nodepartition.dra.k8s.io/coupling: tight    # pcieRoot matched
-nodepartition.dra.k8s.io/coupling: loose    # numaNode matched only
+nodepartition.dra.k8s.io/coupling: local    # numaNode matched only
 ```
 
 Users who need minimum latency (RDMA, GPU-Direct) select `coupling: tight`. Users who just need NUMA locality select either.
@@ -474,15 +474,15 @@ With the fallback chain deployed, the coordinator creates:
 | Partition | GPU | NIC | Coupling | Constraint |
 |-----------|-----|-----|----------|------------|
 | eighth-numa0-tight | 1b | 1d:00.2 | tight | pcieRoot=pci0000:15 |
-| eighth-numa0-loose | 3d | 1d:00.3 | loose | numaNode=0 |
-| eighth-numa0-loose | 4e | 1d:00.4 | loose | numaNode=0 |
-| eighth-numa0-loose | 5f | 1d:00.5 | loose | numaNode=0 |
+| eighth-numa0-local | 3d | 1d:00.3 | local | numaNode=0 |
+| eighth-numa0-local | 4e | 1d:00.4 | local | numaNode=0 |
+| eighth-numa0-local | 5f | 1d:00.5 | local | numaNode=0 |
 | eighth-numa1-tight | 9d | 9f:00.2 | tight | pcieRoot=pci0000:97 |
-| eighth-numa1-loose | bd | 9f:00.3 | loose | numaNode=1 |
-| eighth-numa1-loose | cd | 9f:00.4 | loose | numaNode=1 |
-| eighth-numa1-loose | dd | 9f:00.5 | loose | numaNode=1 |
+| eighth-numa1-local | bd | 9f:00.3 | local | numaNode=1 |
+| eighth-numa1-local | cd | 9f:00.4 | local | numaNode=1 |
+| eighth-numa1-local | dd | 9f:00.5 | local | numaNode=1 |
 
-2 tight partitions (GPU+NIC on same switch) + 6 loose partitions (GPU+NIC on same NUMA). All 8 GPUs usable, with the best available coupling for each.
+2 tight partitions (GPU+NIC on same switch) + 6 local partitions (GPU+NIC on same NUMA). All 8 GPUs usable, with the best available coupling for each.
 
 ---
 
