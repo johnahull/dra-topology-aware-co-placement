@@ -63,13 +63,49 @@ resource.kubernetes.io/cpuSocketID:
   int: 1
 ```
 
-### Memory DRA Driver — Blocked (NRI compatibility)
+### Memory DRA Driver — Deployed
 
-Built from `johnahull/dra-driver-memory` branch `feature/standardized-topology-attrs` (with cgroup2 fix cherry-picked). NRI plugin registers with containerd 2.1.6 but connection closes immediately — version incompatibility. Driver crashes before publishing ResourceSlice.
+- Built from `johnahull/dra-driver-memory` branch `feature/standardized-topology-attrs`
+- Fixed: cgroup2 preflight (cherry-picked), NRI `UpdatePodSandbox` event (containerd 2.1.6 doesn't support 0x800 event flag — commented out the handler)
+- ResourceSlice published with standardized attributes
 
-Not blocking the test — GPU + CPU are sufficient to prove cross-driver `matchAttribute` with standardized attributes.
+**Memory ResourceSlice attributes:**
+```yaml
+# NUMA 0 device
+resource.kubernetes.io/numaNode:
+  int: 0
+resource.kubernetes.io/cpuSocketID:
+  int: 0
+
+# NUMA 1 device
+resource.kubernetes.io/numaNode:
+  int: 1
+resource.kubernetes.io/cpuSocketID:
+  int: 1
+```
 
 ## Tests
+
+### Test A-3: numaNode aligns GPU + CPU + Memory (3 drivers) — PASSED
+
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, cpu, mem]
+```
+
+**Result:** All three on NUMA 0:
+```json
+[
+  {"device": "gpu-0", "driver": "gpu.nvidia.com", "request": "gpu"},
+  {"device": "cpudevnuma000", "driver": "dra.cpu", "request": "cpu",
+   "consumedCapacity": {"dra.cpu/cpu": "64"}},
+  {"device": "memory-9xskns", "driver": "dra.memory", "request": "mem",
+   "consumedCapacity": {"size": "1Mi"}}
+]
+```
+
+One constraint, three drivers, standardized attribute name. No topology coordinator, no ConfigMaps.
 
 ### Test A: numaNode aligns GPU + CPU — PASSED
 
