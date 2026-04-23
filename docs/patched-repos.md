@@ -23,15 +23,23 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 | | (patches also on upstream remote) | `develop` | GPU partition fixes, MI210 support |
 | | | `feature-auto-partition` | Automatic partition discovery |
 
-## No Patches Needed
+## Standardized Topology Attributes (proposal validation)
 
-| Repo | Notes |
-|------|-------|
-| [kubernetes-sigs/dra-driver-cpu](https://github.com/kubernetes-sigs/dra-driver-cpu) | Used as-is |
+| Upstream Repo | Fork | Branch | Description |
+|---------------|------|--------|-------------|
+| [NVIDIA/k8s-dra-driver-gpu](https://github.com/NVIDIA/k8s-dra-driver-gpu) | [johnahull/dra-driver-nvidia-gpu](https://github.com/johnahull/dra-driver-nvidia-gpu) | `feature/standardized-topology-attrs` | Add `resource.kubernetes.io/numaNode` + `cpuSocketID` to GPU, MIG, VFIO |
+| [kubernetes-sigs/dra-driver-cpu](https://github.com/kubernetes-sigs/dra-driver-cpu) | [johnahull/dra-driver-cpu](https://github.com/johnahull/dra-driver-cpu) | `feature/standardized-topology-attrs` | Add `resource.kubernetes.io/numaNode` + `cpuSocketID` alongside `dra.cpu/numaNodeID` |
+| [ffromani/dra-driver-memory](https://github.com/ffromani/dra-driver-memory) | [johnahull/dra-driver-memory](https://github.com/johnahull/dra-driver-memory) | `feature/standardized-topology-attrs` | Add `resource.kubernetes.io/numaNode` + `cpuSocketID` + NRI UpdatePodSandbox fix |
+| [k8snetworkplumbingwg/dra-driver-sriov](https://github.com/k8snetworkplumbingwg/dra-driver-sriov) | [johnahull/dra-driver-sriov](https://github.com/johnahull/dra-driver-sriov) | `feature/dra-topology-co-placement` | Add `resource.kubernetes.io/numaNode` + `cpuSocketID` + NRI plugin index fix |
 
-## Platform
+## Platforms
 
-- **Hardware:** Dell XE9680 — 8x AMD MI300X GPUs, ConnectX-6 NICs, 2-socket Intel, 128 CPUs
-- **OS:** Fedora 43, kernel 6.19
+### Dell XE9680 (AMD)
+- **Hardware:** 8x AMD MI300X GPUs, ConnectX-6 NICs, 2-socket Intel, 128 CPUs
+- **OS:** Fedora 43, kernel 6.17/6.19
 - **K8s:** 1.36.0-rc.0
-- **containerd:** rebuilt from HEAD for NRI v0.11.0
+
+### Dell PowerEdge R760xa (NVIDIA)
+- **Hardware:** 2x NVIDIA A40 GPUs, ConnectX-7 + ConnectX-6 Dx + BlueField-3 NICs, 2-socket Intel Xeon Gold 6548Y+, 128 threads, 256 GB
+- **OS:** Fedora 43, kernel 6.19.13
+- **K8s:** 1.36.0 GA

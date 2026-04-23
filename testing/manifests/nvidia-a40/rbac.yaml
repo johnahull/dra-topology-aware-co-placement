@@ -1,0 +1,130 @@
+apiVersion: v1
+items:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"annotations":{},"name":"dra-driver"},"rules":[{"apiGroups":["resource.k8s.io"],"resources":["resourceslices"],"verbs":["get","list","watch","create","update","patch","delete"]},{"apiGroups":["resource.k8s.io"],"resources":["resourceclaims"],"verbs":["get","list","watch"]},{"apiGroups":[""],"resources":["nodes"],"verbs":["get","list","watch"]}]}
+    creationTimestamp: "2026-04-23T18:54:43Z"
+    name: dra-driver
+    resourceVersion: "8086"
+    uid: 8429252e-97fc-4d90-98ca-c8cfa3e96c3f
+  rules:
+  - apiGroups:
+    - resource.k8s.io
+    resources:
+    - resourceslices
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - resource.k8s.io
+    resources:
+    - resourceclaims
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"annotations":{},"name":"dra-sriov"},"rules":[{"apiGroups":["resource.k8s.io"],"resources":["resourceslices","resourceclaims"],"verbs":["get","list","watch","create","update","patch","delete"]},{"apiGroups":["sriovnetwork.k8snetworkplumbingwg.io"],"resources":["sriovresourcepolicies","deviceattributes"],"verbs":["get","list","watch","create","update","patch"]},{"apiGroups":[""],"resources":["nodes","pods"],"verbs":["get","list","watch"]}]}
+    creationTimestamp: "2026-04-23T19:44:15Z"
+    name: dra-sriov
+    resourceVersion: "14678"
+    uid: c95ee71a-8af5-4b7b-963d-6cdf13c3f5f4
+  rules:
+  - apiGroups:
+    - resource.k8s.io
+    resources:
+    - resourceslices
+    - resourceclaims
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+  - apiGroups:
+    - sriovnetwork.k8snetworkplumbingwg.io
+    resources:
+    - sriovresourcepolicies
+    - deviceattributes
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    - pods
+    verbs:
+    - get
+    - list
+    - watch
+kind: List
+metadata:
+  resourceVersion: ""
+apiVersion: v1
+items:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"annotations":{},"name":"dra-driver-kube-system"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"dra-driver"},"subjects":[{"kind":"ServiceAccount","name":"default","namespace":"kube-system"}]}
+    creationTimestamp: "2026-04-23T18:54:43Z"
+    name: dra-driver-kube-system
+    resourceVersion: "8087"
+    uid: 883d76b4-62a4-4d81-afcb-bf7bb47f73f2
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: dra-driver
+  subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-system
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"annotations":{},"name":"dra-sriov"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"dra-sriov"},"subjects":[{"kind":"ServiceAccount","name":"default","namespace":"kube-system"}]}
+    creationTimestamp: "2026-04-23T19:44:15Z"
+    name: dra-sriov
+    resourceVersion: "14679"
+    uid: e5d284f4-fa3e-4c1c-a245-51765f34fcf2
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: dra-sriov
+  subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: kube-system
+kind: List
+metadata:
+  resourceVersion: ""

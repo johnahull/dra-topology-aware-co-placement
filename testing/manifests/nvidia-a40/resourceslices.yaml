@@ -1,0 +1,387 @@
+apiVersion: v1
+items:
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-04-23T19:34:17Z"
+    generateName: 00000-dra.memory-nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-
+    generation: 2
+    name: 00000-dra.memory-nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-wtf44
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      uid: 1e642018-1690-48aa-b15e-428915541ea0
+    resourceVersion: "12947"
+    uid: 03e7007f-8ef6-4f67-9615-bb2c5b55f1c2
+  spec:
+    devices:
+    - allowMultipleAllocations: true
+      attributes:
+        dra.cpu/numaNodeID:
+          int: 0
+        dra.memory/hugeTLB:
+          bool: false
+        dra.memory/numaNode:
+          int: 0
+        dra.memory/pageSize:
+          string: 4Ki
+        dra.net/numaNode:
+          int: 0
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+      capacity:
+        size:
+          requestPolicy:
+            default: 1Mi
+            validRange:
+              max: 131477720Ki
+              min: 4Ki
+              step: 4Ki
+          value: 131477720Ki
+      name: memory-2qxc6p
+    - allowMultipleAllocations: true
+      attributes:
+        dra.cpu/numaNodeID:
+          int: 1
+        dra.memory/hugeTLB:
+          bool: false
+        dra.memory/numaNode:
+          int: 1
+        dra.memory/pageSize:
+          string: 4Ki
+        dra.net/numaNode:
+          int: 1
+        resource.kubernetes.io/cpuSocketID:
+          int: 1
+        resource.kubernetes.io/numaNode:
+          int: 1
+      capacity:
+        size:
+          requestPolicy:
+            default: 1Mi
+            validRange:
+              max: 132087928Ki
+              min: 4Ki
+              step: 4Ki
+          value: 132087928Ki
+      name: memory-24qm2m
+    driver: dra.memory
+    nodeName: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+    pool:
+      generation: 1
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      resourceSliceCount: 1
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-04-23T19:34:07Z"
+    generateName: 00000-gpu.nvidia.com-nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-
+    generation: 1
+    name: 00000-gpu.nvidia.com-nvd-srv-31.nvidia.eng.rdu2.dc.redhat.krb8l
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      uid: 1e642018-1690-48aa-b15e-428915541ea0
+    resourceVersion: "12709"
+    uid: 428c67c5-5da1-458f-8593-42a287ca08a3
+  spec:
+    devices:
+    - attributes:
+        addressingMode:
+          string: HMM
+        architecture:
+          string: Ampere
+        brand:
+          string: Nvidia
+        cudaComputeCapability:
+          version: 8.6.0
+        cudaDriverVersion:
+          version: 13.0.0
+        driverVersion:
+          version: 580.142.0
+        productName:
+          string: NVIDIA A40
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+        resource.kubernetes.io/pciBusID:
+          string: 0000:4a:00.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:49
+        type:
+          string: gpu
+        uuid:
+          string: GPU-d81cc062-99da-618e-216f-fba1d814c177
+      capacity:
+        memory:
+          value: 46068Mi
+      name: gpu-0
+    - attributes:
+        addressingMode:
+          string: HMM
+        architecture:
+          string: Ampere
+        brand:
+          string: Nvidia
+        cudaComputeCapability:
+          version: 8.6.0
+        cudaDriverVersion:
+          version: 13.0.0
+        driverVersion:
+          version: 580.142.0
+        productName:
+          string: NVIDIA A40
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+        resource.kubernetes.io/pciBusID:
+          string: 0000:61:00.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:60
+        type:
+          string: gpu
+        uuid:
+          string: GPU-5027b0bc-855b-655d-a4b4-209fe6db532e
+      capacity:
+        memory:
+          value: 46068Mi
+      name: gpu-1
+    driver: gpu.nvidia.com
+    nodeName: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+    pool:
+      generation: 1
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      resourceSliceCount: 1
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-04-23T19:34:18Z"
+    generateName: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-dra.cpu-
+    generation: 1
+    name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-dra.cpu-xf4rr
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      uid: 1e642018-1690-48aa-b15e-428915541ea0
+    resourceVersion: "12848"
+    uid: 0a8a8c32-65de-48dd-a686-0b8a943e8fef
+  spec:
+    devices:
+    - allowMultipleAllocations: true
+      attributes:
+        dra.cpu/numCPUs:
+          int: 64
+        dra.cpu/numaNodeID:
+          int: 0
+        dra.cpu/smtEnabled:
+          bool: true
+        dra.cpu/socketID:
+          int: 0
+        dra.net/numaNode:
+          int: 0
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+      capacity:
+        dra.cpu/cpu:
+          value: "64"
+      name: cpudevnuma000
+    - allowMultipleAllocations: true
+      attributes:
+        dra.cpu/numCPUs:
+          int: 64
+        dra.cpu/numaNodeID:
+          int: 1
+        dra.cpu/smtEnabled:
+          bool: true
+        dra.cpu/socketID:
+          int: 1
+        dra.net/numaNode:
+          int: 1
+        resource.kubernetes.io/cpuSocketID:
+          int: 1
+        resource.kubernetes.io/numaNode:
+          int: 1
+      capacity:
+        dra.cpu/cpu:
+          value: "64"
+      name: cpudevnuma001
+    driver: dra.cpu
+    nodeName: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+    pool:
+      generation: 1
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      resourceSliceCount: 1
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-04-23T19:43:12Z"
+    generateName: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-sriovnetwork.k8snetworkplumbingwg.io-
+    generation: 4
+    name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com-sriovnetwork.k8sn42ntj
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      uid: 1e642018-1690-48aa-b15e-428915541ea0
+    resourceVersion: "15117"
+    uid: e7995f45-d2bf-4cf6-bc2c-70f4c1531bdd
+  spec:
+    devices:
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+        resource.kubernetes.io/pciBusID:
+          string: "0000:37:00.1"
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:36
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: enp55s0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: "0000:37:00.1"
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: "1021"
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: "0000:37:00.0"
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: false
+        sriovnetwork.k8snetworkplumbingwg.io/resourceName:
+          string: cx7_vf
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 0
+      name: 0000-37-00-1
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+        resource.kubernetes.io/pciBusID:
+          string: "0000:37:00.2"
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:36
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: enp55s0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: "0000:37:00.2"
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: "1021"
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: "0000:37:00.0"
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: false
+        sriovnetwork.k8snetworkplumbingwg.io/resourceName:
+          string: cx7_vf
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 1
+      name: 0000-37-00-2
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+        resource.kubernetes.io/pciBusID:
+          string: "0000:37:00.3"
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:36
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: enp55s0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: "0000:37:00.3"
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: "1021"
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: "0000:37:00.0"
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: false
+        sriovnetwork.k8snetworkplumbingwg.io/resourceName:
+          string: cx7_vf
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 2
+      name: 0000-37-00-3
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        resource.kubernetes.io/cpuSocketID:
+          int: 0
+        resource.kubernetes.io/numaNode:
+          int: 0
+        resource.kubernetes.io/pciBusID:
+          string: "0000:37:00.4"
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:36
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: enp55s0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: "0000:37:00.4"
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: "1021"
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: "0000:37:00.0"
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: false
+        sriovnetwork.k8snetworkplumbingwg.io/resourceName:
+          string: cx7_vf
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 3
+      name: 0000-37-00-4
+    driver: sriovnetwork.k8snetworkplumbingwg.io
+    nodeName: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+    pool:
+      generation: 1
+      name: nvd-srv-31.nvidia.eng.rdu2.dc.redhat.com
+      resourceSliceCount: 1
+kind: List
+metadata:
+  resourceVersion: ""
