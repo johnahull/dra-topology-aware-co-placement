@@ -379,6 +379,20 @@ for _sbdf in "${!IS_SWITCH[@]}"; do
 done
 unset _sbdf local_par
 
+# Find the root port for a given BDF (the bridge whose parent is root:*)
+get_root_port() {
+    local cur="$1" prev=""
+    while true; do
+        local par="${DEV_PARENT[$cur]:-}"
+        [ -z "$par" ] && break
+        if [[ "$par" == root:* ]]; then
+            echo "$cur"
+            return
+        fi
+        cur="$par"
+    done
+}
+
 # ── Print tree for a given node ───────────────────────────────────────────────
 
 print_device() {
@@ -628,6 +642,10 @@ print_numa_flat() {
         if [ -n "$sw_bdf" ]; then
             local sw_name; sw_name=$(short_name "$sw_bdf")
             detail_line+="${DIM}  |  switch: ${BOLD}${sw_bdf}${RESET}${DIM} (${sw_name})${RESET}"
+        fi
+        local rp_bdf; rp_bdf=$(get_root_port "$bdf")
+        if [ -n "$rp_bdf" ]; then
+            detail_line+="${DIM}  |  root port: ${BOLD}${rp_bdf}${RESET}"
         fi
         echo -e "  ${detail_line}"
 
