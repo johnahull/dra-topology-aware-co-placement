@@ -16,15 +16,24 @@ Branches:
 - `johnahull/dra-driver-memory` `feature/standardized-topology-attrs`
 - `johnahull/dra-driver-sriov` `feature/dra-topology-co-placement`
 
-## Phase 1b: Scheduler enforcement:preferred — NEXT
+## Phase 1b: Scheduler enforcement:preferred — DONE
 
-Patch K8s scheduler to support `enforcement: preferred` on `matchAttribute`. Enables the distance hierarchy (pcieRoot → numaNode → cpuSocketID).
+Patched K8s scheduler to support `enforcement: Preferred` on `matchAttribute`. Enables the distance hierarchy (pcieRoot → numaNode → cpuSocketID).
 
 | # | Item | What | Where | Status |
 |---|------|------|-------|--------|
-| 3 | `enforcement: preferred` | Add `enforcement` field to `DeviceConstraint`, scheduler tries preferred constraints but relaxes if unsatisfiable | Fork `kubernetes/kubernetes` at v1.36.0 | Not started |
+| 3 | `enforcement: Preferred` | Add `Enforcement` field to `DeviceConstraint`, scheduler tries preferred constraints but relaxes if unsatisfiable | `johnahull/kubernetes` `feature/enforcement-preferred` | **Done** — tested on NVIDIA A40 |
+| 3a | Patch kubectl | kubectl v1.36 strips unknown fields; need custom kubectl or v1.37+ | `johnahull/kubernetes` `feature/enforcement-preferred` | Next |
 
 Target: nvd-srv-31 (NVIDIA A40)
+
+Changes (3 commits on `johnahull/kubernetes` `feature/enforcement-preferred`):
+1. API types: `Enforcement *ConstraintEnforcement` on `DeviceConstraint` (external + internal types, deepcopy, conversion)
+2. Protobuf serialization (Marshal/Unmarshal/Size), OpenAPI schema, `DRAListTypeAttributes` feature gate default=true
+3. `AllocatorFeatures()` passes `ListTypeAttributes` to select the experimental allocator
+4. Experimental allocator: inline skip for preferred constraints that fail
+
+Test: `pcieRoot: Preferred` + `numaNode: Required` → GPU + CPU on NUMA 0 (pcieRoot relaxed because CPU doesn't publish pcieRoot)
 
 ## Phase 2: Topology Coordinator on NVIDIA
 
@@ -72,4 +81,4 @@ Existing AMD-specific patches from XE9680 testing.
 | Platform | Hardware | Tests Passed | Key Result |
 |----------|----------|-------------|------------|
 | Dell XE9680 | 8x AMD MI300X + ConnectX-6 | Eighth, quarter pods + KubeVirt VMs (SNC on/off) | Coordinator + per-driver CEL + distance fallback |
-| Dell R760xa | 2x NVIDIA A40 + ConnectX-7 | 4-driver matchAttribute numaNode + cpuSocketID | **Native cross-driver alignment, no middleware** |
+| Dell R760xa | 2x NVIDIA A40 + ConnectX-7 | 4-driver matchAttribute numaNode + cpuSocketID + enforcement:preferred | **Native cross-driver alignment + distance hierarchy, no middleware** |

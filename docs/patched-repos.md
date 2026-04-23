@@ -23,6 +23,12 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 | | (patches also on upstream remote) | `develop` | GPU partition fixes, MI210 support |
 | | | `feature-auto-partition` | Automatic partition discovery |
 
+## Scheduler enforcement:preferred
+
+| Upstream Repo | Fork | Branch | Description |
+|---------------|------|--------|-------------|
+| [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) | [johnahull/kubernetes](https://github.com/johnahull/kubernetes) | `feature/enforcement-preferred` | Add `Enforcement` field to `DeviceConstraint`, experimental allocator skips preferred constraints on mismatch — 3 commits |
+
 ## Standardized Topology Attributes (proposal validation)
 
 | Upstream Repo | Fork | Branch | Description |

@@ -2,9 +2,14 @@
 # Demo: Standardized topology attributes enable cross-driver NUMA alignment
 # with native matchAttribute constraints — no middleware needed.
 #
-# Prerequisites: K8s 1.36 with GPU, NIC, CPU, and memory DRA drivers deployed,
+# Tests 1-5: matchAttribute with required constraints (K8s 1.36+)
+# Tests 6-8: enforcement:preferred for distance hierarchy (custom scheduler)
+#
+# Prerequisites: K8s 1.36+ with GPU, NIC, CPU, and memory DRA drivers deployed,
 # all publishing resource.kubernetes.io/numaNode and cpuSocketID.
 # DeviceClasses must have driver selectors (device.driver == 'driverName').
+# Tests 6-8 require custom kube-apiserver/kube-scheduler/kubectl with
+# enforcement:preferred support (johnahull/kubernetes feature/enforcement-preferred).
 #
 # Usage:
 #   ./demo-standardized-attrs.sh              # run all tests
@@ -26,6 +31,13 @@ RUN_TEST=""
 DO_CLEANUP=true
 SHOW_SLICES_ONLY=false
 
+# Use kubectl-custom if available (has enforcement:preferred support)
+if command -v kubectl-custom &>/dev/null; then
+    KUBECTL="kubectl-custom"
+else
+    KUBECTL="kubectl"
+fi
+
 # Parse flags
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -44,6 +56,9 @@ while [[ $# -gt 0 ]]; do
             echo "  3  numaNode — GPU + NIC + CPU + Memory (4 drivers)"
             echo "  4  cpuSocketID — GPU + CPU"
             echo "  5  pcieRoot — GPU + CPU (expected FAIL)"
+            echo "  6  enforcement:preferred — pcieRoot preferred + numaNode required"
+            echo "  7  enforcement:preferred — pcieRoot preferred + cpuSocketID required (4 drivers)"
+            echo "  8  enforcement:preferred — full distance hierarchy"
             exit 0
             ;;
         --show-slices)
@@ -77,15 +92,15 @@ should_run() {
 
 cleanup() {
     echo -e "\n${BOLD}Cleaning up...${RESET}"
-    kubectl delete pod --all --force --grace-period=0 2>/dev/null || true
-    kubectl delete resourceclaimtemplate --all 2>/dev/null || true
-    kubectl delete resourceclaim --all 2>/dev/null || true
+    $KUBECTL delete pod --all --force --grace-period=0 2>/dev/null || true
+    $KUBECTL delete resourceclaimtemplate --all 2>/dev/null || true
+    $KUBECTL delete resourceclaim --all 2>/dev/null || true
 }
 
 show_resourceslices() {
     echo -e "\n${BOLD}=== ResourceSlices with standardized attributes ===${RESET}"
     echo ""
-    kubectl get resourceslices -o json | python3 -c "
+    $KUBECTL get resourceslices -o json | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
 for item in d['items']:
@@ -126,14 +141,14 @@ run_test() {
     local yaml=$4
 
     echo -e "\n${BOLD}=== $desc ===${RESET}"
-    echo "$yaml" | kubectl apply -f - 2>&1 | grep -v "^$"
+    echo "$yaml" | $KUBECTL apply -f - 2>&1 | grep -v "^$"
 
     echo -n "Waiting for scheduling... "
     local allocated=""
     for i in $(seq 1 30); do
-        local claim=$(kubectl get resourceclaim --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | grep "$pod_name" | head -1)
+        local claim=$($KUBECTL get resourceclaim --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | grep "$pod_name" | head -1)
         if [ -n "$claim" ]; then
-            allocated=$(kubectl get resourceclaim "$claim" -o jsonpath='{.status.allocation.devices.results}' 2>/dev/null)
+            allocated=$($KUBECTL get resourceclaim "$claim" -o jsonpath='{.status.allocation.devices.results}' 2>/dev/null)
             if [ -n "$allocated" ] && [ "$allocated" != "null" ]; then
                 break
             fi
@@ -145,7 +160,7 @@ run_test() {
     if [ -z "$allocated" ] || [ "$allocated" = "null" ]; then
         if [ "$expected" = "fail" ]; then
             echo -e "${GREEN}EXPECTED FAILURE${RESET}"
-            local reason=$(kubectl describe pod "$pod_name" 2>/dev/null | grep -o "cannot allocate all claims\|FailedScheduling.*" | tail -1)
+            local reason=$($KUBECTL describe pod "$pod_name" 2>/dev/null | grep -o "cannot allocate all claims\|FailedScheduling.*" | tail -1)
             result_detail="Expected: unsatisfiable"
             echo "  $reason"
             TEST_RESULTS+=("EXPECTED FAIL")
@@ -181,8 +196,8 @@ print(', '.join(parts))
     TEST_DETAILS+=("$result_detail")
 
     # Clean up for next test
-    kubectl delete pod "$pod_name" --force --grace-period=0 2>/dev/null || true
-    kubectl delete resourceclaimtemplate "$claim_name" 2>/dev/null || true
+    $KUBECTL delete pod "$pod_name" --force --grace-period=0 2>/dev/null || true
+    $KUBECTL delete resourceclaimtemplate "$claim_name" 2>/dev/null || true
     sleep 2
 }
 
@@ -438,6 +453,166 @@ EOF
 )"
 fi
 
+# Test 6: enforcement:preferred — pcieRoot preferred, numaNode required (GPU + CPU)
+# Compare with Test 5: same pcieRoot constraint but Required fails, Preferred succeeds
+if should_run 6; then
+run_test "test-preferred-pcie" \
+    "Test 6: pcieRoot preferred + numaNode (GPU+CPU)" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-preferred-pcie-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          count: 1
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+          count: 1
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu, cpu]
+        enforcement: Preferred
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, cpu]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-preferred-pcie
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-preferred-pcie-claim
+EOF
+)"
+fi
+
+# Test 7: enforcement:preferred — pcieRoot preferred, cpuSocketID required (4 drivers)
+if should_run 7; then
+run_test "test-preferred-4d" \
+    "Test 7: pcieRoot preferred + socketID (4 drivers)" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-preferred-4d-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          count: 1
+      - name: nic
+        exactly:
+          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+          count: 1
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+          count: 1
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+          count: 1
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu, nic, cpu, mem]
+        enforcement: Preferred
+      - matchAttribute: resource.kubernetes.io/cpuSocketID
+        requests: [gpu, nic, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-preferred-4d
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-preferred-4d-claim
+EOF
+)"
+fi
+
+# Test 8: full distance hierarchy — pcieRoot preferred → numaNode preferred → cpuSocketID required
+if should_run 8; then
+run_test "test-hierarchy" \
+    "Test 8: full hierarchy pcieRoot→numa→socket" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-hierarchy-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          count: 1
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+          count: 1
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+          count: 1
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu, cpu, mem]
+        enforcement: Preferred
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, cpu, mem]
+        enforcement: Preferred
+      - matchAttribute: resource.kubernetes.io/cpuSocketID
+        requests: [gpu, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hierarchy
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-hierarchy-claim
+EOF
+)"
+fi
+
 # --- Summary Table ---
 
 echo -e "\n${BOLD}╔══════════════════════════════════════════════════════════════════╗${RESET}"
@@ -476,6 +651,8 @@ echo -e "${BOLD}╚════════════════════�
 echo -e "\n${BOLD}Conclusion:${RESET}"
 echo "Standardized resource.kubernetes.io/numaNode and cpuSocketID enable"
 echo "cross-driver NUMA alignment with a single matchAttribute constraint."
+echo "enforcement:preferred enables the distance hierarchy:"
+echo "  pcieRoot (preferred) → numaNode (preferred) → cpuSocketID (required)"
 echo "No topology coordinator. No ConfigMaps. No middleware."
 
 if $DO_CLEANUP; then

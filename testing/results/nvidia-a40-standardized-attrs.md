@@ -170,3 +170,29 @@ constraints:
 ```
 
 **One constraint, four drivers, standardized attribute name. No topology coordinator, no ConfigMaps, no middleware.**
+
+## enforcement:preferred Tests
+
+Requires custom kube-apiserver + kube-scheduler from `johnahull/kubernetes` branch `feature/enforcement-preferred`.
+
+### Test E-1: pcieRoot preferred + numaNode required (GPU + CPU) — PASSED
+
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/pcieRoot
+  requests: [gpu, cpu]
+  enforcement: Preferred
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, cpu]
+```
+
+**Result:** GPU + CPU on NUMA 0. pcieRoot constraint relaxed (CPU doesn't publish pcieRoot):
+```json
+[
+  {"device": "gpu-0", "driver": "gpu.nvidia.com", "request": "gpu"},
+  {"device": "cpudevnuma000", "driver": "dra.cpu", "request": "cpu",
+   "consumedCapacity": {"dra.cpu/cpu": "64"}}
+]
+```
+
+**This proves enforcement:preferred works:** The same claim with `enforcement: Required` on pcieRoot (Test 5) fails because CPU has no pcieRoot. With `enforcement: Preferred`, the scheduler relaxes the pcieRoot constraint and satisfies numaNode instead. The distance hierarchy works.

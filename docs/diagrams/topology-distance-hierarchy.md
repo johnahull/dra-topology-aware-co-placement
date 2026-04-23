@@ -3,6 +3,7 @@
 ## 1. PCIe Tree with DMA Paths
 
 Shows the physical hardware topology and DMA path for each coupling level.
+Diagrams in sections 1 and 2 are based on a **Dell PowerEdge XE9860** (2-socket, 8× GPU, 2× NIC).
 
 ### SNC off (2 NUMA nodes)
 
