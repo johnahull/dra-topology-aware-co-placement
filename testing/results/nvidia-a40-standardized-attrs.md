@@ -91,4 +91,20 @@ constraints:
 
 ### Test C: pcieRoot + numaNode both required fails — Blocked (no NIC VFs)
 
-### Test D: cpuSocketID aligns GPU + CPU — Pending
+### Test D: cpuSocketID aligns GPU + CPU — PASSED
+
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/cpuSocketID
+  requests: [gpu, cpu]
+```
+
+**Result:** Allocated GPU `gpu-0` (socket 0) + CPU `cpudevnuma000` (socket 0). Both on socket 0.
+
+```json
+[
+  {"device": "gpu-0", "driver": "gpu.nvidia.com", "request": "gpu"},
+  {"device": "cpudevnuma000", "driver": "dra.cpu", "request": "cpu",
+   "consumedCapacity": {"dra.cpu/cpu": "64"}}
+]
+```
