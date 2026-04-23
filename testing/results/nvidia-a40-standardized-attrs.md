@@ -63,7 +63,11 @@ resource.kubernetes.io/cpuSocketID:
   int: 1
 ```
 
-### Memory DRA Driver — Pending
+### Memory DRA Driver — Blocked (NRI compatibility)
+
+Built from `johnahull/dra-driver-memory` branch `feature/standardized-topology-attrs` (with cgroup2 fix cherry-picked). NRI plugin registers with containerd 2.1.6 but connection closes immediately — version incompatibility. Driver crashes before publishing ResourceSlice.
+
+Not blocking the test — GPU + CPU are sufficient to prove cross-driver `matchAttribute` with standardized attributes.
 
 ## Tests
 
