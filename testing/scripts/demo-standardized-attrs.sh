@@ -2,8 +2,9 @@
 # Demo: Standardized topology attributes enable cross-driver NUMA alignment
 # with native matchAttribute constraints — no middleware needed.
 #
-# Prerequisites: K8s 1.36 with GPU, CPU, and memory DRA drivers deployed,
+# Prerequisites: K8s 1.36 with GPU, NIC, CPU, and memory DRA drivers deployed,
 # all publishing resource.kubernetes.io/numaNode and cpuSocketID.
+# DeviceClasses must have driver selectors (device.driver == 'driverName').
 
 set -e
 
@@ -13,78 +14,127 @@ RED="\033[31m"
 YELLOW="\033[33m"
 RESET="\033[0m"
 
+# Track results for summary table
+declare -a TEST_NAMES
+declare -a TEST_RESULTS
+declare -a TEST_DETAILS
+
 cleanup() {
-    echo -e "\n${BOLD}Cleaning up...${RESET}"
     kubectl delete pod --force --grace-period=0 \
-        test-numanode test-3driver test-socketid test-pcieroot 2>/dev/null || true
+        test-numanode-2d test-numanode-3d test-numanode-4d \
+        test-socketid test-pcieroot 2>/dev/null || true
     kubectl delete resourceclaimtemplate \
-        numanode-test three-driver-test socketid-test pcieroot-test 2>/dev/null || true
+        test-numanode-2d-claim test-numanode-3d-claim test-numanode-4d-claim \
+        test-socketid-claim test-pcieroot-claim 2>/dev/null || true
 }
 
 show_resourceslices() {
     echo -e "\n${BOLD}=== ResourceSlices with standardized attributes ===${RESET}"
     echo ""
-    for slice in $(kubectl get resourceslices --no-headers -o custom-columns=NAME:.metadata.name); do
-        driver=$(kubectl get resourceslice "$slice" -o jsonpath='{.spec.driverName}')
-        echo -e "${BOLD}Driver: $driver${RESET}"
-        kubectl get resourceslice "$slice" -o yaml | grep -A 2 "resource.kubernetes.io" | grep -v "^--$"
-        echo ""
-    done
+    kubectl get resourceslices -o json | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for item in d['items']:
+    name = item['metadata']['name']
+    devs = item.get('spec',{}).get('devices',[])
+    # Find driver name from first device
+    driver = 'unknown'
+    for dev in devs:
+        for k in dev.get('attributes',{}):
+            if 'resource.kubernetes.io' not in k and '/' in k:
+                driver = k.split('/')[0]
+                break
+        break
+    # Also check name for driver hint
+    for hint in ['gpu.nvidia','dra.cpu','dra.memory','sriovnetwork']:
+        if hint in name:
+            driver = hint
+            break
+    print(f'  {driver}: {len(devs)} devices')
+    for dev in devs[:2]:
+        attrs = dev.get('attributes',{})
+        numa = attrs.get('resource.kubernetes.io/numaNode',{}).get('int','?')
+        socket = attrs.get('resource.kubernetes.io/cpuSocketID',{}).get('int','?')
+        pcieroot = attrs.get('resource.kubernetes.io/pcieRoot',{}).get('string','')
+        extra = f' pcieRoot={pcieroot}' if pcieroot else ''
+        print(f'    {dev[\"name\"]}: numaNode={numa} cpuSocketID={socket}{extra}')
+    if len(devs) > 2:
+        print(f'    ... and {len(devs)-2} more')
+    print()
+"
 }
 
 run_test() {
-    local name=$1
+    local pod_name=$1
+    local claim_name="${pod_name}-claim"
     local desc=$2
     local expected=$3
     local yaml=$4
 
     echo -e "\n${BOLD}=== $desc ===${RESET}"
-    echo "$yaml" | kubectl apply -f - 2>&1
+    echo "$yaml" | kubectl apply -f - 2>&1 | grep -v "^$"
 
     echo -n "Waiting for scheduling... "
+    local allocated=""
     for i in $(seq 1 30); do
-        status=$(kubectl get resourceclaim --no-headers -o custom-columns=STATUS:.status.allocation 2>/dev/null | head -1)
-        if [ -n "$status" ] && [ "$status" != "<none>" ]; then
-            break
+        local claim=$(kubectl get resourceclaim --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | grep "$pod_name" | head -1)
+        if [ -n "$claim" ]; then
+            allocated=$(kubectl get resourceclaim "$claim" -o jsonpath='{.status.allocation.devices.results}' 2>/dev/null)
+            if [ -n "$allocated" ] && [ "$allocated" != "null" ]; then
+                break
+            fi
         fi
         sleep 1
     done
 
-    claim=$(kubectl get resourceclaim --no-headers -o custom-columns=NAME:.metadata.name 2>/dev/null | head -1)
-    if [ -z "$claim" ]; then
-        echo -e "${RED}FAILED — no claim created${RESET}"
-        return
-    fi
-
-    allocated=$(kubectl get resourceclaim "$claim" -o jsonpath='{.status.allocation.devices.results}' 2>/dev/null)
+    local result_detail=""
     if [ -z "$allocated" ] || [ "$allocated" = "null" ]; then
         if [ "$expected" = "fail" ]; then
-            echo -e "${GREEN}EXPECTED FAILURE — claim not satisfiable${RESET}"
-            reason=$(kubectl describe pod "$name" 2>/dev/null | grep "FailedScheduling" | tail -1)
-            echo "  Reason: $reason"
+            echo -e "${GREEN}EXPECTED FAILURE${RESET}"
+            local reason=$(kubectl describe pod "$pod_name" 2>/dev/null | grep -o "cannot allocate all claims\|FailedScheduling.*" | tail -1)
+            result_detail="Expected: unsatisfiable"
+            echo "  $reason"
+            TEST_RESULTS+=("EXPECTED FAIL")
         else
-            echo -e "${RED}FAILED — claim not allocated${RESET}"
+            echo -e "${RED}FAILED${RESET}"
+            result_detail="Claim not allocated"
+            TEST_RESULTS+=("FAILED")
         fi
     else
         if [ "$expected" = "fail" ]; then
-            echo -e "${RED}UNEXPECTED SUCCESS — expected failure${RESET}"
+            echo -e "${RED}UNEXPECTED SUCCESS${RESET}"
+            result_detail="Expected failure but succeeded"
+            TEST_RESULTS+=("UNEXPECTED")
         else
             echo -e "${GREEN}PASSED${RESET}"
+            # Extract device summary
+            result_detail=$(echo "$allocated" | python3 -c "
+import json,sys
+results = json.load(sys.stdin)
+parts = []
+for r in results:
+    parts.append(f\"{r['device']} ({r['driver'].split('.')[0]})\")
+print(', '.join(parts))
+" 2>/dev/null || echo "allocated")
+            TEST_RESULTS+=("PASSED")
         fi
         echo ""
         echo "Allocation:"
         echo "$allocated" | python3 -m json.tool 2>/dev/null || echo "$allocated"
     fi
 
+    TEST_NAMES+=("$desc")
+    TEST_DETAILS+=("$result_detail")
+
     # Clean up for next test
-    kubectl delete pod "$name" --force --grace-period=0 2>/dev/null || true
-    kubectl delete resourceclaimtemplate "${name}-claim" 2>/dev/null || true
+    kubectl delete pod "$pod_name" --force --grace-period=0 2>/dev/null || true
+    kubectl delete resourceclaimtemplate "$claim_name" 2>/dev/null || true
     sleep 2
 }
 
 # --- Main ---
 
-cleanup
+cleanup 2>/dev/null
 
 echo -e "${BOLD}Standardized Topology Attributes Demo${RESET}"
 echo "Proving: resource.kubernetes.io/numaNode and cpuSocketID"
@@ -93,15 +143,15 @@ echo ""
 
 show_resourceslices
 
-# Test 1: numaNode with GPU + CPU
-run_test "test-numanode" \
-    "Test 1: matchAttribute numaNode — GPU + CPU" \
+# Test 1: numaNode with GPU + CPU (2 drivers)
+run_test "test-numanode-2d" \
+    "Test 1: numaNode — GPU + CPU (2 drivers)" \
     "pass" \
     "$(cat <<EOF
 apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
-  name: test-numanode-claim
+  name: test-numanode-2d-claim
 spec:
   spec:
     devices:
@@ -121,7 +171,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test-numanode
+  name: test-numanode-2d
 spec:
   containers:
   - name: test
@@ -132,19 +182,19 @@ spec:
       - name: devices
   resourceClaims:
   - name: devices
-    resourceClaimTemplateName: test-numanode-claim
+    resourceClaimTemplateName: test-numanode-2d-claim
 EOF
 )"
 
 # Test 2: numaNode with GPU + CPU + Memory (3 drivers)
-run_test "test-3driver" \
-    "Test 2: matchAttribute numaNode — GPU + CPU + Memory (3 drivers)" \
+run_test "test-numanode-3d" \
+    "Test 2: numaNode — GPU + CPU + Memory (3 drivers)" \
     "pass" \
     "$(cat <<EOF
 apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
-  name: test-3driver-claim
+  name: test-numanode-3d-claim
 spec:
   spec:
     devices:
@@ -168,7 +218,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: test-3driver
+  name: test-numanode-3d
 spec:
   containers:
   - name: test
@@ -179,13 +229,64 @@ spec:
       - name: devices
   resourceClaims:
   - name: devices
-    resourceClaimTemplateName: test-3driver-claim
+    resourceClaimTemplateName: test-numanode-3d-claim
 EOF
 )"
 
-# Test 3: cpuSocketID with GPU + CPU
+# Test 3: numaNode with GPU + NIC + CPU + Memory (4 drivers)
+run_test "test-numanode-4d" \
+    "Test 3: numaNode — GPU + NIC + CPU + Memory (4 drivers)" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-numanode-4d-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          count: 1
+      - name: nic
+        exactly:
+          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+          count: 1
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+          count: 1
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+          count: 1
+      constraints:
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, nic, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-numanode-4d
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-numanode-4d-claim
+EOF
+)"
+
+# Test 4: cpuSocketID with GPU + CPU
 run_test "test-socketid" \
-    "Test 3: matchAttribute cpuSocketID — GPU + CPU" \
+    "Test 4: cpuSocketID — GPU + CPU" \
     "pass" \
     "$(cat <<EOF
 apiVersion: resource.k8s.io/v1
@@ -226,9 +327,9 @@ spec:
 EOF
 )"
 
-# Test 4: pcieRoot for GPU+CPU FAILS (CPU has no pcieRoot)
+# Test 5: pcieRoot for GPU+CPU FAILS (CPU has no pcieRoot)
 run_test "test-pcieroot" \
-    "Test 4: matchAttribute pcieRoot — GPU + CPU (expected FAIL: CPU has no pcieRoot)" \
+    "Test 5: pcieRoot — GPU + CPU (expected FAIL)" \
     "fail" \
     "$(cat <<EOF
 apiVersion: resource.k8s.io/v1
@@ -269,13 +370,44 @@ spec:
 EOF
 )"
 
-echo -e "\n${BOLD}=== Summary ===${RESET}"
-echo "Test 1 (numaNode GPU+CPU):        proves cross-driver NUMA alignment"
-echo "Test 2 (numaNode GPU+CPU+Memory):  proves 3-driver alignment with one constraint"
-echo "Test 3 (cpuSocketID GPU+CPU):      proves socket-level alignment"
-echo "Test 4 (pcieRoot GPU+CPU):         proves pcieRoot alone is insufficient (CPU has no pcieRoot)"
-echo ""
-echo "All tests use resource.kubernetes.io/numaNode and cpuSocketID — standardized"
-echo "attributes that every driver publishes. No topology coordinator, no ConfigMaps."
+# --- Summary Table ---
+
+echo -e "\n${BOLD}╔══════════════════════════════════════════════════════════════════╗${RESET}"
+echo -e "${BOLD}║                        TEST RESULTS                             ║${RESET}"
+echo -e "${BOLD}╠══════════════════════════════════════════════════════════════════╣${RESET}"
+printf "${BOLD}║ %-4s %-40s %-15s ║${RESET}\n" "#" "Test" "Result"
+echo -e "${BOLD}╠══════════════════════════════════════════════════════════════════╣${RESET}"
+
+for i in "${!TEST_NAMES[@]}"; do
+    result="${TEST_RESULTS[$i]}"
+    case "$result" in
+        PASSED)        color="$GREEN" ;;
+        "EXPECTED FAIL") color="$GREEN" ;;
+        *)             color="$RED" ;;
+    esac
+    printf "║ %-4s %-40s ${color}%-15s${RESET} ║\n" "$((i+1))" "${TEST_NAMES[$i]:0:40}" "$result"
+done
+
+echo -e "${BOLD}╠══════════════════════════════════════════════════════════════════╣${RESET}"
+
+# Count results
+passed=0
+expected_fail=0
+failed=0
+for r in "${TEST_RESULTS[@]}"; do
+    case "$r" in
+        PASSED) ((passed++)) ;;
+        "EXPECTED FAIL") ((expected_fail++)) ;;
+        *) ((failed++)) ;;
+    esac
+done
+
+echo -e "║ ${GREEN}Passed: $passed${RESET}   ${GREEN}Expected fail: $expected_fail${RESET}   ${RED}Failed: $failed${RESET}              ║"
+echo -e "${BOLD}╚══════════════════════════════════════════════════════════════════╝${RESET}"
+
+echo -e "\n${BOLD}Conclusion:${RESET}"
+echo "Standardized resource.kubernetes.io/numaNode and cpuSocketID enable"
+echo "cross-driver NUMA alignment with a single matchAttribute constraint."
+echo "No topology coordinator. No ConfigMaps. No middleware."
 
 cleanup
