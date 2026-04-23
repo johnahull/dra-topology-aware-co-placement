@@ -5,6 +5,13 @@
 # Prerequisites: K8s 1.36 with GPU, NIC, CPU, and memory DRA drivers deployed,
 # all publishing resource.kubernetes.io/numaNode and cpuSocketID.
 # DeviceClasses must have driver selectors (device.driver == 'driverName').
+#
+# Usage:
+#   ./demo-standardized-attrs.sh              # run all tests
+#   ./demo-standardized-attrs.sh --test 3     # run test 3 only
+#   ./demo-standardized-attrs.sh --list       # list available tests
+#   ./demo-standardized-attrs.sh --show-slices # show ResourceSlices only
+#   ./demo-standardized-attrs.sh --no-cleanup  # keep pods after tests
 
 set -e
 
@@ -14,12 +21,62 @@ RED="\033[31m"
 YELLOW="\033[33m"
 RESET="\033[0m"
 
+# Defaults
+RUN_TEST=""
+DO_CLEANUP=true
+SHOW_SLICES_ONLY=false
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --test)
+            RUN_TEST="$2"
+            shift 2
+            ;;
+        --all)
+            RUN_TEST=""
+            shift
+            ;;
+        --list)
+            echo "Available tests:"
+            echo "  1  numaNode — GPU + CPU (2 drivers)"
+            echo "  2  numaNode — GPU + CPU + Memory (3 drivers)"
+            echo "  3  numaNode — GPU + NIC + CPU + Memory (4 drivers)"
+            echo "  4  cpuSocketID — GPU + CPU"
+            echo "  5  pcieRoot — GPU + CPU (expected FAIL)"
+            exit 0
+            ;;
+        --show-slices)
+            SHOW_SLICES_ONLY=true
+            shift
+            ;;
+        --no-cleanup)
+            DO_CLEANUP=false
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--test N] [--all] [--list] [--show-slices] [--no-cleanup]"
+            exit 0
+            ;;
+        *)
+            echo "Unknown flag: $1"
+            exit 1
+            ;;
+    esac
+done
+
 # Track results for summary table
 declare -a TEST_NAMES
 declare -a TEST_RESULTS
 declare -a TEST_DETAILS
 
+should_run() {
+    local test_num=$1
+    [[ -z "$RUN_TEST" ]] || [[ "$RUN_TEST" == "$test_num" ]]
+}
+
 cleanup() {
+    echo -e "\n${BOLD}Cleaning up...${RESET}"
     kubectl delete pod --all --force --grace-period=0 2>/dev/null || true
     kubectl delete resourceclaimtemplate --all 2>/dev/null || true
     kubectl delete resourceclaim --all 2>/dev/null || true
@@ -140,7 +197,12 @@ echo ""
 
 show_resourceslices
 
+if $SHOW_SLICES_ONLY; then
+    exit 0
+fi
+
 # Test 1: numaNode with GPU + CPU (2 drivers)
+if should_run 1; then
 run_test "test-numanode-2d" \
     "Test 1: numaNode — GPU + CPU (2 drivers)" \
     "pass" \
@@ -182,8 +244,10 @@ spec:
     resourceClaimTemplateName: test-numanode-2d-claim
 EOF
 )"
+fi
 
 # Test 2: numaNode with GPU + CPU + Memory (3 drivers)
+if should_run 2; then
 run_test "test-numanode-3d" \
     "Test 2: numaNode — GPU + CPU + Memory (3 drivers)" \
     "pass" \
@@ -229,8 +293,10 @@ spec:
     resourceClaimTemplateName: test-numanode-3d-claim
 EOF
 )"
+fi
 
 # Test 3: numaNode with GPU + NIC + CPU + Memory (4 drivers)
+if should_run 3; then
 run_test "test-numanode-4d" \
     "Test 3: numaNode — GPU + NIC + CPU + Memory (4 drivers)" \
     "pass" \
@@ -280,8 +346,10 @@ spec:
     resourceClaimTemplateName: test-numanode-4d-claim
 EOF
 )"
+fi
 
 # Test 4: cpuSocketID with GPU + CPU
+if should_run 4; then
 run_test "test-socketid" \
     "Test 4: cpuSocketID — GPU + CPU" \
     "pass" \
@@ -323,8 +391,10 @@ spec:
     resourceClaimTemplateName: test-socketid-claim
 EOF
 )"
+fi
 
 # Test 5: pcieRoot for GPU+CPU FAILS (CPU has no pcieRoot)
+if should_run 5; then
 run_test "test-pcieroot" \
     "Test 5: pcieRoot — GPU + CPU (expected FAIL)" \
     "fail" \
@@ -366,6 +436,7 @@ spec:
     resourceClaimTemplateName: test-pcieroot-claim
 EOF
 )"
+fi
 
 # --- Summary Table ---
 
@@ -407,4 +478,6 @@ echo "Standardized resource.kubernetes.io/numaNode and cpuSocketID enable"
 echo "cross-driver NUMA alignment with a single matchAttribute constraint."
 echo "No topology coordinator. No ConfigMaps. No middleware."
 
-cleanup
+if $DO_CLEANUP; then
+    cleanup
+fi
