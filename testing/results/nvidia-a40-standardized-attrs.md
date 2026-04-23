@@ -148,3 +148,25 @@ constraints:
    "consumedCapacity": {"dra.cpu/cpu": "64"}}
 ]
 ```
+
+### Test A-4: numaNode aligns GPU + NIC + CPU + Memory (4 drivers) — PASSED
+
+```yaml
+constraints:
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic, cpu, mem]
+```
+
+**Result:** All four on NUMA 0:
+```json
+[
+  {"device": "gpu-0", "driver": "gpu.nvidia.com", "request": "gpu"},
+  {"device": "0000-37-00-1", "driver": "sriovnetwork.k8snetworkplumbingwg.io", "request": "nic"},
+  {"device": "cpudevnuma000", "driver": "dra.cpu", "request": "cpu",
+   "consumedCapacity": {"dra.cpu/cpu": "64"}},
+  {"device": "memory-2qxc6p", "driver": "dra.memory", "request": "mem",
+   "consumedCapacity": {"size": "1Mi"}}
+]
+```
+
+**One constraint, four drivers, standardized attribute name. No topology coordinator, no ConfigMaps, no middleware.**
