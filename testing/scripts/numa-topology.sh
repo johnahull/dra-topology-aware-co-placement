@@ -684,6 +684,27 @@ if [ "$NUMA_NODES" -eq 0 ]; then
     exit 1
 fi
 
+# ── CPU model and socket detection ───────────────────────────────────────────
+# Build per-socket CPU model name from /proc/cpuinfo
+declare -A SOCKET_MODEL=()
+declare -A SOCKET_SET=()
+
+while IFS= read -r _line; do
+    case "$_line" in
+        "physical id"*)  _phys_id="${_line#*: }" ;;
+        "model name"*)
+            _model="${_line#*: }"
+            if [ -n "${_phys_id:-}" ] && [ -z "${SOCKET_MODEL[$_phys_id]+x}" ]; then
+                SOCKET_MODEL["$_phys_id"]="$_model"
+                SOCKET_SET["$_phys_id"]=1
+            fi
+            ;;
+    esac
+done < /proc/cpuinfo
+unset _line _phys_id _model
+
+NUM_SOCKETS=${#SOCKET_SET[@]}
+
 # ── DIMM-to-NUMA correlation ──────────────────────────────────────────────────
 # Try phys_device first. If all blocks share one phys_device (single-array
 # firmware), fall back to cumulative-size heuristic: walk DIMMs in dmidecode
@@ -757,21 +778,43 @@ if [ "$DMIDECODE_OK" = "1" ]; then
     unset _single_array
 fi
 
-echo -e "${BOLD}NUMA Topology${RESET}  (${NUMA_NODES} node(s))"
+if [ "$NUM_SOCKETS" -gt 0 ]; then
+    echo -e "${BOLD}NUMA Topology${RESET}  (${NUM_SOCKETS} socket(s), ${NUMA_NODES} node(s))"
+else
+    echo -e "${BOLD}NUMA Topology${RESET}  (${NUMA_NODES} node(s))"
+fi
 echo ""
 
 for node_path in /sys/devices/system/node/node*/; do
     node=$(basename "$node_path")
     node_id="${node#node}"
 
-    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${BOLD}${CYAN}║  NUMA Node ${node_id}${RESET}"
-    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
+    # Determine socket for this NUMA node from the first CPU's physical_package_id
+    node_socket=""
+    if [ -f "${node_path}cpulist" ]; then
+        cpulist=$(cat "${node_path}cpulist")
+        first_cpu=$(echo "$cpulist" | tr ',' '\n' | head -1 | tr '-' '\n' | head -1)
+        node_socket=$(cat "/sys/devices/system/cpu/cpu${first_cpu}/topology/physical_package_id" 2>/dev/null || true)
+    fi
+
+    if [ -n "$node_socket" ]; then
+        echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
+        echo -e "${BOLD}${CYAN}║  NUMA Node ${node_id}  ·  Socket ${node_socket}${RESET}"
+        echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
+    else
+        echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
+        echo -e "${BOLD}${CYAN}║  NUMA Node ${node_id}${RESET}"
+        echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
+    fi
 
     # CPUs
     if [ -f "${node_path}cpulist" ]; then
-        cpulist=$(cat "${node_path}cpulist")
-        echo -e "  ${BOLD}${GREEN}CPUs:${RESET}   ${cpulist}"
+        cpu_model="${SOCKET_MODEL[${node_socket:-}]:-}"
+        if [ -n "$cpu_model" ]; then
+            echo -e "  ${BOLD}${GREEN}CPUs:${RESET}   ${cpulist}  ${DIM}(${cpu_model})${RESET}"
+        else
+            echo -e "  ${BOLD}${GREEN}CPUs:${RESET}   ${cpulist}"
+        fi
     fi
 
     # Memory
