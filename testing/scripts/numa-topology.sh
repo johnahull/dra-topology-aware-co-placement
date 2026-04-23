@@ -339,6 +339,46 @@ for dev_path in /sys/bus/pci/devices/*/; do
     DEV_CLASS["$bdf"]=$(cat "${dev_path}class" 2>/dev/null || echo "0x000000")
 done
 
+# ── PCIe switch detection ────────────────────────────────────────────────────
+# Detect PCIe switch ports from lspci device names (single call).
+# An upstream port is a switch port whose parent is NOT another switch port.
+# Propagate the upstream BDF to all descendants so endpoints know their switch.
+
+declare -A IS_SWITCH=()          # BDF → 1 if bridge is a switch port
+declare -A DEV_SWITCH=()         # BDF → upstream switch BDF (for any device behind a switch)
+
+if command -v lspci &>/dev/null; then
+    while IFS= read -r _line; do
+        [[ "$_line" =~ ^([0-9a-f:.]+)[[:space:]] ]] || continue
+        _bdf="${BASH_REMATCH[1]}"
+        # Normalize to domain:bus:dev.fn
+        [[ "$_bdf" == *:*:* ]] || _bdf="0000:${_bdf}"
+        if [[ "${_line,,}" == *switch* ]] && [[ "$_line" == *"PCI bridge"* ]]; then
+            IS_SWITCH["$_bdf"]=1
+        fi
+    done < <(lspci 2>/dev/null)
+fi
+
+# Walk the tree to propagate switch ancestry
+_propagate_switch() {
+    local bdf="$1" up_bdf="$2"
+    DEV_SWITCH["$bdf"]="$up_bdf"
+    local children="${DEV_CHILDREN[$bdf]:-}"
+    local child
+    for child in $children; do
+        _propagate_switch "$child" "$up_bdf"
+    done
+}
+
+for _sbdf in "${!IS_SWITCH[@]}"; do
+    local_par="${DEV_PARENT[$_sbdf]:-}"
+    if [[ "$local_par" == root:* ]] || [ -z "${IS_SWITCH[$local_par]+x}" ]; then
+        # This is an upstream port — propagate to all descendants
+        _propagate_switch "$_sbdf" "$_sbdf"
+    fi
+done
+unset _sbdf local_par
+
 # ── Print tree for a given node ───────────────────────────────────────────────
 
 print_device() {
@@ -412,7 +452,18 @@ print_device() {
                 return
             fi
         fi
-        echo -e "${prefix}${DIM}${connector} ${bdf}${RESET}  ${DIM}${name}${RESET}"
+        if [ -n "${IS_SWITCH[$bdf]+x}" ]; then
+            # Check if this is an upstream port (parent is not a switch port)
+            local _par="${DEV_PARENT[$bdf]:-}"
+            if [[ "$_par" == root:* ]] || [ -z "${IS_SWITCH[$_par]+x}" ]; then
+                # Upstream port — highlight as switch entry point
+                echo -e "${prefix}${connector} ${YELLOW}${bdf}${RESET}  ${YELLOW}${name}${RESET}  ${DIM}[upstream]${RESET}"
+            else
+                echo -e "${prefix}${DIM}${connector} ${bdf}${RESET}  ${DIM}${name}${RESET}  ${DIM}[downstream]${RESET}"
+            fi
+        else
+            echo -e "${prefix}${DIM}${connector} ${bdf}${RESET}  ${DIM}${name}${RESET}"
+        fi
     else
         # Skip on-die devices when --pcie flag is set
         if [ "$PCIE_ONLY" = "1" ] && ! has_link "$dev_path"; then
@@ -573,6 +624,11 @@ print_numa_flat() {
 
         local detail_line="${DIM}driver: ${BOLD}${driver}${RESET}"
         [ -n "$link_info" ] && detail_line+="${DIM}  |  link: ${BOLD}${link_info}${RESET}"
+        local sw_bdf="${DEV_SWITCH[$bdf]:-}"
+        if [ -n "$sw_bdf" ]; then
+            local sw_name; sw_name=$(short_name "$sw_bdf")
+            detail_line+="${DIM}  |  switch: ${BOLD}${sw_bdf}${RESET}${DIM} (${sw_name})${RESET}"
+        fi
         echo -e "  ${detail_line}"
 
         local subsystem; subsystem=$(get_subsystem "$bdf")
