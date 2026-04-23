@@ -1,78 +1,75 @@
 # Implementation Sequence
 
-Phases are independently useful — each unblocks a specific capability. Phases 1-3 are pod-focused. Phase 4 bridges to VMs. Phase 5 is KubeVirt-specific. Phase 6 is community engagement.
+## Phase 1: Standardize Attributes — DONE
 
-## Phase 1: Standardize Attributes
+Standardized `resource.kubernetes.io/numaNode` and `cpuSocketID` published by all 4 drivers. Tested on NVIDIA A40 (R760xa) and AMD MI300X (XE9680).
 
-Unblocks native cross-driver NUMA alignment without middleware.
+| # | Item | Status |
+|---|------|--------|
+| 1 | `numaNode` standardization — all drivers publish `resource.kubernetes.io/numaNode` | **Done** — tested on NVIDIA A40 + AMD MI300X |
+| 2 | `cpuSocketID` standardization — all drivers publish `resource.kubernetes.io/cpuSocketID` | **Done** — tested on NVIDIA A40 |
+| 3 | `enforcement: preferred` — scheduler fallback hierarchy | Next (Phase 1b) |
+
+Branches:
+- `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs`
+- `johnahull/dra-driver-cpu` `feature/standardized-topology-attrs`
+- `johnahull/dra-driver-memory` `feature/standardized-topology-attrs`
+- `johnahull/dra-driver-sriov` `feature/dra-topology-co-placement`
+
+## Phase 1b: Scheduler enforcement:preferred — NEXT
+
+Patch K8s scheduler to support `enforcement: preferred` on `matchAttribute`. Enables the distance hierarchy (pcieRoot → numaNode → cpuSocketID).
 
 | # | Item | What | Where | Status |
 |---|------|------|-------|--------|
-| 1 | `numaNode` standardization | Add `resource.kubernetes.io/numaNode` to `deviceattribute` package, all drivers publish it | `k8s.io/dynamic-resource-allocation` + all PCI DRA drivers | Not started |
-| 2 | `cpuSocketID` standardization | Add `resource.kubernetes.io/cpuSocketID` to same package, resolves SNC/NPS objection | Same | Not started |
-| 3 | `enforcement: preferred` | Add `enforcement` field to `matchAttribute` — enables fallback hierarchy | K8s scheduler | Not started |
+| 3 | `enforcement: preferred` | Add `enforcement` field to `DeviceConstraint`, scheduler tries preferred constraints but relaxes if unsatisfiable | Fork `kubernetes/kubernetes` at v1.36.0 | Not started |
 
-Note: items 1-2 are valuable without item 3. A single required `numaNode` constraint works on hardware where every NUMA has the devices it needs. Item 3 adds the fallback chain for SNC/NPS.
+Target: nvd-srv-31 (NVIDIA A40)
 
-## Phase 2: Driver Patches
+## Phase 2: Topology Coordinator on NVIDIA
 
-Unblocks real-world deployment on current hardware.
+Deploy topology coordinator on nvd-srv-31 for partition abstraction alongside native matchAttribute.
 
 | # | Item | What | Branch | Status |
 |---|------|------|--------|--------|
-| 4 | AMD GPU bug fixes | Multi-driver claim filter + version fallback | `johnahull/k8s-gpu-dra-driver` `fix/multi-driver-claim-filter` | Patched, not upstream |
-| 5 | KEP-5304 for AMD GPU | pciBusID + numaNode in PrepareResult metadata | `johnahull/k8s-gpu-dra-driver` `feat/kep5304-device-metadata` | Patched, not upstream |
-| 6 | KEP-5304 for SR-IOV NIC | pciBusID in PrepareResult metadata | `johnahull/dra-driver-sriov` `feature/dra-topology-co-placement` | Patched, not upstream |
-| 7 | KEP-5304 auto-populate | Kubelet reads numaNode from sysfs for any device with pciBusID — no driver changes | Proposal only | Not started |
+| 4 | Deploy coordinator | Build and deploy `test/all-fixes-combined` on nvd-srv-31 | `johnahull/k8s-dra-topology-coordinator` | Not started |
+| 5 | ConfigMap rules for NVIDIA | Create topology rules for `gpu.nvidia.com` (attribute: `numa`) | — | Not started |
+| 6 | Test partitions | Eighth/quarter pods via coordinator webhook | — | Not started |
+| 7 | Compare native vs coordinator | Side-by-side: matchAttribute vs coordinator CEL selectors | — | Not started |
 
-## Phase 3: Topology Coordinator
+## Phase 3: KubeVirt on NVIDIA
 
-Unblocks partition abstraction (machine slices) and distance-based fallback.
-
-| # | Item | What | Branch | Status |
-|---|------|------|--------|--------|
-| 9 | Per-driver CEL selectors | Replace cross-driver matchAttribute with per-driver CEL | `johnahull/k8s-dra-topology-coordinator` `fix/per-driver-cel-selectors` | Patched, not upstream |
-| 10 | Distance-based fallback | pcieRoot → numaNode with tight/local coupling labels | `fix/distance-based-fallback` | Patched, not upstream |
-| 11 | pcieRoot constraint filtering | Exclude CPU/memory from pcieRoot matchAttribute | `fix/pcieroot-constraint-non-pci-drivers` | Patched, not upstream |
-| 12 | Webhook CEL forwarding | Forward user CEL selectors through webhook expansion | `fix/webhook-forward-cel-selectors` | Patched, not upstream |
-
-## Phase 4: KubeVirt DRA Bridge
-
-Unblocks correct guest NUMA topology for DRA-allocated devices.
+Test KubeVirt VFIO passthrough with guest NUMA topology on NVIDIA A40.
 
 | # | Item | What | Branch | Status |
 |---|------|------|--------|--------|
-| 13 | DRA NUMA guest topology | KEP-5304 metadata → VEP 115 pxb-pcie placement, device-only NUMA cells | `johnahull/kubevirt` `feature/dra-numa-guest-topology` | Patched, not upstream |
-| 14 | Multi-device DRA requests | KubeVirt support for count>1 in DRA host device requests | Proposal at `docs/upstream-proposals/kubevirt-multi-device-dra-requests.md` | Not started |
+| 8 | Deploy KubeVirt | Install KubeVirt v1.8.1 with patched controller + launcher | `johnahull/kubevirt` branches | Not started |
+| 9 | NVIDIA VFIO passthrough | Bind A40 to vfio-pci, create VM with GPU passthrough | — | Not started |
+| 10 | Guest NUMA topology | Verify pxb-pcie placement from standardized numaNode in KEP-5304 metadata | `feature/dra-numa-guest-topology` | Not started |
+| 11 | Dual-NUMA VM | VM with devices from both NUMA nodes, device-only cells | — | Not started |
 
-## Phase 5: VFIO Passthrough
+## Phase 4: Driver Patches (AMD)
 
-Unblocks GPU and NIC passthrough to KubeVirt VMs via DRA.
+Existing AMD-specific patches from XE9680 testing.
 
 | # | Item | What | Branch | Status |
 |---|------|------|--------|--------|
-| 15 | AMD GPU VFIO support | Discovery + config + CDI + bind/unbind for vfio-pci devices | `johnahull/k8s-gpu-dra-driver` `feature/vfio-passthrough` | Patched, not upstream |
-| 16 | GIM kernel compat | `vm_flags_set()` for kernel 6.3+ | `johnahull/MxGPU-Virtualization` `fix/kernel-6.17-compat` | Patched, not upstream |
-| 17 | KubeVirt VFIO support | Locked memory, capabilities, root mode, seccomp, permittedHostDevices skip | `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough` | Patched, not upstream |
-| 18 | SR-IOV NIC VFIO patches | NAD-optional, RDMA-skip, NRI CNI-skip for vfio-pci bound VFs | Lost from XE9680, needs reimplementation | Not started |
+| 12 | AMD GPU bug fixes | Multi-driver claim filter + version fallback | `johnahull/k8s-gpu-dra-driver` `fix/multi-driver-claim-filter` | Patched |
+| 13 | KEP-5304 for AMD GPU | pciBusID + numaNode in PrepareResult metadata | `feat/kep5304-device-metadata` | Patched |
+| 14 | AMD GPU VFIO support | Discovery + config + CDI + bind/unbind | `feature/vfio-passthrough` | Patched |
+| 15 | GIM kernel compat | `vm_flags_set()` for kernel 6.3+ | `johnahull/MxGPU-Virtualization` `fix/kernel-6.17-compat` | Patched |
 
-## Phase 6: Upstream Proposals
+## Phase 5: Upstream Proposals
 
-Community engagement and formal proposals.
+| # | Item | Doc | Status |
+|---|------|-----|--------|
+| 16 | numaNode + cpuSocketID + enforcement:preferred proposal | `docs/upstream-proposals/proposal-topology-distance-hierarchy.md` | Ready to post |
+| 17 | KEP-5304 auto-populate issue | `docs/upstream-proposals/kep5304-auto-populate-metadata.md` | Not filed |
+| 18 | KubeVirt multi-device DRA issue | `docs/upstream-proposals/kubevirt-multi-device-dra-requests.md` | Not filed |
 
-| # | Item | What | Doc | Status |
-|---|------|------|-----|--------|
-| 19 | KEP-5304 auto-populate issue | File upstream issue for kubelet auto-populating numaNode from sysfs | `docs/upstream-proposals/kep5304-auto-populate-metadata.md` | Not filed |
-| 20 | KubeVirt multi-device issue | File upstream issue for count>1 DRA host device requests | `docs/upstream-proposals/kubevirt-multi-device-dra-requests.md` | Not filed |
-| 21 | numaNode + cpuSocketID proposal | Socialize distance hierarchy with SIG-Node / device management WG | `docs/upstream-proposals/proposal-topology-distance-hierarchy.md` | Ready to post |
+## Test Evidence
 
-## Dependencies
-
-```
-Phase 1 (attributes) ← standalone, unblocks native alignment
-Phase 2 (drivers) ← standalone, unblocks deployment
-Phase 3 (coordinator) ← standalone, works without Phase 1
-Phase 4 (KubeVirt bridge) ← benefits from Phase 2 (KEP-5304 metadata)
-Phase 5 (VFIO) ← requires Phase 2 (driver patches) + Phase 4 (guest NUMA)
-Phase 6 (proposals) ← informed by all phases, can start anytime
-```
+| Platform | Hardware | Tests Passed | Key Result |
+|----------|----------|-------------|------------|
+| Dell XE9680 | 8x AMD MI300X + ConnectX-6 | Eighth, quarter pods + KubeVirt VMs (SNC on/off) | Coordinator + per-driver CEL + distance fallback |
+| Dell R760xa | 2x NVIDIA A40 + ConnectX-7 | 4-driver matchAttribute numaNode + cpuSocketID | **Native cross-driver alignment, no middleware** |
