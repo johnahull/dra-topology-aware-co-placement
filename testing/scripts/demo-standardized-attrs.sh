@@ -20,12 +20,9 @@ declare -a TEST_RESULTS
 declare -a TEST_DETAILS
 
 cleanup() {
-    kubectl delete pod --force --grace-period=0 \
-        test-numanode-2d test-numanode-3d test-numanode-4d \
-        test-socketid test-pcieroot 2>/dev/null || true
-    kubectl delete resourceclaimtemplate \
-        test-numanode-2d-claim test-numanode-3d-claim test-numanode-4d-claim \
-        test-socketid-claim test-pcieroot-claim 2>/dev/null || true
+    kubectl delete pod --all --force --grace-period=0 2>/dev/null || true
+    kubectl delete resourceclaimtemplate --all 2>/dev/null || true
+    kubectl delete resourceclaim --all 2>/dev/null || true
 }
 
 show_resourceslices() {
