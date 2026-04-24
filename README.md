@@ -105,12 +105,9 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | Document | Description |
 |----------|-------------|
 | [Full Technical Document](docs/path-to-topology-aware-vms.md) | Detailed 6-step breakdown with YAML examples, test evidence, and code references |
-| [Gap Analysis](docs/gap-analysis.md) | Detailed technical analysis of 8 gaps, driver comparisons, attribute tables |
 | [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems |
-| [Architecture](docs/architecture.md) | Component diagrams, hardware layout, allocation flows |
 | [Topology Use Cases](docs/topology-use-cases.md) | AI workloads mapped to each distance level: pcieRoot, numaNode, socket, node |
 | [Topology Coordinator Design](docs/topology-coordinator.md) | Partition abstraction, webhook expansion, distance-based fallback |
-| [Upstream Roadmap](docs/upstream-roadmap.md) | Patches across 7 repos with status and upstream actions |
 | [Patched Repos](docs/patched-repos.md) | All forks, branches, and descriptions |
 | [Test Results Summary](testing/results/results-summary.md) | Comparison matrix across K8s versions, SNC on/off, bugs found |
 
