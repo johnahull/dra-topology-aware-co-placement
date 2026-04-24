@@ -105,7 +105,6 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | Document | Description |
 |----------|-------------|
 | [Full Technical Document](docs/path-to-topology-aware-vms.md) | Detailed 6-step breakdown with YAML examples, test evidence, and code references |
-| [Project Narrative](docs/project-narrative.md) | 3 stories: pod placement → KubeVirt VMs → upstream proposals |
 | [Gap Analysis](docs/gap-analysis.md) | Detailed technical analysis of 8 gaps, driver comparisons, attribute tables |
 | [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems |
 | [Architecture](docs/architecture.md) | Component diagrams, hardware layout, allocation flows |
