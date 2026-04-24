@@ -73,11 +73,11 @@ graph TD
 ```
 
 **DMA paths:**
-- **Tight (pcieRoot):** Not possible — every device has its own PCIe root port, no devices share a root
-- **Local (numaNode):** GPU 4a ↔ Root Complex 0 ↔ ConnectX-7 37 — same NUMA, different root ports
+- **Tight (pcieRoot):** Not possible — every PCIe slot has its own dedicated root port. No two devices share a root, so `matchAttribute: pcieRoot` is unsatisfiable for any GPU+NIC pair. This is a common topology on Dell PowerEdge servers where each slot gets its own root complex.
+- **Local (numaNode):** GPU 4a ↔ Root Complex 0 ↔ ConnectX-7 37 — same NUMA, different root ports. This is the tightest coupling available on this system.
 - **Cross-socket:** GPU 4a ↔ Root Complex 0 ↔ UPI ↔ Root Complex 1 ↔ BlueField-3 a0 — inter-socket penalty
 
-**Key difference from XE9860:** No PCIe switches group GPU+NIC together, so `pcieRoot` matching never pairs two devices. The tightest useful coupling is `numaNode`, which captures all GPU+NIC pairs on Socket 0.
+**Why `enforcement: Preferred` matters on this system:** A hard `matchAttribute: pcieRoot` constraint for GPU+NIC would be unsatisfiable — the claim would fail. With `enforcement: Preferred`, the scheduler relaxes `pcieRoot` and falls through to `numaNode`, which correctly pairs both GPUs with the ConnectX-7 on NUMA 0. Without the distance hierarchy, users would need to know their hardware topology to avoid writing unsatisfiable constraints.
 
 Blue = same NUMA as GPUs (local). Red = cross-socket from GPUs. Grey = management NIC.
 

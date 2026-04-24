@@ -50,9 +50,11 @@ constraints:
 2. All DRA drivers publish them (same two function calls alongside existing `pcieRoot`)
 3. `enforcement: preferred` on `matchAttribute` (scheduler tries constraint, relaxes if unsatisfiable)
 
-Note: today `matchAttribute` has no `enforcement` field — constraints are always required. Items 1-2 are valuable without item 3: a single required `numaNode` constraint aligns all four resource types on any hardware where every NUMA has the devices it needs. Item 3 adds the fallback chain for SNC/NPS hardware where `numaNode` is too restrictive.
+Note: today `matchAttribute` has no `enforcement` field — constraints are always required. Items 1-2 are valuable without item 3: a single required `numaNode` constraint aligns all four resource types on any hardware where every NUMA has the devices it needs. Item 3 adds the fallback chain for two cases: (a) SNC/NPS hardware where `numaNode` is too restrictive, and (b) systems where every PCIe slot has its own root port (e.g., Dell R760xa) — `pcieRoot` as a hard constraint would be unsatisfiable, but as `preferred` it gracefully falls through to `numaNode`.
 
-**Tested on Dell XE9680 (8x MI300X, ConnectX-6, K8s 1.36):** 4-driver pods with GPU+NIC+CPU+memory aligned at each level, both SNC on (4 NUMA nodes) and off (2 NUMA nodes). KubeVirt VMs with correct guest topology via pxb-pcie placement.
+**Tested on:**
+- **Dell XE9680** (8x MI300X, ConnectX-6, K8s 1.36): 4-driver pods with GPU+NIC+CPU+memory aligned at each level, both SNC on (4 NUMA nodes) and off (2 NUMA nodes). KubeVirt VMs with correct guest topology via pxb-pcie placement. On this system, 2 of 8 GPUs share a PCIe root with a NIC — `pcieRoot` works for those 2, `numaNode` covers all 8.
+- **Dell R760xa** (2x NVIDIA A40, ConnectX-7/CX-6 Dx/BlueField-3, K8s 1.37-alpha): Every PCIe slot has its own root port — no two devices share a root. `matchAttribute: pcieRoot` is unsatisfiable for any GPU+NIC pair. Without `enforcement: preferred`, a user writing a `pcieRoot` constraint would get a failed claim. With the distance hierarchy, the scheduler relaxes `pcieRoot` and falls through to `numaNode`, which pairs both GPUs with the ConnectX-7 on NUMA 0. This system demonstrates why `enforcement: preferred` is essential — not just an optimization, but a correctness requirement on hardware where `pcieRoot` doesn't group cross-device-type pairs.
 
 Details: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/upstream-proposals/standardize-numanode-and-socket.md
 Diagrams: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/diagrams/topology-distance-hierarchy.md
