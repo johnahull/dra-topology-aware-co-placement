@@ -12,7 +12,7 @@ Without topology awareness, device assignment is random. A GPU on one side of th
 
 ## How It Works Today
 
-KubeVirt passthrough devices are allocated via the device plugin API. The kubelet's topology manager coordinates CPU, memory, and device plugin allocations onto the same NUMA node. VEP 115 reads each device's NUMA from host sysfs and builds matching guest topology. This works end-to-end for device-plugin devices.
+KubeVirt passthrough devices are allocated via the device plugin API. The kubelet's topology manager coordinates CPU, memory, and device plugin allocations onto the same NUMA node. VEP 115 (KubeVirt's PCI NUMA-Aware Topology feature) reads each device's NUMA from host sysfs and builds matching guest topology by placing devices on `pxb-pcie` expander buses assigned to the correct guest NUMA node. This works end-to-end for device-plugin devices.
 
 ## What Changes with DRA
 
