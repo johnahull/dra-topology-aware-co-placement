@@ -1,236 +1,88 @@
-# DRA Topology-Aware Device Co-Placement
+# Topology-Aware Device Co-Placement in KubeVirt VMs
 
-**Date:** 2026-04-20 (updated)
+**Date:** 2026-04-24
 
 ## Goal
 
-Maximize AI/HPC workload performance on Kubernetes by ensuring that GPUs, NICs, CPUs, and memory assigned to a pod or VM are co-located on the same NUMA boundary. Benchmarks on NVIDIA B200 GPUs with Mellanox RoCE NICs show that topologically aligned GPU+NIC placement achieves **46.93 GB/s** on NCCL all_reduce (8 GB messages) versus **29.68 GB/s** unaligned — a **58% throughput improvement** with near-zero variance (±0.04 vs ±6.74 GB/s). The unaligned case suffers not just lower throughput but wildly unpredictable performance, reflecting the "lottery" of random device assignment ([Ojea 2025](https://arxiv.org/abs/2506.23628)). Today, DRA allocates each resource type independently — a GPU may land on NUMA node 0 while its NIC lands on NUMA node 1, with no mechanism to prevent this. This project extends DRA with cross-driver topology awareness to close that gap.
+Use DRA to co-place devices (GPUs, NICs, CPUs, memory) in KubeVirt VMs with full topology — so that devices on the same NUMA node, socket, or PCIe root on the host are reflected with matching topology inside the guest VM.
 
-## Why All Four Resource Types Matter
+## Why
 
-Full NUMA alignment requires co-locating four resource types on the same NUMA node: GPUs, NICs, CPUs, and memory. Aligning only a subset still leaves cross-NUMA data movement in the critical path:
+Without topology awareness, device assignment is random. A GPU on one side of the machine and a NIC on the other means every data transfer crosses internal bus boundaries. Benchmarks show aligned placement delivers **58% higher throughput** with near-zero variance versus unaligned ([Ojea 2025](https://arxiv.org/abs/2506.23628)). For VMs, the guest OS must also see the correct topology for AI frameworks to take advantage of it.
 
-- **GPU + NIC on same NUMA, but CPUs on a different NUMA** — every CPU-GPU transfer (launching kernels, copying buffers) and CPU-NIC transfer (protocol processing) crosses NUMA boundaries
-- **GPU + NIC + CPU aligned, but memory on a different NUMA** — the kernel may allocate buffers on a remote NUMA node, adding latency to every memory access
+## How It Works Today
 
-| DRA Driver | Replaces | What It Does |
-|-----------|----------|-------------|
-| [dra-driver-cpu](https://github.com/kubernetes-sigs/dra-driver-cpu) (kubernetes-sigs) | Kubelet CPU Manager | Exclusive CPU assignment with NUMA/socket/L3 cache topology attributes. Scheduler-visible. |
-| [dra-driver-memory](https://github.com/kad/dra-driver-memory) (early development) | Kubelet Memory Manager | Per-NUMA-zone memory and hugepage allocation with NRI-based `cpuset.mems` pinning. |
+KubeVirt passthrough devices are allocated via the device plugin API. The kubelet's topology manager coordinates CPU, memory, and device plugin allocations onto the same NUMA node. VEP 115 reads each device's NUMA from host sysfs and builds matching guest topology. This works end-to-end for device-plugin devices.
 
----
+## What Changes with DRA
 
-## The Problem
+DRA allocation happens in the scheduler, not the kubelet — the topology manager has no awareness of DRA devices. For DRA to replace the topology manager's coordination role, all four resource types (GPUs, NICs, CPUs, and memory) must be managed by DRA so they can be co-placed through a single scheduler constraint. Additionally, DRA devices bypass the device plugin API, so KubeVirt needs KEP-5304 metadata to discover their PCI addresses and NUMA placement.
 
-DRA allocates each resource type independently. The `MatchAttribute` constraint only works within a single driver's devices — there is no mechanism to coordinate across the GPU driver, NIC driver, and CPU driver to ensure they all pick devices from the same NUMA node. Without topology-aware placement, GPU assignment is effectively random — on an 8-GPU node, there is only a 1-in-8 chance that a randomly assigned GPU lands on the same PCIe root as the requested NIC ([Ojea 2025](https://arxiv.org/abs/2506.23628)).
+DRA replaces the topology manager's coordination role for these resources. Cross-driver constraints in the scheduler (steps 1-2) co-place GPUs, NICs, CPUs, and memory on the same NUMA boundary at scheduling time. DRA does the allocation and topology decisions — KubeVirt just reads what it's given in the KEP-5304 metadata and lays out the guest topology to match.
 
-See [Gap Analysis](docs/gap-analysis.md) for the detailed technical breakdown of 8 specific gaps.
+## Steps Required
 
----
+### 1. Standardized topology attributes and cross-driver NUMA alignment
 
-## Solutions
+Each DRA driver (GPU, NIC, CPU, memory) must read and publish the physical location of every device — NUMA node, PCIe root, PCI bus address — as ResourceSlice attributes. Today each driver publishes NUMA under a different vendor-specific name. A standard `resource.kubernetes.io/numaNode` is needed so all drivers speak the same language. With that standard attribute, one `matchAttribute` constraint in the scheduler co-locates GPUs + NICs + CPUs + memory from 4 independent drivers — no middleware required.
 
-### 1. Topology Coordinator (works today)
+**To complete:**
+- **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` and `cpuSocketID` in the `deviceattribute` library ([proposal](docs/upstream-proposals/standardize-numanode-and-socket.md))
+- **NVIDIA GPU DRA driver** — expose NUMA for standard GPU devices (currently only published for VFIO type)
+- **AMD GPU DRA driver** — publish the standard `resource.kubernetes.io/pciBusID` (currently uses vendor-specific `pciAddr`)
+- **All 4 drivers** — publish standardized attributes alongside vendor-specific ones
+- Without the standard attribute, cross-driver alignment requires middleware (step 3) or per-driver CEL selector workarounds
 
-A [POC by Fabien Dupont](https://github.com/fabiendupont/k8s-dra-topology-coordinator) — a controller + mutating webhook that solves cross-driver NUMA coordination using only existing Kubernetes APIs:
+### 2. Topology distance hierarchy
 
-```
-User creates:                        Webhook expands to:
-┌──────────────────────────┐         ┌─────────────────────────────────┐
-│ ResourceClaim            │         │ ResourceClaim                   │
-│   requests:              │         │   requests:                     │
-│   - name: partition      │  ────►  │   - name: partition-gpu         │
-│     deviceClassName:     │         │     deviceClassName: gpu.nvidia │
-│       hgx-b200-quarter   │         │     count: 2                    │
-│     count: 1             │         │   - name: partition-rdma        │
-└──────────────────────────┘         │     deviceClassName: rdma.mlnx  │
-                                     │     count: 1                    │
-                                     │   constraints:                  │
-                                     │   - matchAttribute: numaNode    │
-                                     │     requests: [partition-gpu,   │
-                                     │       partition-rdma]           │
-                                     └─────────────────────────────────┘
-```
+Not all co-location is equal. Devices can share a PCIe switch (tightest), a NUMA node (local), or a CPU socket (loosest). The scheduler needs a fallback chain — prefer the tightest coupling available, relax when hardware doesn't support it. This requires an `enforcement: Preferred` capability in the scheduler.
 
-See [Topology Coordinator Design](docs/topology-coordinator.md) for architecture, partition levels, and constraint generation modes.
+**To complete:**
+- **Kubernetes upstream** — add `enforcement: Preferred` field to `DeviceConstraint` API; covered by the same [proposal](docs/upstream-proposals/standardize-numanode-and-socket.md)
+- **kube-apiserver** — accept, validate, and store the new field
+- **kube-scheduler** — skip preferred constraints when unsatisfiable
+- **kube-controller-manager, kubelet, kubectl** — preserve the field through the claim lifecycle
 
-### 2. DRA Driver Changes (for pods)
+### 3. Machine partitioning *(nice-to-have)*
 
-Driver fixes needed for topology-aware pod placement:
+Users should be able to request "a slice of the machine" (e.g., one-eighth) rather than manually specifying 4 drivers, their counts, and constraints. A topology coordinator controller creates partition DeviceClasses and a webhook expands simple claims into multi-driver NUMA-aligned requests. This is most useful for symmetric configurations where the machine can be evenly divided into identical partitions. This is a usability improvement — steps 1-2 provide the core alignment capability without it.
 
-| Gap | Driver | Change | Status |
-|-----|--------|--------|--------|
-| NVIDIA NUMA attribute | NVIDIA GPU DRA | Published as vendor-specific `gpu.nvidia.com/numa`, no standard name | Vendor-specific |
+**To complete:**
+- **Topology coordinator** — merge 6 bug-fix patches (label truncation, attribute namespace, CEL selector forwarding, pcieRoot filtering, distance-based fallback)
+- **Topology coordinator** — address webhook unavailability during controller restarts
 
-### 3. Additional Changes (for KubeVirt VMs)
+### 4. VFIO device passthrough via DRA
 
-Additional patches needed to extend topology-aware placement into KubeVirt VMs with VFIO passthrough:
+VMs receive devices via VFIO passthrough, not sharing. DRA drivers must manage the full lifecycle: unbind from the native kernel driver, bind to `vfio-pci`, expose `/dev/vfio/*` device nodes, and handle IOMMU groups.
 
-| Gap | Component | Change | Status |
-|-----|-----------|--------|--------|
-| AMD standard `pciBusID` | AMD GPU DRA driver | Publish `resource.kubernetes.io/pciBusID` for virt-launcher | Patched, not upstream |
-| KEP-5304 opt-in | GPU + NIC drivers | Enable metadata API so virt-launcher can read device attributes | Patched, not upstream |
-| AMD VFIO passthrough | AMD GPU DRA driver | VFIO bind/unbind, CDI spec for `/dev/vfio/*` | Patched, not upstream |
-| VEP 115 + DRA NUMA cells | KubeVirt virt-launcher | Guest NUMA topology from KEP-5304 metadata, device-only cells | Patched, not upstream |
-| VFIO capabilities/security | KubeVirt virt-controller | Root mode, memlock, seccomp, permittedHostDevices skip | Patched, not upstream |
-See [Upstream Roadmap](docs/upstream-roadmap.md) for the full patch inventory, and [Patched Repos](docs/patched-repos.md) for all forks and branches.
+**To complete:**
+- **AMD GPU DRA driver** — add VFIO bind/unbind lifecycle and CDI device generation; fix GPU discovery after VFIO unbind
+- **SR-IOV NIC DRA driver** — add formal VFIO mode (skip CNI/RDMA for VFIO-bound VFs)
+- **NVIDIA GPU DRA driver** — has `type: vfio` support behind the `PassthroughSupport` feature gate
 
-### 4. Upstream Standardization (longer-term)
+### 5. Device metadata (KEP-5304)
 
-Define `resource.kubernetes.io/numaNode` and cross-driver `MatchAttribute` in the scheduler. There is [active disagreement](docs/topology-attribute-debate.md) about whether `numaNode` should be standardized — sysfs NUMA indices don't reflect real hardware topology under Intel SNC or AMD NPS modes. An alternative approach has CPUs publish `pcieRoot` as a list ([WIP](https://github.com/kubernetes/kubernetes/pull/138297)).
+The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node to configure the VM. KEP-5304 (native in K8s 1.36) is a Kubernetes API that lets DRA drivers attach metadata (key-value attributes) to allocated devices. When a device is prepared, the driver publishes attributes like PCI address and NUMA node. The kubelet writes these as JSON files and mounts them into the pod at a well-known path. Virt-launcher reads the PCI address to create VFIO passthrough entries in the VM's domain XML, and reads the NUMA node to place each device on the correct guest NUMA node.
 
-See [Topology Attribute Debate](docs/topology-attribute-debate.md) for the full upstream discussion.
+**To complete:**
+- **Kubernetes kubelet** — fix bug where multi-driver claims only inject metadata for one driver
+- **AMD GPU DRA driver** — opt in to KEP-5304 and publish standard `resource.kubernetes.io/pciBusID`
+- **SR-IOV NIC DRA driver** — opt in to KEP-5304 and publish device metadata
+- **NVIDIA GPU DRA driver** — KEP-5304 opt-in in progress (issue #916, targeting v26.4.0)
 
----
+### 6. Guest NUMA topology
 
-## Gap Status
+The virt-launcher must read the device metadata (step 5) and create matching guest NUMA topology. This means building `pxb-pcie` expander buses on the correct guest NUMA nodes (VEP 115) and mapping host NUMA IDs to guest cell IDs.
 
-### Pods (topology-aware placement)
+**To complete:**
+- **KubeVirt virt-launcher** — read DRA device NUMA from KEP-5304 metadata in VEP 115 (currently only reads sysfs for device-plugin devices)
+- **KubeVirt virt-controller** — add VFIO capabilities (SYS_RESOURCE, IPC_LOCK, unlimited memlock) for DRA host device pods
+- **KubeVirt virt-controller** — skip `permittedHostDevices` validation for DRA-allocated devices (partially addressed upstream with `HostDevicesWithDRA` feature gate)
+- **KubeVirt** — auto-enable ACPI when guest NUMA topology is used
 
-| Gap | Status | Solved By |
-|-----|--------|-----------|
-| No standard topology attribute beyond pcieRoot | 🟠 Actively debated upstream | Coordinator (now) / Upstream (later) |
-| No cross-driver constraints | 🟠 Coordinator solves with per-driver CEL selectors | Coordinator (now) / Upstream (later) |
-| NVIDIA NUMA attribute | 🟡 Published as `gpu.nvidia.com/numa`, no standard name | NVIDIA GPU DRA driver |
-| GPU interconnect topology | ⬜ Future | Driver attributes + coordinator |
+## Current State
 
-### What native K8s support would look like
-
-If the upstream community standardized a common NUMA attribute (e.g., `resource.kubernetes.io/numaNode`) and all drivers published it, cross-driver NUMA alignment would be a single constraint — no coordinator needed:
-
-```yaml
-spec:
-  devices:
-    requests:
-    - name: gpu
-      exactly:
-        deviceClassName: gpu.nvidia.com
-        count: 2
-    - name: nic
-      exactly:
-        deviceClassName: sriovnetwork
-        count: 1
-    - name: cpu
-      exactly:
-        deviceClassName: dra.cpu
-        count: 1
-    - name: mem
-      exactly:
-        deviceClassName: dra.memory
-        count: 1
-    constraints:
-    - matchAttribute: resource.kubernetes.io/numaNode
-      requests: [gpu, nic, cpu, mem]
-```
-
-**What's blocking this:**
-- No consensus on a standard NUMA attribute name ([SNC/NPS debate](docs/topology-attribute-debate.md))
-- The alternative — [CPUs publish `pcieRoot` as a list](https://github.com/kubernetes/kubernetes/pull/138297) — covers GPU + NIC + CPU via the CPU-as-pivot pattern, but memory has no `pcieRoot`. If the CPU and memory drivers are [merged into one](https://github.com/kubernetes-sigs/dra-driver-cpu), memory would come for free. Without that merge, `numaNode` is still needed for memory alignment
-
-**A better approach — topology distance hierarchy:** Rather than debating which single attribute to standardize, support a hierarchy of constraints with preferred/required enforcement: pcieRoot (tightest) → numaNode → cpuSocketID (loosest). The scheduler tries the tightest and relaxes until it finds a match. This resolves the SNC/NPS objection — if `numaNode` is too restrictive, fall back to `cpuSocketID`. See [Topology Attribute Debate](docs/topology-attribute-debate.md#topology-distance-hierarchy) for details.
-
-**What the coordinator still adds even with native support:**
-- Machine partition abstraction (eighth/quarter/half) — users request a "slice" instead of listing individual drivers
-- Distance-based fallback (already implements the hierarchy pattern)
-- Per-NUMA DeviceClasses with pre-computed resource counts
-- DRAConsumableCapacity for shared CPU/memory capacity division
-
-### KubeVirt VMs (VFIO passthrough + guest NUMA)
-
-| Gap | Status | Solved By |
-|-----|--------|-----------|
-| AMD standard `pciBusID` | 🟡 Patched, not upstream | AMD GPU DRA driver |
-| KEP-5304 opt-in | 🟡 Patched for AMD GPU + SR-IOV NIC | Each PCI DRA driver |
-| AMD VFIO passthrough | 🟡 Patched, not upstream | AMD GPU DRA driver |
-| VEP 115 + DRA NUMA cells | 🟡 Working end-to-end with patches | KubeVirt virt-launcher |
-| VFIO capabilities/security | 🟡 Patched, not upstream | KubeVirt virt-controller |
-| Multi-device DRA requests | 🟠 Workaround (count:1 per claim) | KubeVirt ([proposal](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md)) |
-
----
-
-## Proposed Plan
-
-```mermaid
-graph TD
-    GOAL["🎯 Cross-driver NUMA<br/>co-placement for<br/>pods and VMs"]
-
-    subgraph "Topology Coordinator"
-        COORD["Coordinator<br/>ConfigMap rules + webhook +<br/>partition abstraction"]
-        PERDRIVER["Per-driver CEL selectors<br/>(no common attribute needed)"]
-        FALLBACK["Distance-based fallback<br/>pcieRoot → numaNode<br/>(tight / local coupling)"]
-    end
-
-    subgraph "Upstream (longer-term)"
-        STD_NUMA["Define standard<br/>resource.k8s.io/numaNode"]
-        CROSS_MATCH["Cross-driver<br/>MatchAttribute<br/>in scheduler"]
-    end
-
-    subgraph "Driver Gaps"
-        NVIDIA_NUMA["NVIDIA: publishes numa<br/>as gpu.nvidia.com/numa<br/>(no standard name)"]
-        AMD_VFIO["AMD: VFIO passthrough<br/>(patched, not upstream)"]
-        AMD_PCIBUSID["AMD: standard pciBusID<br/>(patched, not upstream)"]
-        KEP5304["GPU + NIC drivers:<br/>KEP-5304 opt-in<br/>(patched, not upstream)"]
-    end
-
-    subgraph "KubeVirt"
-        VEP115["VEP 115 + DRA NUMA cells<br/>(patched, not upstream)"]
-        KV_VFIO["VFIO passthrough via DRA<br/>(patched, not upstream)"]
-        KV_FULL["End-to-end<br/>NUMA-aware VMs<br/>(working with patches)"]
-    end
-
-    COORD --> GOAL
-    PERDRIVER --> COORD
-    FALLBACK --> COORD
-    STD_NUMA --> CROSS_MATCH
-    CROSS_MATCH --> GOAL
-
-    NVIDIA_NUMA -.->|"vendor-specific name<br/>needs topology rule"| COORD
-    AMD_PCIBUSID --> KEP5304
-    AMD_VFIO --> KV_VFIO
-    KEP5304 --> KV_FULL
-
-    VEP115 --> KV_FULL
-    KV_VFIO --> KV_FULL
-    KV_FULL --> GOAL
-
-    subgraph "Future"
-        GPU_TOPO["GPU interconnect topology<br/>NVLink · xGMI"]
-    end
-
-    GPU_TOPO -.->|"future"| GOAL
-
-    style GOAL fill:#4a4,color:#fff
-    style COORD fill:#4af,color:#fff
-    style PERDRIVER fill:#4af,color:#fff
-    style FALLBACK fill:#4af,color:#fff
-    style NVIDIA_NUMA fill:#fa4,color:#000
-    style AMD_VFIO fill:#fa4,color:#000
-    style AMD_PCIBUSID fill:#fa4,color:#000
-    style KEP5304 fill:#fa4,color:#000
-    style STD_NUMA fill:#fa4,color:#000
-    style CROSS_MATCH fill:#fa4,color:#000
-    style VEP115 fill:#fa4,color:#000
-    style KV_VFIO fill:#fa4,color:#000
-    style KV_FULL fill:#fa4,color:#000
-    style GPU_TOPO fill:#ddd,color:#666
-```
-
-**Legend:** 🔵 Working (POC)  🟠 Patched, not upstream  🔴 Not started  ⬜ Future
-
-### Phases
-
-**Pods:**
-1. **NUMA-aligned containers** — Topology coordinator with per-driver CEL selectors and distance-based fallback. Tested with 4 DRA drivers (GPU, NIC, CPU, memory) on XE9680 with SNC on and off. Both AMD (`gpu.amd.com/numaNode`) and NVIDIA (`gpu.nvidia.com/numa`) publish NUMA under vendor-specific names — the coordinator handles both via ConfigMap topology rules.
-2. **Close driver gaps** — NVIDIA NUMA for standard GPUs, upstream the AMD pciBusID/KEP-5304 patches. Independent changes, can proceed in parallel.
-
-**KubeVirt:**
-3. **End-to-end NUMA-aware VMs** — Topology coordinator + KEP-5304 + VEP 115 + KubeVirt VFIO patches. Tested: single-NUMA and dual-NUMA VMs with correct guest pxb-pcie placement. Needs upstream KubeVirt and AMD GPU driver PRs.
-
-**Upstream:**
-4. **Upstream standardization** — `resource.kubernetes.io/numaNode` + cross-driver `MatchAttribute`. Coordinator remains valuable for partition abstraction and distance-based fallback.
-5. **GPU interconnect topology (future)** — NVLink / xGMI attributes for intra-node GPU-to-GPU topology.
-
----
+All 6 steps have been proven end-to-end on real hardware (Dell XE9680 with AMD MI300X and Dell R760xa with NVIDIA A40) with local patches as a POC.
 
 ## Testing
 
@@ -242,18 +94,17 @@ Tested on Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellano
 | 4-driver quarter pods (SNC off) | Running — 2 pods, each with CPU + 258GB + 2 GPUs + 2 NICs |
 | Tight vs loose coupling (SNC on) | Both running — tight (pcieRoot matched) + loose (NUMA-only) |
 | KubeVirt single-NUMA VM | Running — GPU + NIC on guest NUMA 0 via pxb-pcie |
-| KubeVirt dual-NUMA VM (SNC off) | Running — 2 pxb-pcie expanders, device-only guest NUMA cell |
+| KubeVirt dual-NUMA VM (SNC off) | Running — 2 pxb-pcie expanders, correct guest NUMA topology |
 | KubeVirt dual-NUMA VM (SNC on) | Running — host NUMA 0→guest 0, host NUMA 2→guest 1 |
 | SNC-2 on vs off comparison | Coordinator adapts automatically — 9 vs 5 DeviceClasses |
 
 See [Test Results Summary](testing/results/results-summary.md) for full details, hardware captures, and SNC comparison.
 
----
-
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
+| [Full Technical Document](docs/path-to-topology-aware-vms.md) | Detailed 6-step breakdown with YAML examples, test evidence, and code references |
 | [Project Narrative](docs/project-narrative.md) | 3 stories: pod placement → KubeVirt VMs → upstream proposals |
 | [Gap Analysis](docs/gap-analysis.md) | Detailed technical analysis of 8 gaps, driver comparisons, attribute tables |
 | [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems |
@@ -264,8 +115,6 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | [Upstream Roadmap](docs/upstream-roadmap.md) | Patches across 7 repos with status and upstream actions |
 | [Patched Repos](docs/patched-repos.md) | All forks, branches, and descriptions |
 | [Test Results Summary](testing/results/results-summary.md) | Comparison matrix across K8s versions, SNC on/off, bugs found |
-| [Distance Hierarchy Diagrams](docs/diagrams/topology-distance-hierarchy.md) | PCIe tree, distance rings, scheduler flowchart (SNC on/off) |
-| [Topology Attribute Tradeoffs (diagrams)](docs/diagrams/topology-attribute-tradeoffs.md) | Mermaid visualizations of NPS1, NPS4, SNC cases |
 
 ### Upstream Proposals
 
@@ -277,14 +126,14 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | [NUMA/SNC/NPS Topology Gap](docs/upstream-proposals/numa-snc-nps-topology-gap.md) | DRA + kubelet topology manager coordination gap |
 | [KubeVirt Multi-Device DRA Requests](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md) | KubeVirt hostDevices with count>1 DRA requests |
 
----
-
 ## References
 
 - [KEP-4381: DRA Structured Parameters](https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/4381-dra-structured-parameters/README.md)
+- [KEP-5304: Native Device Metadata API](https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/5304-dra-with-dra-driver-device-metadata)
 - [KEP-5491: List Types for Attributes](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/5491-dra-list-types-for-attributes) (alpha in v1.36, feature gate `DRAListTypeAttributes`)
 - [KEP-5491 implementation PR](https://github.com/kubernetes/kubernetes/pull/137190) (merged 2026-03-21)
 - [KEP-5517: DRA for Native Resources](https://github.com/kubernetes/enhancements/pull/5755)
+- [VEP 115: PCI NUMA-Aware Topology](https://github.com/kubevirt/community/pull/303)
 - [DRA driver interoperability tracking](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/56)
 - [`cpuSocketNumber` standardization discussion](https://github.com/kubernetes/enhancements/pull/5316#discussion_r2095270564)
 - [WIP: `GetPCIeRootAttributeMapFromCPUId` helper](https://github.com/kubernetes/kubernetes/pull/138297)
