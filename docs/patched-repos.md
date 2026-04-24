@@ -8,7 +8,8 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 |---------------|------|--------|-------------|
 | [kubevirt/kubevirt](https://github.com/kubevirt/kubevirt) | [johnahull/kubevirt](https://github.com/johnahull/kubevirt) | `feature/dra-numa-guest-topology` | DRA → VEP 115 bridge: KEP-5304 metadata → guest NUMA cells + pxb-pcie placement — 5 files |
 | | | `feature/dra-vfio-numa-passthrough` | Full stack: DRA NUMA bridge + VFIO passthrough (locked memory, capabilities, root mode) — 12 files |
-| [k8snetworkplumbingwg/dra-driver-sriov](https://github.com/k8snetworkplumbingwg/dra-driver-sriov) | [johnahull/dra-driver-sriov](https://github.com/johnahull/dra-driver-sriov) | `feature/dra-topology-co-placement` | KEP-5304 metadata, DRA hook/driver fixes |
+| | | `feature/dra-vfio-numa-passthrough-v1.8.1` | **v1.8.1 rebase** + DRA-native NUMA (no CPU manager): relaxed validation, DRA CPU claims → guest NUMA cells, pxb-pcie placement |
+| [k8snetworkplumbingwg/dra-driver-sriov](https://github.com/k8snetworkplumbingwg/dra-driver-sriov) | [johnahull/dra-driver-sriov](https://github.com/johnahull/dra-driver-sriov) | `feature/dra-topology-co-placement` | KEP-5304 metadata + VFIO passthrough: default VfConfig, skip CNI for VFIO, DeviceMetadata API, DRA v0.36.0 |
 | [ffromani/dra-driver-memory](https://github.com/ffromani/dra-driver-memory) | [johnahull/dra-driver-memory](https://github.com/johnahull/dra-driver-memory) | `feature/dra-topology-co-placement` | Dockerfile + preflight + dependency updates |
 | [amd/MxGPU-Virtualization](https://github.com/amd/MxGPU-Virtualization) | [johnahull/MxGPU-Virtualization](https://github.com/johnahull/MxGPU-Virtualization) | `fix/kernel-6.17-compat` | `vm_flags_set()` for kernel 6.3+ |
 | [fabiendupont/k8s-dra-topology-coordinator](https://github.com/fabiendupont/k8s-dra-topology-coordinator) | [johnahull/k8s-dra-topology-coordinator](https://github.com/johnahull/k8s-dra-topology-coordinator) | `fix/distance-based-fallback` | pcieRoot → numaNode fallback with CouplingLevel |
@@ -23,11 +24,13 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 | | (patches also on upstream remote) | `develop` | GPU partition fixes, MI210 support |
 | | | `feature-auto-partition` | Automatic partition discovery |
 
-## Scheduler enforcement:preferred
+## K8s enforcement:preferred (full stack)
 
 | Upstream Repo | Fork | Branch | Description |
 |---------------|------|--------|-------------|
-| [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) | [johnahull/kubernetes](https://github.com/johnahull/kubernetes) | `feature/enforcement-preferred` | Add `Enforcement` field to `DeviceConstraint`, experimental allocator skips preferred constraints on mismatch — 3 commits |
+| [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) | [johnahull/kubernetes](https://github.com/johnahull/kubernetes) | `feature/enforcement-preferred` | Add `Enforcement` field to `DeviceConstraint` + experimental allocator preferred skip — 3 commits |
+
+Binaries built from this branch: **kube-apiserver**, **kube-scheduler**, **kube-controller-manager**, **kubelet**, **kubectl**. All 5 are required to preserve the `enforcement` field end-to-end (API types, protobuf, OpenAPI, template→claim copy, client-side).
 
 ## Standardized Topology Attributes (proposal validation)
 
@@ -48,4 +51,4 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 ### Dell PowerEdge R760xa (NVIDIA)
 - **Hardware:** 2x NVIDIA A40 GPUs, ConnectX-7 + ConnectX-6 Dx + BlueField-3 NICs, 2-socket Intel Xeon Gold 6548Y+, 128 threads, 256 GB
 - **OS:** Fedora 43, kernel 6.19.13
-- **K8s:** 1.36.0 GA
+- **K8s:** Custom v1.37.0-alpha.0 (enforcement:preferred branch) — all 5 components patched

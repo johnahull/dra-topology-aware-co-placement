@@ -16,7 +16,7 @@ for arg in "$@"; do
         -p|--pcie)          PCIE_ONLY=1 ;;
         -f|--flat)          FLAT=1 ;;
         --no-dimm)          NO_DIMM=1 ;;
-        -a|--accelerators)  CLASS_FILTER[18]=1 ;;   # 0x12 = Processing accelerator
+        -a|--accelerators)  CLASS_FILTER[18]=1; CLASS_FILTER[3]=1 ;;   # 0x12 = Processing accelerator + 0x03 = 3D/Display (GPUs)
         -n|--network)       CLASS_FILTER[2]=1 ;;    # 0x02 = Network
         -s|--storage)       CLASS_FILTER[1]=1 ;;    # 0x01 = Storage
         -d|--display)       CLASS_FILTER[3]=1 ;;    # 0x03 = Display/GPU
@@ -31,7 +31,7 @@ for arg in "$@"; do
             echo "  --no-dimm           Skip DIMM info (no dmidecode; faster for non-root users)"
             echo ""
             echo "Device class filters (additive — combine to show multiple categories):"
-            echo "  -a, --accelerators  Processing accelerators (GPUs, NPUs — class 0x12)"
+            echo "  -a, --accelerators  GPUs and processing accelerators (class 0x03 + 0x12)"
             echo "  -n, --network       Network controllers (NICs — class 0x02)"
             echo "  -s, --storage       Storage controllers (NVMe, SATA — class 0x01)"
             echo "  -d, --display       Display/VGA controllers (class 0x03)"

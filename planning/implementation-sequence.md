@@ -8,7 +8,7 @@ Standardized `resource.kubernetes.io/numaNode` and `cpuSocketID` published by al
 |---|------|--------|
 | 1 | `numaNode` standardization — all drivers publish `resource.kubernetes.io/numaNode` | **Done** — tested on NVIDIA A40 + AMD MI300X |
 | 2 | `cpuSocketID` standardization — all drivers publish `resource.kubernetes.io/cpuSocketID` | **Done** — tested on NVIDIA A40 |
-| 3 | `enforcement: preferred` — scheduler fallback hierarchy | Next (Phase 1b) |
+| 3 | `enforcement: preferred` — scheduler fallback hierarchy | **Done** (Phase 1b) |
 
 Branches:
 - `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs`
@@ -23,15 +23,42 @@ Patched K8s scheduler to support `enforcement: Preferred` on `matchAttribute`. E
 | # | Item | What | Where | Status |
 |---|------|------|-------|--------|
 | 3 | `enforcement: Preferred` | Add `Enforcement` field to `DeviceConstraint`, scheduler tries preferred constraints but relaxes if unsatisfiable | `johnahull/kubernetes` `feature/enforcement-preferred` | **Done** — tested on NVIDIA A40 |
-| 3a | Patch kubectl | kubectl v1.36 strips unknown fields; need custom kubectl or v1.37+ | `johnahull/kubernetes` `feature/enforcement-preferred` | Next |
+| 3a | Patch all K8s components | All 5 binaries built from same branch to preserve the field end-to-end | `johnahull/kubernetes` `feature/enforcement-preferred` | **Done** |
 
 Target: nvd-srv-31 (NVIDIA A40)
 
-Changes (3 commits on `johnahull/kubernetes` `feature/enforcement-preferred`):
+### Components patched
+
+All built from `johnahull/kubernetes` branch `feature/enforcement-preferred` (3 commits):
+
+| Component | Why |
+|-----------|-----|
+| **kube-apiserver** | Accept, validate, store `enforcement` field (types + protobuf + OpenAPI) |
+| **kube-scheduler** | Experimental allocator with preferred constraint skip logic |
+| **kube-controller-manager** | Copy template → claim preserving `enforcement` field |
+| **kubelet** | Copy template → claim preserving `enforcement` field |
+| **kubectl** | Send `enforcement` field without client-side stripping |
+
+### Changes (3 commits)
+
 1. API types: `Enforcement *ConstraintEnforcement` on `DeviceConstraint` (external + internal types, deepcopy, conversion)
 2. Protobuf serialization (Marshal/Unmarshal/Size), OpenAPI schema, `DRAListTypeAttributes` feature gate default=true
-3. `AllocatorFeatures()` passes `ListTypeAttributes` to select the experimental allocator
-4. Experimental allocator: inline skip for preferred constraints that fail
+3. `AllocatorFeatures()` passes `ListTypeAttributes` to select the experimental allocator; experimental allocator inline skip for preferred constraints
+
+### Files modified
+
+| File | Change |
+|------|--------|
+| `staging/src/k8s.io/api/resource/v1/types.go` | `Enforcement` field + `ConstraintEnforcement` type |
+| `staging/src/k8s.io/api/resource/v1/zz_generated.deepcopy.go` | DeepCopy for `Enforcement` pointer |
+| `staging/src/k8s.io/api/resource/v1/generated.pb.go` | Protobuf Marshal/Unmarshal/Size for field 4 |
+| `pkg/apis/resource/types.go` | Internal `Enforcement` field + type |
+| `pkg/apis/resource/zz_generated.deepcopy.go` | Internal DeepCopy |
+| `pkg/apis/resource/v1/zz_generated.conversion.go` | Convert `Enforcement` between internal ↔ external |
+| `pkg/generated/openapi/zz_generated.openapi.go` | OpenAPI schema for `enforcement` property |
+| `pkg/features/kube_features.go` | `DRAListTypeAttributes` default=true |
+| `pkg/scheduler/framework/plugins/dynamicresources/dynamicresources.go` | Pass `ListTypeAttributes` to `AllocatorFeatures()` |
+| `staging/.../experimental/allocator_experimental.go` | `preferred` field + inline skip logic |
 
 Test: `pcieRoot: Preferred` + `numaNode: Required` → GPU + CPU on NUMA 0 (pcieRoot relaxed because CPU doesn't publish pcieRoot)
 
@@ -46,16 +73,49 @@ Deploy topology coordinator on nvd-srv-31 for partition abstraction alongside na
 | 6 | Test partitions | Eighth/quarter pods via coordinator webhook | — | Not started |
 | 7 | Compare native vs coordinator | Side-by-side: matchAttribute vs coordinator CEL selectors | — | Not started |
 
-## Phase 3: KubeVirt on NVIDIA
+## Phase 3: KubeVirt on NVIDIA — DONE
 
-Test KubeVirt VFIO passthrough with guest NUMA topology on NVIDIA A40.
+DRA-native dual-NUMA VM with VFIO NIC passthrough on NVIDIA A40 system.
 
 | # | Item | What | Branch | Status |
 |---|------|------|--------|--------|
-| 8 | Deploy KubeVirt | Install KubeVirt v1.8.1 with patched controller + launcher | `johnahull/kubevirt` branches | Not started |
-| 9 | NVIDIA VFIO passthrough | Bind A40 to vfio-pci, create VM with GPU passthrough | — | Not started |
-| 10 | Guest NUMA topology | Verify pxb-pcie placement from standardized numaNode in KEP-5304 metadata | `feature/dra-numa-guest-topology` | Not started |
-| 11 | Dual-NUMA VM | VM with devices from both NUMA nodes, device-only cells | — | Not started |
+| 8 | Deploy KubeVirt | KubeVirt v1.8.1 with patched virt-api, virt-controller, virt-launcher | `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1` | **Done** |
+| 9 | SR-IOV VFIO passthrough | NIC VFs from both NUMA nodes passed through to VM via DRA | `johnahull/dra-driver-sriov` `feature/dra-topology-co-placement` | **Done** |
+| 10 | Guest NUMA topology | 2 guest NUMA nodes with correct CPU/memory/device placement via pxb-pcie | `feature/dra-vfio-numa-passthrough-v1.8.1` | **Done** |
+| 11 | DRA-native NUMA (no CPU manager) | Guest NUMA built from DRA CPU claims, no dedicatedCpuPlacement/hugepages/CPU manager | `feature/dra-vfio-numa-passthrough-v1.8.1` | **Done** |
+
+### Key result
+
+Dual-NUMA VM with 2 VFIO NICs (ConnectX-7 NUMA 0 + ConnectX-6 Dx NUMA 1) — guest sees 2 NUMA nodes with NICs correctly placed on their respective guest NUMA nodes. No kubelet CPU manager, no topology manager, no hugepages — fully DRA-native.
+
+### Components patched for Phase 3
+
+| Component | Changes |
+|-----------|---------|
+| **KubeVirt virt-api** | Relaxed validation: allow `guestMappingPassthrough` without `dedicatedCpuPlacement` or hugepages when DRA claims present |
+| **KubeVirt virt-controller** | Pass non-hostDevice DRA claims (CPU, memory) to compute container's resource claims |
+| **KubeVirt virt-launcher** | Build guest NUMA cells from DRA CPU claim allocation; apply pxb-pcie placement for DRA VFIO devices without requiring `PCINUMAAwareTopologyEnabled` |
+| **SR-IOV DRA driver** | Default VfConfig when no OpaqueDeviceConfig; skip CNI for VFIO passthrough; KEP-5304 metadata (pciBusID); DRA v0.36.0 `DeviceMetadata` API |
+| **DRA CPU driver** | Added `/var/run/cdi` hostPath volume mount for CDI spec visibility |
+
+### Guest verification
+
+```
+$ numactl --hardware
+available: 2 nodes (0-1)
+node 0 cpus: 0 1 2 3
+node 0 size: 3961 MB
+node 1 cpus: 4 5 6 7
+node 1 size: 3972 MB
+node distances:
+node   0   1
+  0:  10  20
+  1:  20  10
+
+$ cat /sys/class/net/*/device/numa_node
+enp253s0 NUMA=0   # ConnectX-7 VF from host NUMA 0
+enp255s0 NUMA=1   # ConnectX-6 Dx VF from host NUMA 1
+```
 
 ## Phase 4: Driver Patches (AMD)
 
@@ -81,4 +141,4 @@ Existing AMD-specific patches from XE9680 testing.
 | Platform | Hardware | Tests Passed | Key Result |
 |----------|----------|-------------|------------|
 | Dell XE9680 | 8x AMD MI300X + ConnectX-6 | Eighth, quarter pods + KubeVirt VMs (SNC on/off) | Coordinator + per-driver CEL + distance fallback |
-| Dell R760xa | 2x NVIDIA A40 + ConnectX-7 | 4-driver matchAttribute numaNode + cpuSocketID + enforcement:preferred | **Native cross-driver alignment + distance hierarchy, no middleware** |
+| Dell R760xa | 2x NVIDIA A40 + ConnectX-7 + ConnectX-6 Dx | 4-driver matchAttribute + enforcement:preferred + KubeVirt dual-NUMA VM | **Native cross-driver alignment + distance hierarchy + DRA-native guest NUMA topology** |

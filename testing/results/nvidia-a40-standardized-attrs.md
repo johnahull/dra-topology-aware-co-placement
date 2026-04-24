@@ -3,7 +3,7 @@
 **Date:** 2026-04-23
 **Hardware:** nvd-srv-31 — 2x Intel Xeon Gold 6548Y+, 2x NVIDIA A40, ConnectX-7 + ConnectX-6 Dx + BlueField-3
 **OS:** Fedora 43, kernel 6.17.1
-**K8s:** 1.36.0 GA
+**K8s:** 1.36.0 GA (tests 1-5), custom v1.37.0-alpha.0 with enforcement:preferred (tests E-1+)
 
 ## Device Topology
 
@@ -173,7 +173,7 @@ constraints:
 
 ## enforcement:preferred Tests
 
-Requires custom kube-apiserver + kube-scheduler from `johnahull/kubernetes` branch `feature/enforcement-preferred`.
+Requires all 5 custom K8s binaries from `johnahull/kubernetes` branch `feature/enforcement-preferred`: kube-apiserver, kube-scheduler, kube-controller-manager, kubelet, kubectl.
 
 ### Test E-1: pcieRoot preferred + numaNode required (GPU + CPU) — PASSED
 
@@ -196,3 +196,44 @@ constraints:
 ```
 
 **This proves enforcement:preferred works:** The same claim with `enforcement: Required` on pcieRoot (Test 5) fails because CPU has no pcieRoot. With `enforcement: Preferred`, the scheduler relaxes the pcieRoot constraint and satisfies numaNode instead. The distance hierarchy works.
+
+## KubeVirt DRA-Native Dual-NUMA VM — PASSED
+
+Requires patched KubeVirt v1.8.1 from `johnahull/kubevirt` branch `feature/dra-vfio-numa-passthrough-v1.8.1` and patched SR-IOV DRA driver from `johnahull/dra-driver-sriov` branch `feature/dra-topology-co-placement`.
+
+### Test K-1: Dual-NUMA VM with DRA CPU + NIC claims — PASSED
+
+**VMI spec:** 8 vCPUs (2 sockets × 4 cores), 8Gi memory, `guestMappingPassthrough` enabled, no `dedicatedCpuPlacement`, no hugepages.
+
+**DRA claims:**
+- `vm-cpu-numa0`: DRA CPU from NUMA 0
+- `vm-cpu-numa1`: DRA CPU from NUMA 1
+- `vm-nic-numa0`: SR-IOV VF from ConnectX-7 (NUMA 0), driver: vfio-pci
+- `vm-nic-numa1`: SR-IOV VF from ConnectX-6 Dx (NUMA 1), driver: vfio-pci
+
+**Guest verification:**
+```
+$ numactl --hardware
+available: 2 nodes (0-1)
+node 0 cpus: 0 1 2 3
+node 0 size: 3961 MB
+node 1 cpus: 4 5 6 7
+node 1 size: 3972 MB
+node distances:
+node   0   1
+  0:  10  20
+  1:  20  10
+
+$ for dev in /sys/class/net/*/device/numa_node; do echo $(basename $(dirname $(dirname $dev))): NUMA=$(cat $dev); done
+enp253s0: NUMA=0   # ConnectX-7 VF
+enp255s0: NUMA=1   # ConnectX-6 Dx VF
+```
+
+**What this proves:**
+- Guest sees 2 NUMA nodes with correct CPU/memory split
+- VFIO NICs placed on correct guest NUMA nodes via pxb-pcie expander buses
+- No kubelet CPU manager, no topology manager, no hugepages required
+- DRA CPU driver handles CPU allocation per NUMA via NRI
+- DRA SR-IOV driver handles NIC VFIO passthrough with KEP-5304 metadata
+- KubeVirt builds guest NUMA topology entirely from DRA claim allocations
+- **First DRA-native guest NUMA topology for KubeVirt VMs**
