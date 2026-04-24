@@ -192,7 +192,6 @@ With a standard `numaNode`:
 ### Components
 
 - [Standardization proposal](upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) — with XE9680 hardware topology diagrams
-- [NUMA/SNC/NPS gap analysis](upstream-proposals/numa-snc-nps-topology-gap.md)
 - [KEP-5304 auto-populate proposal](upstream-proposals/kep5304-auto-populate-metadata.md)
 - [Topology attribute debate](topology-attribute-debate.md) — full analysis of pcieRoot vs numaNode
 

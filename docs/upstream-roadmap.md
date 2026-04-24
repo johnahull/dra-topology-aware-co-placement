@@ -148,5 +148,4 @@
 | Proposal | Summary | Status |
 |----------|---------|--------|
 | [KEP-5304 Auto-Populate Metadata](upstream-proposals/kep5304-auto-populate-metadata.md) | Kubelet auto-copies ResourceSlice attributes into KEP-5304 metadata — no per-driver changes for new attributes | Draft |
-| [NUMA/SNC/NPS Topology Gap](upstream-proposals/numa-snc-nps-topology-gap.md) | DRA and kubelet topology manager are separate systems that don't coordinate CPU/memory with device NUMA | Draft |
 | [Standardize numaNode with pcieRoot Fallback](upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) | Propose `resource.kubernetes.io/numaNode` as companion to pcieRoot — pcieRoot matches 25% of GPUs, numaNode matches 100% | Draft |

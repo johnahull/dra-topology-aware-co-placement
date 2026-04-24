@@ -402,6 +402,5 @@ See [Topology Coordinator Design](topology-coordinator.md) for how the coordinat
 
 ### Detailed Analysis
 - [Topology Attribute Tradeoffs (diagrams)](diagrams/topology-attribute-tradeoffs.md) — Mermaid visualizations of NPS1, NPS4, SNC cases
-- [NUMA/SNC/NPS Topology Gap (proposal)](upstream-proposals/numa-snc-nps-topology-gap.md) — kubelet coordination gap
 - [KEP-5304 Auto-populate Metadata (proposal)](upstream-proposals/kep5304-auto-populate-metadata.md) — kubelet auto-populates NUMA from sysfs
 - [Standardize numaNode with pcieRoot Fallback (proposal)](upstream-proposals/standardize-numanode-with-pcieroot-fallback.md) — formal proposal with XE9680 hardware topology data
