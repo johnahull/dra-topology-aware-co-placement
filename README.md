@@ -111,7 +111,6 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 | [Architecture](docs/architecture.md) | Component diagrams, hardware layout, allocation flows |
 | [Topology Use Cases](docs/topology-use-cases.md) | AI workloads mapped to each distance level: pcieRoot, numaNode, socket, node |
 | [Topology Coordinator Design](docs/topology-coordinator.md) | Partition abstraction, webhook expansion, distance-based fallback |
-| [KubeVirt Integration](docs/kubevirt-integration.md) | KEP-5304, VEP 115, VFIO passthrough, guest NUMA topology |
 | [Upstream Roadmap](docs/upstream-roadmap.md) | Patches across 7 repos with status and upstream actions |
 | [Patched Repos](docs/patched-repos.md) | All forks, branches, and descriptions |
 | [Test Results Summary](testing/results/results-summary.md) | Comparison matrix across K8s versions, SNC on/off, bugs found |
