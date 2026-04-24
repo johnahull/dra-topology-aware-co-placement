@@ -29,7 +29,6 @@ Each DRA driver (GPU, NIC, CPU, memory) must read and publish the physical locat
 **To complete:**
 - **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` and `cpuSocketID` in the `deviceattribute` library ([proposal](docs/upstream-proposals/standardize-numanode-and-socket.md))
 - **NVIDIA GPU DRA driver** — expose NUMA for standard GPU devices (currently only published for VFIO type)
-- **AMD GPU DRA driver** — publish the standard `resource.kubernetes.io/pciBusID` (currently uses vendor-specific `pciAddr`)
 - **All 4 drivers** — publish standardized attributes alongside vendor-specific ones
 - Without the standard attribute, cross-driver alignment requires middleware (step 3) or per-driver CEL selector workarounds
 
@@ -66,7 +65,7 @@ The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node
 
 **To complete:**
 - **Kubernetes kubelet** — fix bug where multi-driver claims only inject metadata for one driver
-- **AMD GPU DRA driver** — opt in to KEP-5304 and publish standard `resource.kubernetes.io/pciBusID`
+- **AMD GPU DRA driver** — opt in to KEP-5304 (`resource.kubernetes.io/pciBusID` now published on main)
 - **SR-IOV NIC DRA driver** — opt in to KEP-5304 and publish device metadata
 - **NVIDIA GPU DRA driver** — KEP-5304 opt-in in progress (issue #916, targeting v26.4.0)
 
@@ -77,12 +76,23 @@ The virt-launcher must read the device metadata (step 5) and create matching gue
 **To complete:**
 - **KubeVirt virt-launcher** — read DRA device NUMA from KEP-5304 metadata in VEP 115 (currently only reads sysfs for device-plugin devices)
 - **KubeVirt virt-controller** — add VFIO capabilities (SYS_RESOURCE, IPC_LOCK, unlimited memlock) for DRA host device pods
-- **KubeVirt virt-controller** — skip `permittedHostDevices` validation for DRA-allocated devices (partially addressed upstream with `HostDevicesWithDRA` feature gate)
+- **KubeVirt virt-controller** — skip `permittedHostDevices` validation for DRA-allocated devices (done upstream with `HostDevicesWithDRA` feature gate, alpha)
 - **KubeVirt** — auto-enable ACPI when guest NUMA topology is used
 
 ## Current State
 
 All 6 steps have been proven end-to-end on real hardware (Dell XE9680 with AMD MI300X and Dell R760xa with NVIDIA A40) with local patches as a POC.
+
+## Fixed Upstream
+
+Items that were originally gaps but have since been addressed in upstream repos:
+
+| Item | Fixed In | Notes |
+|------|----------|-------|
+| AMD GPU DRA driver publishes standard `resource.kubernetes.io/pciBusID` | `ROCm/k8s-gpu-dra-driver` main | Was using vendor-specific `pciAddr`; now uses upstream `deviceattribute.GetPCIBusIDAttribute()` |
+| AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Was missing for full GPUs and partitions; now published for both (vendor-specific `gpu.amd.com/numaNode`) |
+| KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation for DRA-allocated devices |
+| Kubelet multi-driver KEP-5304 metadata injection | `kubernetes/kubernetes` master | Needs retest — code structure now aggregates CDI IDs from all drivers per claim |
 
 ## Testing
 
