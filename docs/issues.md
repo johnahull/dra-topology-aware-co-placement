@@ -247,6 +247,15 @@ The `deviceattribute` library provides helpers like `GetPCIBusIDAttribute()` and
 
 This is needed for the distance hierarchy (U-1) where CPU and memory drivers need to participate in `matchAttribute: resource.kubernetes.io/pcieRoot` constraints.
 
+#### D-8: AMD GPU DRA driver: `numaNode` attribute not standardized
+
+**Repo:** `ROCm/k8s-gpu-dra-driver`
+**Fix:** `johnahull/k8s-gpu-dra-driver` `feature/standardized-topology-attrs`
+
+The AMD driver publishes `numaNode` as a bare unqualified attribute (no domain prefix). PR #36 (merged 2026-04-16) cleaned up attribute names and added `resource.kubernetes.io/pciBusID` via the `deviceattribute` library, but left `numaNode` as bare `"numaNode"`. This won't match `matchAttribute: resource.kubernetes.io/numaNode` from other drivers, breaking cross-driver NUMA alignment.
+
+The fork adds `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` alongside the bare attributes.
+
 ---
 
 ### Topology Coordinator
@@ -332,7 +341,7 @@ The fork adds these capabilities when DRA host devices or GPUs are present in th
 | # | Issue | Closed By | Notes |
 |---|-------|-----------|-------|
 | — | AMD GPU DRA driver publishes standard `pciBusID` | `ROCm/k8s-gpu-dra-driver` main | Now uses `deviceattribute.GetPCIBusIDAttribute()` |
-| — | AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Published for full GPUs and partitions (vendor-specific `gpu.amd.com/numaNode`) |
+| — | AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Published for full GPUs and partitions, but as bare `numaNode` — see D-8 |
 | — | AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu |
 | — | NVIDIA GPU DRA driver VFIO `/host-root` mount validation | [kubernetes-sigs/dra-driver-nvidia-gpu#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate mount at startup, improve error messages |
 | — | KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation |
