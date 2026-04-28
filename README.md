@@ -56,7 +56,7 @@ VMs receive devices via VFIO passthrough, not sharing. DRA drivers must manage t
 
 **To complete:**
 - **AMD GPU DRA driver** — add VFIO bind/unbind lifecycle and CDI device generation; fix GPU discovery after VFIO unbind
-- **SR-IOV NIC DRA driver** — add formal VFIO mode (skip CNI/RDMA for VFIO-bound VFs)
+- **dranet NIC DRA driver** — add formal VFIO mode (skip CNI/RDMA for VFIO-bound VFs)
 - **NVIDIA GPU DRA driver** — has `type: vfio` support behind the `PassthroughSupport` feature gate
 
 ### 5. Device metadata (KEP-5304)
@@ -66,7 +66,7 @@ The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node
 **To complete:**
 - **Kubernetes kubelet** — fix bug where multi-driver claims only inject metadata for one driver
 - **AMD GPU DRA driver** — opt in to KEP-5304 (`resource.kubernetes.io/pciBusID` now published on main)
-- **SR-IOV NIC DRA driver** — opt in to KEP-5304 and publish device metadata
+- **dranet NIC DRA driver** — opt in to KEP-5304 and publish device metadata
 - **NVIDIA GPU DRA driver** — KEP-5304 opt-in in progress (issue #916, targeting v26.4.0)
 
 ### 6. Guest NUMA topology
@@ -117,7 +117,7 @@ Items that were originally gaps but have since been addressed in upstream repos:
 
 ### Dell R760xa (NVIDIA, active)
 
-2-socket Intel Xeon Gold 6548Y+, 2x NVIDIA A40, ConnectX-7 NICs with SR-IOV, 128 threads. K8s custom v1.37.0-alpha (enforcement:preferred + DRA topology hints). Fedora 43.
+2-socket Intel Xeon Gold 6548Y+, 2x NVIDIA A40, ConnectX-7 NICs with dranet, 128 threads. K8s custom v1.37.0-alpha (enforcement:preferred + DRA topology hints). Fedora 43.
 
 | Test | Result |
 |------|--------|
