@@ -379,6 +379,51 @@ for _sbdf in "${!IS_SWITCH[@]}"; do
 done
 unset _sbdf local_par
 
+# ── Physical slot detection ─────────────────────────────────────────────────
+# Parse Physical Slot numbers from lspci -v for PCI bridges.
+# Bridges with a Physical Slot but no endpoint children are empty slots.
+
+declare -A BRIDGE_SLOT=()        # bridge BDF → physical slot number
+declare -A BRIDGE_NUMA=()        # bridge BDF → NUMA node
+declare -A SLOT_BRIDGES=()       # "numa:slot" → bridge BDF (for dedup)
+declare -a EMPTY_SLOTS=()        # bridge BDFs with a physical slot but no endpoints
+
+if command -v lspci &>/dev/null; then
+    _cur_bdf=""
+    while IFS= read -r _line; do
+        if [[ "$_line" =~ ^([0-9a-f:.]+)[[:space:]] ]]; then
+            _cur_bdf="${BASH_REMATCH[1]}"
+            [[ "$_cur_bdf" == *:*:* ]] || _cur_bdf="0000:${_cur_bdf}"
+        elif [[ "$_line" =~ Physical\ Slot:\ ([0-9]+) ]] && [ -n "$_cur_bdf" ]; then
+            BRIDGE_SLOT["$_cur_bdf"]="${BASH_REMATCH[1]}"
+            BRIDGE_NUMA["$_cur_bdf"]="${DEV_NUMA[$_cur_bdf]:--1}"
+        fi
+    done < <(lspci -v 2>/dev/null)
+
+    # Determine which slotted bridges have endpoint children
+    for _bdf in "${!BRIDGE_SLOT[@]}"; do
+        _has_ep=0
+        _check_endpoints() {
+            local check="$1"
+            local kids="${DEV_CHILDREN[$check]:-}"
+            for k in $kids; do
+                local kpath="/sys/bus/pci/devices/${k}/"
+                if is_endpoint "$kpath"; then
+                    _has_ep=1
+                    return
+                fi
+                _check_endpoints "$k"
+                [ "$_has_ep" = "1" ] && return
+            done
+        }
+        _check_endpoints "$_bdf"
+        if [ "$_has_ep" = "0" ]; then
+            EMPTY_SLOTS+=("$_bdf")
+        fi
+    done
+    unset _cur_bdf _bdf _has_ep
+fi
+
 # Find the root port for a given BDF (the bridge whose parent is root:*)
 get_root_port() {
     local cur="$1" prev=""
@@ -852,11 +897,20 @@ if [ "$DMIDECODE_OK" = "1" ]; then
     unset _single_array
 fi
 
-if [ "$NUM_SOCKETS" -gt 0 ]; then
-    echo -e "${BOLD}NUMA Topology${RESET}  (${NUM_SOCKETS} socket(s), ${NUMA_NODES} node(s))"
-else
-    echo -e "${BOLD}NUMA Topology${RESET}  (${NUMA_NODES} node(s))"
+_total_slots=${#BRIDGE_SLOT[@]}
+_empty_slots=${#EMPTY_SLOTS[@]}
+_populated_slots=$(( _total_slots - _empty_slots ))
+_slot_info=""
+if [ "$_total_slots" -gt 0 ]; then
+    _slot_info=", ${_populated_slots}/${_total_slots} PCIe slots populated"
 fi
+
+if [ "$NUM_SOCKETS" -gt 0 ]; then
+    echo -e "${BOLD}NUMA Topology${RESET}  (${NUM_SOCKETS} socket(s), ${NUMA_NODES} node(s)${_slot_info})"
+else
+    echo -e "${BOLD}NUMA Topology${RESET}  (${NUMA_NODES} node(s)${_slot_info})"
+fi
+unset _total_slots _empty_slots _populated_slots _slot_info
 echo ""
 
 for node_path in /sys/devices/system/node/node*/; do
@@ -911,6 +965,22 @@ for node_path in /sys/devices/system/node/node*/; do
         print_numa_flat "$node_id"
     else
         print_numa_tree "$node_id"
+
+        # Show empty physical slots on this NUMA node
+        _empty_on_node=()
+        for _ebdf in "${EMPTY_SLOTS[@]}"; do
+            [ "${BRIDGE_NUMA[$_ebdf]:--1}" = "$node_id" ] || continue
+            _empty_on_node+=("$_ebdf")
+        done
+        if [ ${#_empty_on_node[@]} -gt 0 ]; then
+            echo ""
+            echo -e "  ${DIM}Empty slots:${RESET}"
+            for _ebdf in "${_empty_on_node[@]}"; do
+                _slot="${BRIDGE_SLOT[$_ebdf]}"
+                _root_domain=$(readlink "/sys/bus/pci/devices/${_ebdf}" 2>/dev/null | sed 's|.*\(pci[^/]*\)/.*|\1|')
+                echo -e "  ${DIM}└── Slot ${_slot}  (${_ebdf}, root ${_root_domain:-unknown})${RESET}"
+            done
+        fi
         echo ""
     fi
 done
