@@ -26,58 +26,37 @@ DRA replaces the topology manager's coordination role for these resources. Cross
 
 Each DRA driver (GPU, NIC, CPU, memory) must read and publish the physical location of every device — NUMA node, PCIe root, PCI bus address — as ResourceSlice attributes. Today each driver publishes NUMA under a different vendor-specific name. A standard `resource.kubernetes.io/numaNode` is needed so all drivers speak the same language. With that standard attribute, one `matchAttribute` constraint in the scheduler co-locates GPUs + NICs + CPUs + memory from 4 independent drivers — no middleware required.
 
-**To complete:**
-- **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` and `cpuSocketID` in the `deviceattribute` library ([proposal](docs/upstream-proposals/standardize-numanode-and-socket.md))
-- **NVIDIA GPU DRA driver** — expose NUMA for standard GPU devices (currently only published for VFIO type)
-- **All 4 drivers** — publish standardized attributes alongside vendor-specific ones
-- Without the standard attribute, cross-driver alignment requires middleware (step 3) or per-driver CEL selector workarounds
+**Open issues:** [U-2](docs/issues.md#u-2-standardized-resourcekubernetesionumanode-and-cpusocketid-not-agreed), [D-2](docs/issues.md#d-2-nvidia-gpu-dra-driver-numanode-not-published-for-standard-gpu-devices), [D-5](docs/issues.md#d-5-dranet-standardized-topology-attributes-not-upstream)
 
 ### 2. Topology distance hierarchy
 
 Not all co-location is equal. Devices can share a PCIe switch (tightest), a NUMA node (local), or a CPU socket (loosest). The scheduler needs a fallback chain — prefer the tightest coupling available, relax when hardware doesn't support it. This requires an `enforcement: Preferred` capability in the scheduler.
 
-**To complete:**
-- **Kubernetes upstream** — add `enforcement: Preferred` field to `DeviceConstraint` API; covered by the same [proposal](docs/upstream-proposals/standardize-numanode-and-socket.md)
-- **kube-apiserver** — accept, validate, and store the new field
-- **kube-scheduler** — skip preferred constraints when unsatisfiable
-- **kube-controller-manager, kubelet, kubectl** — preserve the field through the claim lifecycle
+**Open issues:** [U-1](docs/issues.md#u-1-enforcement-preferred-not-in-upstream-api), [U-3](docs/issues.md#u-3-deviceattribute-library-getpcierootattributemapfromcpuid-helper)
 
 ### 3. Machine partitioning *(nice-to-have)*
 
 Users should be able to request "a slice of the machine" (e.g., one-eighth) rather than manually specifying 4 drivers, their counts, and constraints. A topology coordinator controller creates partition DeviceClasses and a webhook expands simple claims into multi-driver NUMA-aligned requests. This is most useful for symmetric configurations where the machine can be evenly divided into identical partitions. This is a usability improvement — steps 1-2 provide the core alignment capability without it.
 
-**To complete:**
-- **Topology coordinator** — merge 6 bug-fix patches (label truncation, attribute namespace, CEL selector forwarding, pcieRoot filtering, distance-based fallback)
-- **Topology coordinator** — address webhook unavailability during controller restarts
+**Open issues:** [TC-1](docs/issues.md#tc-1-6-bug-fix-patches-not-merged-upstream), [TC-2](docs/issues.md#tc-2-webhook-unavailable-during-controller-restarts)
 
 ### 4. VFIO device passthrough via DRA *(KubeVirt)*
 
 VMs receive devices via VFIO passthrough, not sharing. DRA drivers must manage the full lifecycle: unbind from the native kernel driver, bind to `vfio-pci`, expose `/dev/vfio/*` device nodes, and handle IOMMU groups.
 
-**To complete:**
-- **AMD GPU DRA driver** — add VFIO bind/unbind lifecycle and CDI device generation; fix GPU discovery after VFIO unbind
-- **dranet NIC DRA driver** — add VFIO mode for VM NIC passthrough (patched, not upstream)
-- **NVIDIA GPU DRA driver** — has `type: vfio` support behind the `PassthroughSupport` feature gate
+**Open issues:** [D-4](docs/issues.md#d-4-dranet-vfio-support-not-upstream), [D-6](docs/issues.md#d-6-amd-gpu-dra-driver-vfio-bindunbind-lifecycle-missing)
 
 ### 5. Device metadata (KEP-5304) *(KubeVirt)*
 
 The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node to configure the VM. KEP-5304 (native in K8s 1.36) is a downward API for DRA devices — it lets DRA drivers attach metadata (key-value attributes) to allocated devices and projects them into the pod as files. When a device is prepared, the driver publishes attributes like PCI address and NUMA node. The kubelet writes these as JSON files and mounts them into the pod at a well-known path. Virt-launcher reads the PCI address to create VFIO passthrough entries in the VM's domain XML, and reads the NUMA node to place each device on the correct guest NUMA node.
 
-**To complete:**
-- **Kubernetes kubelet** — fix bug where multi-driver claims only inject metadata for one driver
-- **AMD GPU DRA driver** — opt in to KEP-5304 (`resource.kubernetes.io/pciBusID` now published on main)
-- **dranet NIC DRA driver** — opt in to KEP-5304 and publish device metadata
-- **NVIDIA GPU DRA driver** — KEP-5304 opt-in in progress (issue #916, targeting v26.4.0)
+**Open issues:** [K-4](docs/issues.md#k-4-multi-driver-claims-may-only-inject-kep-5304-metadata-for-one-driver), [D-1](docs/issues.md#d-1-sr-iov-dra-driver-has-no-kep-5304-pcibusid-metadata), [D-3](docs/issues.md#d-3-nvidia-gpu-dra-driver-kep-5304-opt-in-not-yet-available), [D-7](docs/issues.md#d-7-amd-gpu-dra-driver-kep-5304-metadata-opt-in)
 
 ### 6. Guest NUMA topology *(KubeVirt)*
 
 The virt-launcher must read the device metadata (step 5) and create matching guest NUMA topology. This means building `pxb-pcie` expander buses on the correct guest NUMA nodes (VEP 115) and mapping host NUMA IDs to guest cell IDs.
 
-**To complete:**
-- **KubeVirt virt-launcher** — read DRA device NUMA from KEP-5304 metadata in VEP 115 (currently only reads sysfs for device-plugin devices)
-- **KubeVirt virt-controller** — add VFIO capabilities (SYS_RESOURCE, IPC_LOCK, unlimited memlock) for DRA host device pods
-- **KubeVirt virt-controller** — skip `permittedHostDevices` validation for DRA-allocated devices (done upstream with `HostDevicesWithDRA` feature gate, alpha)
-- **KubeVirt** — auto-enable ACPI when guest NUMA topology is used
+**Open issues:** [KV-5](docs/issues.md#kv-5-vep-115-reads-device-numa-from-sysfs-only-not-from-dra-kep-5304-metadata), [KV-6](docs/issues.md#kv-6-acpi-not-auto-enabled-when-guest-numa-topology-is-used), [KV-7](docs/issues.md#kv-7-virt-controller-missing-vfio-capabilities-for-dra-host-device-pods)
 
 ## Current State
 
