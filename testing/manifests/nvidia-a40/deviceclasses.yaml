@@ -1,143 +1,93 @@
-apiVersion: v1
-items:
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      meta.helm.sh/release-name: nvidia-dra
-      meta.helm.sh/release-namespace: nvidia-dra
-    creationTimestamp: "2026-04-23T18:38:20Z"
-    generation: 1
-    labels:
-      app.kubernetes.io/managed-by: Helm
-    name: compute-domain-daemon.nvidia.com
-    resourceVersion: "5113"
-    uid: aeb28054-d99b-47b0-82be-268472170f44
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'compute-domain.nvidia.com' && device.attributes['compute-domain.nvidia.com'].type
-          == 'daemon'
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      meta.helm.sh/release-name: nvidia-dra
-      meta.helm.sh/release-namespace: nvidia-dra
-    creationTimestamp: "2026-04-23T18:38:20Z"
-    generation: 1
-    labels:
-      app.kubernetes.io/managed-by: Helm
-    name: compute-domain-default-channel.nvidia.com
-    resourceVersion: "5117"
-    uid: 35f3262b-9bc2-4a5e-a888-c3e91c9cabdf
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'compute-domain.nvidia.com' && device.attributes['compute-domain.nvidia.com'].type
-          == 'channel' && device.attributes['compute-domain.nvidia.com'].id == 0
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"resource.k8s.io/v1","kind":"DeviceClass","metadata":{"annotations":{},"name":"dra.cpu"},"spec":{"selectors":[{"cel":{"expression":"device.driver == 'dra.cpu'"}}]}}
-    creationTimestamp: "2026-04-23T18:55:41Z"
-    generation: 2
-    name: dra.cpu
-    resourceVersion: "15439"
-    uid: bdea470e-05a5-489d-9270-b794a0badbed
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'dra.cpu'
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"resource.k8s.io/v1","kind":"DeviceClass","metadata":{"annotations":{},"name":"dra.memory"},"spec":{"selectors":[{"cel":{"expression":"device.driver == 'dra.memory'"}}]}}
-    creationTimestamp: "2026-04-23T19:07:41Z"
-    generation: 2
-    name: dra.memory
-    resourceVersion: "15440"
-    uid: e045f506-ef1b-42f9-93d1-724bd65b8720
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'dra.memory'
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"resource.k8s.io/v1","kind":"DeviceClass","metadata":{"annotations":{},"name":"gpu.nvidia.com"}}
-      meta.helm.sh/release-name: nvidia-dra
-      meta.helm.sh/release-namespace: nvidia-dra
-    creationTimestamp: "2026-04-23T18:38:20Z"
-    generation: 1
-    labels:
-      app.kubernetes.io/managed-by: Helm
-    name: gpu.nvidia.com
-    resourceVersion: "8256"
-    uid: 2fbbf4cb-a8d2-4f00-95f4-59bde10578f3
-  spec:
-    extendedResourceName: nvidia.com/gpu
-    selectors:
-    - cel:
-        expression: device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type
-          == 'gpu'
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      meta.helm.sh/release-name: nvidia-dra
-      meta.helm.sh/release-namespace: nvidia-dra
-    creationTimestamp: "2026-04-23T18:38:20Z"
-    generation: 1
-    labels:
-      app.kubernetes.io/managed-by: Helm
-    name: mig.nvidia.com
-    resourceVersion: "5115"
-    uid: 61ab0dcb-a446-44d5-b09d-948cd3a96e9a
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type
-          == 'mig'
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"resource.k8s.io/v1","kind":"DeviceClass","metadata":{"annotations":{},"name":"sriovnetwork.k8snetworkplumbingwg.io"},"spec":{"selectors":[{"cel":{"expression":"device.driver == 'sriovnetwork.k8snetworkplumbingwg.io'"}}]}}
-    creationTimestamp: "2026-04-23T19:47:21Z"
-    generation: 2
-    name: sriovnetwork.k8snetworkplumbingwg.io
-    resourceVersion: "15438"
-    uid: e69ab66b-b0ce-42d6-8cce-5061a769e56c
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'sriovnetwork.k8snetworkplumbingwg.io'
-- apiVersion: resource.k8s.io/v1
-  kind: DeviceClass
-  metadata:
-    annotations:
-      meta.helm.sh/release-name: nvidia-dra
-      meta.helm.sh/release-namespace: nvidia-dra
-    creationTimestamp: "2026-04-23T18:38:20Z"
-    generation: 1
-    labels:
-      app.kubernetes.io/managed-by: Helm
-    name: vfio.gpu.nvidia.com
-    resourceVersion: "5116"
-    uid: 4a0a71d0-51ee-41e4-9986-1f46f73c79c3
-  spec:
-    selectors:
-    - cel:
-        expression: device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type
-          == 'vfio'
-kind: List
+# DeviceClasses for R760xa with NVIDIA A40 GPUs
+# GPU classes are created by the NVIDIA DRA helm chart.
+# Non-GPU classes must be applied manually.
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
 metadata:
-  resourceVersion: ""
+  name: gpu.nvidia.com
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type == 'gpu'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: gpu-vfio.nvidia.com
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type == 'vfio'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: vfio.gpu.nvidia.com
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type == 'vfio'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: mig.nvidia.com
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'gpu.nvidia.com' && device.attributes['gpu.nvidia.com'].type == 'mig'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.cpu
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.cpu'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.memory
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.memory'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.hugepages-2m
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.memory' && device.attributes['dra.memory'].hugeTLB == true && device.attributes['dra.memory'].pageSize == '2Mi'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: sriovnetwork.k8snetworkplumbingwg.io
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'sriovnetwork.k8snetworkplumbingwg.io'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: compute-domain-daemon.nvidia.com
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'compute-domain.nvidia.com' && device.attributes['compute-domain.nvidia.com'].type == 'daemon'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: compute-domain-default-channel.nvidia.com
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'compute-domain.nvidia.com' && device.attributes['compute-domain.nvidia.com'].type == 'channel' && device.attributes['compute-domain.nvidia.com'].id == 0"

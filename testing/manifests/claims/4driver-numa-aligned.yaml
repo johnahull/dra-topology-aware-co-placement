@@ -1,0 +1,43 @@
+# 4-driver NUMA-aligned allocation: GPU + NIC + CPU + Memory
+# All devices constrained to the same NUMA node via matchAttribute.
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: 4driver-numa-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nic
+        exactly:
+          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+      constraints:
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, nic, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: 4driver-numa-test
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "3600"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: 4driver-numa-claim

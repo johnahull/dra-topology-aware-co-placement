@@ -1,0 +1,44 @@
+# Hugepage allocation NUMA-aligned with GPU via DRA
+# Requests 64Mi of 2MB hugepages on the same NUMA node as a GPU.
+# Requires: hugepages provisioned (echo 64 | sudo tee /sys/devices/system/node/node{0,1}/hugepages/hugepages-2048kB/nr_hugepages)
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: hp-gpu-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: hp
+        exactly:
+          deviceClassName: dra.memory
+          selectors:
+          - cel:
+              expression: "device.attributes[\"dra.memory\"].hugeTLB == true && device.attributes[\"dra.memory\"].pageSize == \"2Mi\""
+          capacity:
+            requests:
+              size: 64Mi
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      constraints:
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [hp, gpu]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hp-gpu-test
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sh", "-c", "echo hugepage+gpu test; cat /proc/meminfo | grep -i huge; env | grep DRAMEMORY; sleep 3600"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: hp-gpu-claim

@@ -1,0 +1,46 @@
+# GPU + NVMe + CPU + Memory NUMA-aligned (4 drivers, no NIC).
+# Filters out boot drive (Dell BOSS-N1) from NVMe selection.
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: gpu-nvme-cpu-mem-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nvme
+        exactly:
+          deviceClassName: dra.nvme
+          selectors:
+          - cel:
+              expression: "device.attributes[\"dra.nvme\"].model != \"Dell_BOSS-N1\""
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+      constraints:
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, nvme, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-nvme-cpu-mem-test
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "3600"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: gpu-nvme-cpu-mem-claim

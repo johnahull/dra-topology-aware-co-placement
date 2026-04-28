@@ -50,16 +50,16 @@ Users should be able to request "a slice of the machine" (e.g., one-eighth) rath
 - **Topology coordinator** — merge 6 bug-fix patches (label truncation, attribute namespace, CEL selector forwarding, pcieRoot filtering, distance-based fallback)
 - **Topology coordinator** — address webhook unavailability during controller restarts
 
-### 4. VFIO device passthrough via DRA
+### 4. VFIO device passthrough via DRA *(KubeVirt)*
 
 VMs receive devices via VFIO passthrough, not sharing. DRA drivers must manage the full lifecycle: unbind from the native kernel driver, bind to `vfio-pci`, expose `/dev/vfio/*` device nodes, and handle IOMMU groups.
 
 **To complete:**
 - **AMD GPU DRA driver** — add VFIO bind/unbind lifecycle and CDI device generation; fix GPU discovery after VFIO unbind
-- **dranet NIC DRA driver** — add formal VFIO mode (skip CNI/RDMA for VFIO-bound VFs)
+- **dranet NIC DRA driver** — add VFIO mode for VM NIC passthrough (patched, not upstream)
 - **NVIDIA GPU DRA driver** — has `type: vfio` support behind the `PassthroughSupport` feature gate
 
-### 5. Device metadata (KEP-5304)
+### 5. Device metadata (KEP-5304) *(KubeVirt)*
 
 The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node to configure the VM. KEP-5304 (native in K8s 1.36) is a downward API for DRA devices — it lets DRA drivers attach metadata (key-value attributes) to allocated devices and projects them into the pod as files. When a device is prepared, the driver publishes attributes like PCI address and NUMA node. The kubelet writes these as JSON files and mounts them into the pod at a well-known path. Virt-launcher reads the PCI address to create VFIO passthrough entries in the VM's domain XML, and reads the NUMA node to place each device on the correct guest NUMA node.
 
@@ -69,7 +69,7 @@ The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node
 - **dranet NIC DRA driver** — opt in to KEP-5304 and publish device metadata
 - **NVIDIA GPU DRA driver** — KEP-5304 opt-in in progress (issue #916, targeting v26.4.0)
 
-### 6. Guest NUMA topology
+### 6. Guest NUMA topology *(KubeVirt)*
 
 The virt-launcher must read the device metadata (step 5) and create matching guest NUMA topology. This means building `pxb-pcie` expander buses on the correct guest NUMA nodes (VEP 115) and mapping host NUMA IDs to guest cell IDs.
 

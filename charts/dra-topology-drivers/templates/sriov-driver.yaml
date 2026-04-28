@@ -1,0 +1,65 @@
+{{- if .Values.sriov.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dra-sriov
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: dra-sriov
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: dra-sriov
+  template:
+    metadata:
+      labels:
+        app: dra-sriov
+    spec:
+      priorityClassName: system-node-critical
+      hostNetwork: {{ .Values.sriov.hostNetwork }}
+      tolerations:
+      - operator: Exists
+      serviceAccountName: dra-sriov
+      containers:
+      - name: dra-sriov
+        image: {{ .Values.sriov.image.repository }}:{{ .Values.sriov.image.tag }}
+        imagePullPolicy: {{ .Values.sriov.image.pullPolicy }}
+        args:
+        - --node-name=$(NODE_NAME)
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: plugins
+          mountPath: /var/lib/kubelet/plugins
+        - name: plugins-registry
+          mountPath: /var/lib/kubelet/plugins_registry
+        - name: cdi
+          mountPath: /var/run/cdi
+        - name: nri
+          mountPath: /var/run/nri
+        - name: sys
+          mountPath: /sys
+      volumes:
+      - name: plugins
+        hostPath:
+          path: /var/lib/kubelet/plugins
+      - name: plugins-registry
+        hostPath:
+          path: /var/lib/kubelet/plugins_registry
+      - name: cdi
+        hostPath:
+          path: /var/run/cdi
+          type: DirectoryOrCreate
+      - name: nri
+        hostPath:
+          path: /var/run/nri
+      - name: sys
+        hostPath:
+          path: /sys
+{{- end }}

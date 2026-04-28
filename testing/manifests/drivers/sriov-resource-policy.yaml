@@ -1,27 +1,21 @@
-# Create NIC VFs first:
-#   echo 4 | sudo tee /sys/class/net/ens40f0np0/device/sriov_numvfs  # NUMA 0
-#   echo 4 | sudo tee /sys/class/net/ens31f0np0/device/sriov_numvfs  # NUMA 1
+# R760xa SR-IOV setup
 #
-# Then deploy SR-IOV driver via Helm:
-#   helm install dra-sriov deployments/helm/dra-driver-sriov \
-#     --namespace dra-sriov-driver --create-namespace \
-#     --set image.repository=localhost/dra-driver-sriov \
-#     --set image.tag=latest \
-#     --set image.pullPolicy=Never \
-#     --set hostNetwork=true
+# Create NIC VFs:
+#   echo 2 | sudo tee /sys/class/net/enp55s0np0/device/sriov_numvfs  # CX7, NUMA 0
+#   echo 2 | sudo tee /sys/class/net/ens7f0np0/device/sriov_numvfs   # CX6Dx, NUMA 1
 #
-# Then apply this policy for device discovery:
+# Deploy SR-IOV DRA driver:
+#   kubectl apply -f dra-sriov-driver.yaml
+#   (or via Helm — see below)
+#
+# Then apply this policy for Mellanox VF discovery:
 apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
 kind: SriovResourcePolicy
 metadata:
-  name: cx6-policy
-  namespace: dra-sriov-driver
+  name: mellanox-policy
+  namespace: kube-system
 spec:
   configs:
   - resourceFilters:
     - vendors: ["15b3"]
       drivers: ["vfio-pci", "mlx5_core"]
----
-# Add default VFIO config to the DeviceClass:
-#   kubectl patch deviceclass sriovnetwork.k8snetworkplumbingwg.io --type merge \
-#     -p '{"spec":{"config":[{"opaque":{"driver":"sriovnetwork.k8snetworkplumbingwg.io","parameters":{"apiVersion":"sriovnetwork.k8snetworkplumbingwg.io/v1alpha1","kind":"VfConfig","driver":"vfio-pci"}}}]}}'

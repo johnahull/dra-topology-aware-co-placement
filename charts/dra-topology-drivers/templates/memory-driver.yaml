@@ -1,62 +1,12 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: dramemory
-  namespace: kube-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: dramemory
-rules:
-- apiGroups: ["resource.k8s.io"]
-  resources: ["resourceslices"]
-  verbs: ["get","list","watch","create","update","patch","delete"]
-- apiGroups: ["resource.k8s.io"]
-  resources: ["resourceclaims"]
-  verbs: ["get","list","watch"]
-- apiGroups: [""]
-  resources: ["nodes"]
-  verbs: ["get","list","watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: dramemory
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: dramemory
-subjects:
-- kind: ServiceAccount
-  name: dramemory
-  namespace: kube-system
----
-apiVersion: resource.k8s.io/v1
-kind: DeviceClass
-metadata:
-  name: dra.memory
-spec:
-  selectors:
-  - cel:
-      expression: "device.driver == \"dra.memory\""
----
-apiVersion: resource.k8s.io/v1
-kind: DeviceClass
-metadata:
-  name: dra.hugepages-2m
-spec:
-  selectors:
-  - cel:
-      expression: "device.driver == \"dra.memory\" && device.attributes[\"dra.memory\"].hugeTLB == true && device.attributes[\"dra.memory\"].pageSize == \"2Mi\""
----
+{{- if .Values.memory.enabled }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: dramemory
-  namespace: kube-system
+  namespace: {{ .Release.Namespace }}
   labels:
     app: dramemory
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
@@ -69,15 +19,14 @@ spec:
       priorityClassName: system-node-critical
       tolerations:
       - operator: Exists
-        effect: NoSchedule
       serviceAccountName: dramemory
       containers:
       - name: dramemory
-        image: localhost/dra-memory-driver:standardized-v4
-        imagePullPolicy: Never
+        image: {{ .Values.memory.image.repository }}:{{ .Values.memory.image.tag }}
+        imagePullPolicy: {{ .Values.memory.image.pullPolicy }}
         args:
         - --hostname-override=$(NODE_NAME)
-        - --v=4
+        - --v={{ .Values.memory.verbosity }}
         env:
         - name: NODE_NAME
           valueFrom:
@@ -94,6 +43,7 @@ spec:
           mountPath: /var/run/cdi
         - name: sys
           mountPath: /sys
+          readOnly: true
         - name: nri
           mountPath: /var/run/nri
       volumes:
@@ -113,3 +63,4 @@ spec:
       - name: nri
         hostPath:
           path: /var/run/nri
+{{- end }}

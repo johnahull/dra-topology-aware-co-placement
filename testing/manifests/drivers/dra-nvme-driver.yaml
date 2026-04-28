@@ -1,83 +1,89 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: dra-nvme
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: dramemory
-  namespace: kube-system
+  name: dra-driver-nvme
+  namespace: dra-nvme
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: dramemory
+  name: dra-driver-nvme
 rules:
 - apiGroups: ["resource.k8s.io"]
   resources: ["resourceslices"]
   verbs: ["get","list","watch","create","update","patch","delete"]
-- apiGroups: ["resource.k8s.io"]
-  resources: ["resourceclaims"]
-  verbs: ["get","list","watch"]
 - apiGroups: [""]
   resources: ["nodes"]
-  verbs: ["get","list","watch"]
+  verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: dramemory
+  name: dra-driver-nvme
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: dramemory
+  name: dra-driver-nvme
 subjects:
 - kind: ServiceAccount
-  name: dramemory
-  namespace: kube-system
+  name: dra-driver-nvme
+  namespace: dra-nvme
 ---
 apiVersion: resource.k8s.io/v1
 kind: DeviceClass
 metadata:
-  name: dra.memory
+  name: dra.nvme
 spec:
   selectors:
   - cel:
-      expression: "device.driver == \"dra.memory\""
+      expression: "device.driver == \"dra.nvme\""
 ---
 apiVersion: resource.k8s.io/v1
 kind: DeviceClass
 metadata:
-  name: dra.hugepages-2m
+  name: dra.nvme-vfio
 spec:
   selectors:
   - cel:
-      expression: "device.driver == \"dra.memory\" && device.attributes[\"dra.memory\"].hugeTLB == true && device.attributes[\"dra.memory\"].pageSize == \"2Mi\""
+      expression: "device.driver == \"dra.nvme\""
+  config:
+  - opaque:
+      driver: dra.nvme
+      parameters:
+        apiVersion: nvme.dra.io/v1alpha1
+        kind: NvmeConfig
+        mode: vfio
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: dramemory
-  namespace: kube-system
-  labels:
-    app: dramemory
+  name: dra-driver-nvme
+  namespace: dra-nvme
 spec:
   selector:
     matchLabels:
-      app: dramemory
+      app: dra-driver-nvme
   template:
     metadata:
       labels:
-        app: dramemory
+        app: dra-driver-nvme
     spec:
       priorityClassName: system-node-critical
       tolerations:
       - operator: Exists
-        effect: NoSchedule
-      serviceAccountName: dramemory
+      serviceAccountName: dra-driver-nvme
       containers:
-      - name: dramemory
-        image: localhost/dra-memory-driver:standardized-v4
+      - name: plugin
+        image: ghcr.io/johnahull/dra-topology-drivers/dra-nvme-driver:latest
         imagePullPolicy: Never
         args:
-        - --hostname-override=$(NODE_NAME)
-        - --v=4
+        - --node-name=$(NODE_NAME)
+        - --cdi-root=/var/run/cdi
         env:
         - name: NODE_NAME
           valueFrom:
@@ -86,30 +92,30 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - name: plugins
-          mountPath: /var/lib/kubelet/plugins
         - name: plugins-registry
           mountPath: /var/lib/kubelet/plugins_registry
+        - name: plugins
+          mountPath: /var/lib/kubelet/plugins
+          mountPropagation: Bidirectional
         - name: cdi
           mountPath: /var/run/cdi
+        - name: dev
+          mountPath: /dev
         - name: sys
           mountPath: /sys
-        - name: nri
-          mountPath: /var/run/nri
       volumes:
-      - name: plugins
-        hostPath:
-          path: /var/lib/kubelet/plugins
       - name: plugins-registry
         hostPath:
           path: /var/lib/kubelet/plugins_registry
+      - name: plugins
+        hostPath:
+          path: /var/lib/kubelet/plugins
       - name: cdi
         hostPath:
           path: /var/run/cdi
-          type: DirectoryOrCreate
+      - name: dev
+        hostPath:
+          path: /dev
       - name: sys
         hostPath:
           path: /sys
-      - name: nri
-        hostPath:
-          path: /var/run/nri

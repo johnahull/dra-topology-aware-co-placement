@@ -1,0 +1,52 @@
+# DRA Topology Drivers — deploy all drivers, they auto-discover available hardware.
+
+cpu:
+  enabled: true
+  image:
+    repository: ghcr.io/johnahull/dra-topology-drivers/dra-cpu-driver
+    tag: latest
+    pullPolicy: IfNotPresent
+  verbosity: 4
+  deviceMode: grouped
+
+memory:
+  enabled: true
+  image:
+    repository: ghcr.io/johnahull/dra-topology-drivers/dra-memory-driver
+    tag: latest
+    pullPolicy: IfNotPresent
+  verbosity: 4
+
+sriov:
+  enabled: true
+  image:
+    repository: ghcr.io/johnahull/dra-topology-drivers/dra-sriov-driver
+    tag: latest
+    pullPolicy: IfNotPresent
+  hostNetwork: true
+
+# NVIDIA GPU driver is typically deployed via the GPU operator or its own helm chart.
+# Set enabled=true only for standalone deployment without the GPU operator.
+gpu:
+  nvidia:
+    enabled: false
+    helmRelease: nvidia-dra
+    namespace: nvidia-dra
+    featureGates:
+      PassthroughSupport: true
+      DeviceMetadata: true
+
+# Node configurator provisions SR-IOV VFs and hugepages.
+# Runs as a privileged DaemonSet init container on each node.
+nodeConfigurator:
+  enabled: false
+  sriov: {}
+  #   enp55s0np0: 2
+  #   ens7f0np0: 2
+  hugepages: {}
+  #   2Mi: 64
+  #   1Gi: 4
+
+# DeviceClasses are created automatically for each enabled driver.
+deviceClasses:
+  create: true

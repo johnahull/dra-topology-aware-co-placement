@@ -55,10 +55,13 @@ while [[ $# -gt 0 ]]; do
             echo "  2  numaNode — GPU + CPU + Memory (3 drivers)"
             echo "  3  numaNode — GPU + NIC + CPU + Memory (4 drivers)"
             echo "  4  cpuSocketID — GPU + CPU"
-            echo "  5  pcieRoot — GPU + CPU (expected FAIL)"
-            echo "  6  enforcement:preferred — pcieRoot preferred + numaNode required"
+            echo "  5  pcieRoot — GPU + NIC (expected FAIL, different PCIe roots)"
+            echo "  6  enforcement:preferred — pcieRoot preferred + numaNode required (GPU+NIC)"
             echo "  7  enforcement:preferred — pcieRoot preferred + cpuSocketID required (4 drivers)"
             echo "  8  enforcement:preferred — full distance hierarchy"
+            echo "  9  pcieRoot — GPU + NVMe (same PCIe switch, requires NVMe driver)"
+            echo "  10 numaNode — GPU + NVMe + CPU + Memory (4 drivers)"
+            echo "  11 numaNode — GPU + NIC + NVMe + CPU + Memory (5 drivers, full stack)"
             exit 0
             ;;
         --show-slices)
@@ -330,7 +333,7 @@ spec:
           count: 1
       - name: nic
         exactly:
-          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+          deviceClassName: dra.net-sriov-vf
           count: 1
       - name: cpu
         exactly:
@@ -408,10 +411,11 @@ EOF
 )"
 fi
 
-# Test 5: pcieRoot for GPU+CPU FAILS (CPU has no pcieRoot)
+# Test 5: pcieRoot for GPU+NIC FAILS (both publish pcieRoot but on different roots)
+# GPU-0 is on pci0000:49, CX7 NIC VFs are on pci0000:36 — same NUMA node but different PCIe roots.
 if should_run 5; then
 run_test "test-pcieroot" \
-    "Test 5: pcieRoot — GPU + CPU (expected FAIL)" \
+    "Test 5: pcieRoot — GPU + NIC (expected FAIL)" \
     "fail" \
     "$(cat <<EOF
 apiVersion: resource.k8s.io/v1
@@ -426,13 +430,13 @@ spec:
         exactly:
           deviceClassName: gpu.nvidia.com
           count: 1
-      - name: cpu
+      - name: nic
         exactly:
-          deviceClassName: dra.cpu
+          deviceClassName: dra.net-sriov-vf
           count: 1
       constraints:
       - matchAttribute: resource.kubernetes.io/pcieRoot
-        requests: [gpu, cpu]
+        requests: [gpu, nic]
 ---
 apiVersion: v1
 kind: Pod
@@ -453,11 +457,12 @@ EOF
 )"
 fi
 
-# Test 6: enforcement:preferred — pcieRoot preferred, numaNode required (GPU + CPU)
-# Compare with Test 5: same pcieRoot constraint but Required fails, Preferred succeeds
+# Test 6: enforcement:preferred — pcieRoot preferred, numaNode required (GPU + NIC)
+# Compare with Test 5: same GPU+NIC pcieRoot constraint but Required fails, Preferred succeeds.
+# Proves the scheduler relaxed pcieRoot (different roots) while enforcing numaNode (same NUMA).
 if should_run 6; then
 run_test "test-preferred-pcie" \
-    "Test 6: pcieRoot preferred + numaNode (GPU+CPU)" \
+    "Test 6: pcieRoot preferred + numaNode (GPU+NIC)" \
     "pass" \
     "$(cat <<EOF
 apiVersion: resource.k8s.io/v1
@@ -472,16 +477,16 @@ spec:
         exactly:
           deviceClassName: gpu.nvidia.com
           count: 1
-      - name: cpu
+      - name: nic
         exactly:
-          deviceClassName: dra.cpu
+          deviceClassName: dra.net-sriov-vf
           count: 1
       constraints:
       - matchAttribute: resource.kubernetes.io/pcieRoot
-        requests: [gpu, cpu]
+        requests: [gpu, nic]
         enforcement: Preferred
       - matchAttribute: resource.kubernetes.io/numaNode
-        requests: [gpu, cpu]
+        requests: [gpu, nic]
 ---
 apiVersion: v1
 kind: Pod
@@ -522,7 +527,7 @@ spec:
           count: 1
       - name: nic
         exactly:
-          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+          deviceClassName: dra.net-sriov-vf
           count: 1
       - name: cpu
         exactly:
@@ -609,6 +614,159 @@ spec:
   resourceClaims:
   - name: devices
     resourceClaimTemplateName: test-hierarchy-claim
+EOF
+)"
+fi
+
+# Test 9: pcieRoot with GPU + NVMe (same PCIe switch — should PASS if NVMe driver is deployed)
+if should_run 9; then
+run_test "test-pcie-gpu-nvme" \
+    "Test 9: pcieRoot — GPU + NVMe (same switch)" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-pcie-gpu-nvme-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nvme
+        exactly:
+          deviceClassName: dra.nvme
+          selectors:
+          - cel:
+              expression: "device.attributes[\"dra.nvme\"].model != \"Dell_BOSS-N1\""
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu, nvme]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pcie-gpu-nvme
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-pcie-gpu-nvme-claim
+EOF
+)"
+fi
+
+# Test 10: numaNode with GPU + NVMe + CPU + Memory (5 drivers if NVMe deployed, else 4)
+if should_run 10; then
+run_test "test-5driver-numa" \
+    "Test 10: numaNode — GPU+NVMe+CPU+Mem (multi)" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-5driver-numa-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nvme
+        exactly:
+          deviceClassName: dra.nvme
+          selectors:
+          - cel:
+              expression: "device.attributes[\"dra.nvme\"].model != \"Dell_BOSS-N1\""
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+      constraints:
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, nvme, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-5driver-numa
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-5driver-numa-claim
+EOF
+)"
+fi
+
+# Test 11: numaNode with GPU + NIC + NVMe + CPU + Memory (5 drivers, full stack)
+if should_run 11; then
+run_test "test-fullstack" \
+    "Test 11: numaNode — 5 drivers full stack" \
+    "pass" \
+    "$(cat <<EOF
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: test-fullstack-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nic
+        exactly:
+          deviceClassName: dra.net-sriov-vf
+      - name: nvme
+        exactly:
+          deviceClassName: dra.nvme
+          selectors:
+          - cel:
+              expression: "device.attributes[\"dra.nvme\"].model != \"Dell_BOSS-N1\""
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+      - name: mem
+        exactly:
+          deviceClassName: dra.memory
+      constraints:
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, nic, nvme, cpu, mem]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-fullstack
+spec:
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "60"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: test-fullstack-claim
 EOF
 )"
 fi

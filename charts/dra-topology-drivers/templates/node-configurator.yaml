@@ -1,0 +1,88 @@
+{{- if .Values.nodeConfigurator.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-configurator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+data:
+  configure.sh: |
+    #!/bin/sh
+    set -e
+
+    {{- range $iface, $count := .Values.nodeConfigurator.sriov }}
+    echo "Configuring {{ $count }} VFs on {{ $iface }}"
+    if [ -e /host-sys/class/net/{{ $iface }}/device/sriov_numvfs ]; then
+      current=$(cat /host-sys/class/net/{{ $iface }}/device/sriov_numvfs)
+      if [ "$current" != "{{ $count }}" ]; then
+        echo {{ $count }} > /host-sys/class/net/{{ $iface }}/device/sriov_numvfs
+      fi
+    else
+      echo "WARNING: {{ $iface }} not found, skipping"
+    fi
+    {{- end }}
+
+    {{- range $size, $count := .Values.nodeConfigurator.hugepages }}
+    {{- $sizeKB := "" }}
+    {{- if eq $size "2Mi" }}{{ $sizeKB = "2048kB" }}{{ end }}
+    {{- if eq $size "1Gi" }}{{ $sizeKB = "1048576kB" }}{{ end }}
+    {{- if $sizeKB }}
+    echo "Configuring {{ $count }} x {{ $size }} hugepages per NUMA node"
+    for node in /host-sys/devices/system/node/node[0-9]*; do
+      hp_file="$node/hugepages/hugepages-{{ $sizeKB }}/nr_hugepages"
+      if [ -e "$hp_file" ]; then
+        current=$(cat "$hp_file")
+        if [ "$current" != "{{ $count }}" ]; then
+          echo {{ $count }} > "$hp_file"
+        fi
+      fi
+    done
+    {{- end }}
+    {{- end }}
+
+    echo "Node configuration complete"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-configurator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: node-configurator
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: node-configurator
+  template:
+    metadata:
+      labels:
+        app: node-configurator
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+      - operator: Exists
+      hostNetwork: true
+      initContainers:
+      - name: configure
+        image: busybox:1.37
+        command: ["sh", "/scripts/configure.sh"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        - name: host-sys
+          mountPath: /host-sys
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.10
+      volumes:
+      - name: scripts
+        configMap:
+          name: node-configurator
+      - name: host-sys
+        hostPath:
+          path: /sys
+{{- end }}

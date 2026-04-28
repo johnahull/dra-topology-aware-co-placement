@@ -1,0 +1,32 @@
+# VFIO GPU passthrough test
+# Requires: dcgm-exporter disabled (ClusterPolicy.spec.dcgmExporter.enabled=false)
+# Requires: /host-root volume mount on NVIDIA DRA kubelet-plugin (helm: featureGates.PassthroughSupport=true)
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: vfio-gpu-test-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: vfio-gpu
+        exactly:
+          deviceClassName: gpu-vfio.nvidia.com
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vfio-gpu-test
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: test
+    image: docker.io/library/alpine:latest
+    command: ["sh", "-c", "echo 'VFIO GPU bound'; ls -la /dev/vfio/; sleep 3600"]
+    resources:
+      claims:
+      - name: gpu-vfio
+  resourceClaims:
+  - name: gpu-vfio
+    resourceClaimTemplateName: vfio-gpu-test-claim

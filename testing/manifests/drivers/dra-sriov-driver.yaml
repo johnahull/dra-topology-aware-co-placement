@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: dramemory
+  name: dra-sriov
   namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: dramemory
+  name: dra-sriov
 rules:
 - apiGroups: ["resource.k8s.io"]
   resources: ["resourceslices"]
@@ -18,66 +18,59 @@ rules:
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get","list","watch"]
+- apiGroups: ["sriovnetwork.k8snetworkplumbingwg.io"]
+  resources: ["sriovresourcepolicies"]
+  verbs: ["get","list","watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: dramemory
+  name: dra-sriov
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: dramemory
+  name: dra-sriov
 subjects:
 - kind: ServiceAccount
-  name: dramemory
+  name: dra-sriov
   namespace: kube-system
 ---
 apiVersion: resource.k8s.io/v1
 kind: DeviceClass
 metadata:
-  name: dra.memory
+  name: sriovnetwork.k8snetworkplumbingwg.io
 spec:
   selectors:
   - cel:
-      expression: "device.driver == \"dra.memory\""
----
-apiVersion: resource.k8s.io/v1
-kind: DeviceClass
-metadata:
-  name: dra.hugepages-2m
-spec:
-  selectors:
-  - cel:
-      expression: "device.driver == \"dra.memory\" && device.attributes[\"dra.memory\"].hugeTLB == true && device.attributes[\"dra.memory\"].pageSize == \"2Mi\""
+      expression: "device.driver == \"sriovnetwork.k8snetworkplumbingwg.io\""
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: dramemory
+  name: dra-sriov
   namespace: kube-system
   labels:
-    app: dramemory
+    app: dra-sriov
 spec:
   selector:
     matchLabels:
-      app: dramemory
+      app: dra-sriov
   template:
     metadata:
       labels:
-        app: dramemory
+        app: dra-sriov
     spec:
       priorityClassName: system-node-critical
+      hostNetwork: true
       tolerations:
       - operator: Exists
-        effect: NoSchedule
-      serviceAccountName: dramemory
+      serviceAccountName: dra-sriov
       containers:
-      - name: dramemory
-        image: localhost/dra-memory-driver:standardized-v4
+      - name: dra-sriov
+        image: localhost/dra-sriov-driver:standardized-v3
         imagePullPolicy: Never
         args:
         - --hostname-override=$(NODE_NAME)
-        - --v=4
         env:
         - name: NODE_NAME
           valueFrom:
@@ -94,8 +87,6 @@ spec:
           mountPath: /var/run/cdi
         - name: sys
           mountPath: /sys
-        - name: nri
-          mountPath: /var/run/nri
       volumes:
       - name: plugins
         hostPath:
@@ -110,6 +101,3 @@ spec:
       - name: sys
         hostPath:
           path: /sys
-      - name: nri
-        hostPath:
-          path: /var/run/nri

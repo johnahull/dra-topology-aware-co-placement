@@ -1,0 +1,40 @@
+# GPU + NVMe on the same PCIe switch via pcieRoot matchAttribute.
+# On XE8640: GPU-0 + nvme0/nvme1 share pci0000:48, GPU-1 + nvme2/nvme4 share pci0000:59.
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: gpu-nvme-pcie-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nvme
+        exactly:
+          deviceClassName: dra.nvme
+          selectors:
+          - cel:
+              expression: "device.attributes[\"dra.nvme\"].model != \"Dell_BOSS-N1\""
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu, nvme]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-nvme-pcie-test
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "3600"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: gpu-nvme-pcie-claim

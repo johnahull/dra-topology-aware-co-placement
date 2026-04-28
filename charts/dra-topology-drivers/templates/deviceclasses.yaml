@@ -1,0 +1,63 @@
+{{- if .Values.deviceClasses.create }}
+{{- if .Values.cpu.enabled }}
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.cpu
+  labels:
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.cpu'"
+{{- end }}
+{{- if .Values.memory.enabled }}
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.memory
+  labels:
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.memory'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.hugepages-2m
+  labels:
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.memory' && device.attributes['dra.memory'].hugeTLB == true && device.attributes['dra.memory'].pageSize == '2Mi'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.hugepages-1g
+  labels:
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.memory' && device.attributes['dra.memory'].hugeTLB == true && device.attributes['dra.memory'].pageSize == '1Gi'"
+{{- end }}
+{{- if .Values.sriov.enabled }}
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: sriovnetwork.k8snetworkplumbingwg.io
+  labels:
+    {{- include "dra-topology-drivers.labels" . | nindent 4 }}
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'sriovnetwork.k8snetworkplumbingwg.io'"
+{{- end }}
+{{- end }}

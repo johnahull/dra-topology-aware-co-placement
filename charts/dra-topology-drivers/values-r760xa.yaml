@@ -1,0 +1,35 @@
+# R760xa (nvd-srv-31) — Dell PowerEdge R760xa, 2x A40, CX7+CX6Dx
+# Usage: helm install dra-drivers ./charts/dra-topology-drivers -n kube-system -f values-r760xa.yaml
+
+cpu:
+  enabled: true
+  image:
+    repository: localhost/dra-cpu-driver
+    tag: standardized
+    pullPolicy: Never
+
+memory:
+  enabled: true
+  image:
+    repository: localhost/dra-memory-driver
+    tag: standardized-v4
+    pullPolicy: Never
+
+sriov:
+  enabled: true
+  image:
+    repository: localhost/dra-sriov-driver
+    tag: standardized-v3
+    pullPolicy: Never
+
+gpu:
+  nvidia:
+    enabled: false
+
+nodeConfigurator:
+  enabled: true
+  sriov:
+    enp55s0np0: 2   # CX7 standalone, NUMA 0
+    ens7f0np0: 2     # CX6Dx, NUMA 1
+  hugepages:
+    2Mi: 64          # 64 x 2MB per NUMA node = 128Mi per node

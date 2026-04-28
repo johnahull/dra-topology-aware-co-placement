@@ -1,0 +1,42 @@
+# enforcement:preferred fallback test — GPU + NIC
+# pcieRoot Preferred relaxes when GPU and NIC are on different PCIe roots.
+# numaNode Required ensures they stay on the same NUMA node.
+# Requires: custom k8s with enforcement:preferred support (feature/enforcement-preferred)
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: preferred-fallback-claim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+      - name: nic
+        exactly:
+          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu, nic]
+        enforcement: Preferred
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [gpu, nic]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: preferred-fallback-test
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: test
+    image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+    command: ["sleep", "3600"]
+    resources:
+      claims:
+      - name: devices
+  resourceClaims:
+  - name: devices
+    resourceClaimTemplateName: preferred-fallback-claim
