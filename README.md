@@ -26,25 +26,25 @@ DRA replaces the topology manager's coordination role for these resources. Cross
 
 Each DRA driver (GPU, NIC, CPU, memory) must read and publish the physical location of every device — NUMA node, PCIe root, PCI bus address — as ResourceSlice attributes. Today each driver publishes NUMA under a different vendor-specific name. A standard `resource.kubernetes.io/numaNode` is needed so all drivers speak the same language. With that standard attribute, one `matchAttribute` constraint in the scheduler co-locates GPUs + NICs + CPUs + memory from 4 independent drivers — no middleware required.
 
-**Open issues:** U-2 (feature), D-2 (feature), D-5 (feature), D-8 (feature) — see [issues.md](docs/issues.md)
+**Issues:** U-2 (feature), D-2 (feature), D-5 (feature), D-8 (feature) — see [issues.md](docs/issues.md)
 
 ### 2. Topology distance hierarchy
 
 Not all co-location is equal. Devices can share a PCIe switch (tightest), a NUMA node (local), or a CPU socket (loosest). The scheduler needs a fallback chain — prefer the tightest coupling available, relax when hardware doesn't support it. This requires an `enforcement: Preferred` capability in the scheduler.
 
-**Open issues:** U-1 (feature), U-3 (feature) — see [issues.md](docs/issues.md)
+**Issues:** U-1 (feature), U-3 (feature) — see [issues.md](docs/issues.md)
 
 ### 3. DRA-aware CPU pinning (kubelet)
 
 DRA scheduling (steps 1-2) co-places devices at the scheduler level, but the kubelet's CPU manager pins vCPUs independently — it has no awareness of DRA device placement. The kubelet needs DRA topology hints so the topology manager can align CPU pinning with the NUMA node where DRA allocated the GPU, NIC, and other devices. Without this, a GPU on NUMA 0 and CPUs on NUMA 1 means cross-NUMA memory access for every GPU operation.
 
-**Open issues:** K-1 (feature), K-2 (bug), K-3 (bug) — see [issues.md](docs/issues.md)
+**Issues:** K-1 (feature), K-2 (bug), K-3 (bug) — see [issues.md](docs/issues.md)
 
 ### 4. Machine partitioning *(nice-to-have)*
 
 Users should be able to request "a slice of the machine" (e.g., one-eighth) rather than manually specifying 4 drivers, their counts, and constraints. A topology coordinator controller creates partition DeviceClasses and a webhook expands simple claims into multi-driver NUMA-aligned requests. This is most useful for symmetric configurations where the machine can be evenly divided into identical partitions. This is a usability improvement — steps 1-2 provide the core alignment capability without it.
 
-**Open issues:** TC-1 (bug), TC-2 (bug) — see [issues.md](docs/issues.md)
+**Issues:** TC-1 (bug), TC-2 (bug) — see [issues.md](docs/issues.md)
 
 ### 5. VFIO device passthrough via DRA *(KubeVirt)*
 
@@ -52,19 +52,19 @@ VMs receive devices via VFIO passthrough, not sharing. DRA drivers must manage t
 
 The [NVMe DRA driver](https://github.com/johnahull/dra-driver-nvme) supports both block and VFIO modes with topology attributes.
 
-**Open issues:** D-4 (feature), D-6 (feature) — see [issues.md](docs/issues.md)
+**Issues:** D-4 (feature), D-6 (feature) — see [issues.md](docs/issues.md)
 
 ### 6. Device metadata (KEP-5304) *(KubeVirt)*
 
 The KubeVirt virt-launcher needs to know each device's PCI address and NUMA node to configure the VM. KEP-5304 (native in K8s 1.36) is a downward API for DRA devices — it lets DRA drivers attach metadata (key-value attributes) to allocated devices and projects them into the pod as files. When a device is prepared, the driver publishes attributes like PCI address and NUMA node. The kubelet writes these as JSON files and mounts them into the pod at a well-known path. Virt-launcher reads the PCI address to create VFIO passthrough entries in the VM's domain XML, and reads the NUMA node to place each device on the correct guest NUMA node.
 
-**Open issues:** K-4 (bug), D-1 (feature), D-3 (feature), D-7 (feature) — see [issues.md](docs/issues.md)
+**Issues:** K-4 (bug), D-1 (feature), D-3 (feature), D-7 (feature) — see [issues.md](docs/issues.md)
 
 ### 7. Guest NUMA topology *(KubeVirt)*
 
 The virt-launcher must read the device metadata (step 5) and create matching guest NUMA topology. This means building `pxb-pcie` expander buses on the correct guest NUMA nodes (VEP 115) and mapping host NUMA IDs to guest cell IDs.
 
-**Open issues:** KV-5 (feature), KV-6 (bug), KV-7 (feature) — see [issues.md](docs/issues.md)
+**Issues:** KV-5 (feature), KV-6 (bug), KV-7 (feature) — see [issues.md](docs/issues.md)
 
 ## Current State
 
