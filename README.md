@@ -81,7 +81,24 @@ The virt-launcher must read the device metadata (step 5) and create matching gue
 
 ## Current State
 
-All 6 steps have been proven end-to-end on real hardware (Dell XE9680 with AMD MI300X and Dell R760xa with NVIDIA A40) with local patches as a POC.
+All 6 steps have been proven end-to-end on real hardware with local patches as a POC:
+
+- **Dell R760xa** (NVIDIA A40) — active test system. DRA topology hints in kubelet, `guestMappingPassthrough` working, dranet NIC driver, all DRA. VM running with GPU VFIO + dedicated CPUs pinned to NUMA 0 via DRA topology hints.
+- **Dell XE9680** (AMD MI300X) — original test system. 8-GPU topology coordinator tests, SNC on/off comparison, multi-NUMA VMs.
+- **Dell XE8640** (NVIDIA H100) — down (filesystem issues).
+
+### DRA-Aware CPU Pinning (kubelet)
+
+The custom kubelet on `johnahull/kubernetes` branch `feature/enforcement-preferred` adds DRA topology hints and fixes three CPU manager bugs. This enables the kubelet's topology manager to pin vCPUs to the same NUMA node as DRA-allocated devices — the critical link between DRA scheduling and host CPU placement.
+
+See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for complete build and deployment instructions.
+
+| Fix | File | Description |
+|-----|------|-------------|
+| DRA topology hints | `pkg/kubelet/cm/dra/topology_hints.go` | DRA Manager implements `topologymanager.HintProvider`; reads `numaNode` from ResourceSlice for each allocated device |
+| Node Authorizer field selector | `pkg/kubelet/cm/dra/topology_hints.go` | `ResourceSlices().List()` requires `spec.nodeName` field selector |
+| CPU manager reconciler race | `pkg/kubelet/cm/cpumanager/cpu_manager.go` | `AddContainer` calls `updateContainerCPUSet` immediately instead of relying on async reconciler |
+| CPU manager cpuset timing | `pkg/kubelet/cm/cpumanager/cpu_manager.go` | Ensures cgroup cpuset is correct before container process starts |
 
 ## Fixed Upstream
 
@@ -92,12 +109,26 @@ Items that were originally gaps but have since been addressed in upstream repos:
 | AMD GPU DRA driver publishes standard `resource.kubernetes.io/pciBusID` | `ROCm/k8s-gpu-dra-driver` main | Was using vendor-specific `pciAddr`; now uses upstream `deviceattribute.GetPCIBusIDAttribute()` |
 | AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Was missing for full GPUs and partitions; now published for both (vendor-specific `gpu.amd.com/numaNode`) |
 | AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu; `prepareDevices()` skips other drivers' results |
+| NVIDIA GPU DRA driver VFIO /host-root mount validation | [kubernetes-sigs/dra-driver-nvidia-gpu#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at startup; improve VFIO bind error messages (ref: #1076) |
 | KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation for DRA-allocated devices |
 | Kubelet multi-driver KEP-5304 metadata injection | `kubernetes/kubernetes` master | Needs retest — code structure now aggregates CDI IDs from all drivers per claim |
 
 ## Testing
 
-Tested on Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM) with K8s 1.36.0-rc.0, Fedora 43.
+### Dell R760xa (NVIDIA, active)
+
+2-socket Intel Xeon Gold 6548Y+, 2x NVIDIA A40, ConnectX-7 NICs with SR-IOV, 128 threads. K8s custom v1.37.0-alpha (enforcement:preferred + DRA topology hints). Fedora 43.
+
+| Test | Result |
+|------|--------|
+| 4-driver pod (GPU+NIC+CPU+memory, NUMA-aligned) | Running — CPUs 4,6,68,70 pinned to NUMA 0 via DRA topology hints |
+| KubeVirt VM with `guestMappingPassthrough` | Running — A40 GPU VFIO, dedicated CPUs on NUMA 0, guest sees 1 socket/1 NUMA, hugepages bound to NUMA 0 |
+| DRA topology hints | Working — kubelet reads `numaNode` from ResourceSlice, topology manager aligns CPU pinning |
+| dranet NIC driver | Working — replaced SR-IOV DRA driver, publishes standardized topology attrs |
+
+### Dell XE9680 (AMD)
+
+2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM. K8s 1.36.0-rc.0, Fedora 43.
 
 | Test | Result |
 |------|--------|
@@ -115,6 +146,7 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 
 | Document | Description |
 |----------|-------------|
+| [Setup Guide](docs/dra-topology-aware-vm-setup.md) | End-to-end setup: kubelet build, DRA drivers, KubeVirt config, VM creation |
 | [Full Technical Document](docs/path-to-topology-aware-vms.md) | Detailed 6-step breakdown with YAML examples, test evidence, and code references |
 | [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems |
 | [Topology Use Cases](docs/topology-use-cases.md) | AI workloads mapped to each distance level: pcieRoot, numaNode, socket, node |

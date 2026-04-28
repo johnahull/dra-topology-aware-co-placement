@@ -453,7 +453,10 @@ From driver discovery to guest NUMA topology, the complete data flow:
 
 ## Current State
 
-All 6 steps have been proven end-to-end on real hardware (Dell XE9680 with AMD MI300X and Dell R760xa with NVIDIA A40) with local patches as a POC.
+All 6 steps have been proven end-to-end on real hardware with local patches:
+
+- **Dell R760xa** (active, 2026-04-28): KubeVirt VM running with `guestMappingPassthrough`, GPU VFIO passthrough, and DRA-aware CPU pinning. The kubelet's DRA Manager implements `topologymanager.HintProvider` — reads `resource.kubernetes.io/numaNode` from ResourceSlice device attributes, returns NUMA topology hints, and the CPU manager pins vCPUs to the same NUMA node as the DRA-allocated GPU. Guest sees correct single-NUMA topology with A40 GPU at 0000:09:00.0. All devices allocated via DRA (GPU, NIC via dranet, CPU, memory). See [Setup Guide](dra-topology-aware-vm-setup.md).
+- **Dell XE9680** (2026-04-24): 8-GPU topology coordinator tests, SNC on/off comparison, multi-NUMA VMs with AMD MI300X. Original proof-of-concept system.
 
 ---
 
