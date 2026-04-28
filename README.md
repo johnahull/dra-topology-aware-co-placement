@@ -70,14 +70,7 @@ All 6 steps have been proven end-to-end on real hardware with local patches as a
 
 The custom kubelet on `johnahull/kubernetes` branch `feature/enforcement-preferred` adds DRA topology hints and fixes three CPU manager bugs. This enables the kubelet's topology manager to pin vCPUs to the same NUMA node as DRA-allocated devices — the critical link between DRA scheduling and host CPU placement.
 
-See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for complete build and deployment instructions.
-
-| Fix | File | Description |
-|-----|------|-------------|
-| DRA topology hints | `pkg/kubelet/cm/dra/topology_hints.go` | DRA Manager implements `topologymanager.HintProvider`; reads `numaNode` from ResourceSlice for each allocated device |
-| Node Authorizer field selector | `pkg/kubelet/cm/dra/topology_hints.go` | `ResourceSlices().List()` requires `spec.nodeName` field selector |
-| CPU manager reconciler race | `pkg/kubelet/cm/cpumanager/cpu_manager.go` | `AddContainer` calls `updateContainerCPUSet` immediately instead of relying on async reconciler |
-| CPU manager cpuset timing | `pkg/kubelet/cm/cpumanager/cpu_manager.go` | Ensures cgroup cpuset is correct before container process starts |
+**Open issues:** [K-1](docs/issues.md#k-1-dra-topology-hints--kubelet-doesnt-provide-numa-hints-for-dra-devices), [K-2](docs/issues.md#k-2-cpu-manager-reconciler-never-corrects-cgroup-cpuset-mismatches), [K-3](docs/issues.md#k-3-cpu-manager-cpuset-not-applied-before-container-starts). See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for build and deployment.
 
 All open and closed issues are tracked in [issues.md](docs/issues.md).
 
