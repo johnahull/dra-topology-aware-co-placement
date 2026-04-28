@@ -79,18 +79,7 @@ See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for complete build and de
 | CPU manager reconciler race | `pkg/kubelet/cm/cpumanager/cpu_manager.go` | `AddContainer` calls `updateContainerCPUSet` immediately instead of relying on async reconciler |
 | CPU manager cpuset timing | `pkg/kubelet/cm/cpumanager/cpu_manager.go` | Ensures cgroup cpuset is correct before container process starts |
 
-## Fixed Upstream
-
-Items that were originally gaps but have since been addressed in upstream repos:
-
-| Item | Fixed In | Notes |
-|------|----------|-------|
-| AMD GPU DRA driver publishes standard `resource.kubernetes.io/pciBusID` | `ROCm/k8s-gpu-dra-driver` main | Was using vendor-specific `pciAddr`; now uses upstream `deviceattribute.GetPCIBusIDAttribute()` |
-| AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Was missing for full GPUs and partitions; now published for both (vendor-specific `gpu.amd.com/numaNode`) |
-| AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu; `prepareDevices()` skips other drivers' results |
-| NVIDIA GPU DRA driver VFIO /host-root mount validation | [kubernetes-sigs/dra-driver-nvidia-gpu#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at startup; improve VFIO bind error messages (ref: #1076) |
-| KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation for DRA-allocated devices |
-| Kubelet multi-driver KEP-5304 metadata injection | `kubernetes/kubernetes` master | Needs retest — code structure now aggregates CDI IDs from all drivers per claim |
+All open and closed issues are tracked in [issues.md](docs/issues.md).
 
 ## Testing
 
