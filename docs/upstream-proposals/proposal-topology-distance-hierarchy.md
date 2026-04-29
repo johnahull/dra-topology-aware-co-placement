@@ -57,7 +57,7 @@ Note: today `matchAttribute` has no `enforcement` field — constraints are alwa
 - **Dell R760xa** (2x NVIDIA A40, ConnectX-7/CX-6 Dx/BlueField-3, K8s 1.37-alpha): Every PCIe slot has its own root port — no two devices share a root. `matchAttribute: pcieRoot` is unsatisfiable for any GPU+NIC pair. Without `enforcement: preferred`, a user writing a `pcieRoot` constraint would get a failed claim. With the distance hierarchy, the scheduler relaxes `pcieRoot` and falls through to `numaNode`, which pairs both GPUs with the ConnectX-7 on NUMA 0. This system demonstrates why `enforcement: preferred` is essential — not just an optimization, but a correctness requirement on hardware where `pcieRoot` doesn't group cross-device-type pairs.
 
 Details: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/upstream-proposals/standardize-numanode-and-socket.md
-Diagrams: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/diagrams/topology-distance-hierarchy.md
+Diagrams: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/diagrams/topology-xe9680.md
 
 ---
 
