@@ -1,6 +1,6 @@
 # Topology Distance Hierarchy: AI Use Cases
 
-> **TL;DR:** Different AI workloads need different levels of device co-placement. The topology distance hierarchy (pcieRoot → numaNode → socket → node) lets users choose the right trade-off: tight coupling = best performance but fewer GPUs qualify; local/near coupling = all GPUs available but slightly higher DMA latency.
+> **TL;DR:** Different AI workloads need different levels of device co-placement. The two levels that matter are `pcieRoot` (same PCIe switch — tightest, used for NCCL proxy selection) and `numaNode` (same memory controller — the critical co-placement boundary). `enforcement: preferred` on `pcieRoot` with `numaNode` as required gives the best coupling available on any hardware.
 
 All examples use a Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM) and Dell XE8640 (2-socket Intel Xeon 6448Y, 4x NVIDIA H100 SXM5 GPUs, ConnectX-6 Dx + E810 NICs).
 
@@ -174,51 +174,7 @@ constraints:
 
 ---
 
-## Level 3: cpuSocketID — Safety Net for SNC/NPS Hardware
-
-**Constraint:** GPU and NIC on the same physical CPU package
-**DMA path:** may cross sub-NUMA boundary within the socket, but no inter-socket link
-
-### Use Case
-
-`cpuSocketID` is a safety net, not a recommended deployment pattern. GPU servers typically run with SNC/NPS off — GPU workloads don't benefit from finer CPU-side NUMA granularity since GPUs have their own HBM memory. The XE9680 and XE8640 both ship with SNC off by default.
-
-However, if SNC/NPS is enabled (e.g., the server also runs CPU-bound workloads alongside GPU workloads), it can create NUMA nodes without NICs. On the XE9680 with SNC-2, NUMA 1 and 3 have GPUs but no NICs. A hard `numaNode` constraint would leave those 4 GPUs unusable.
-
-`cpuSocketID` as the floor of the distance hierarchy prevents this failure. The scheduler tries `numaNode` first (preferred), and falls back to `cpuSocketID` (required) when a NUMA node lacks the required device types. The sub-NUMA DMA penalty within a socket is small (NUMA distance 12 vs 10).
-
-### XE9680 (SNC on, 4 NUMA nodes)
-
-| Socket | NUMA | GPUs | NIC | Cross sub-NUMA? |
-|--------|------|------|-----|-----------------|
-| 0 | 0 | 2 (1b, 5f) | 2 (1d:00.0, 1d:00.1) | No |
-| 0 | 1 | 2 (3d, 4e) | — | Yes (NIC on NUMA 0) |
-| 1 | 2 | 2 (9d, dd) | 2 (9f:00.0, 9f:00.1) | No |
-| 1 | 3 | 2 (bd, cd) | — | Yes (NIC on NUMA 2) |
-
-**Yield: 8 of 8 GPUs (100%)** — `numaNode` alone would only yield 4 (NUMA 0 and 2).
-
-### When this matters
-
-- Shared servers running both GPU and CPU workloads where SNC/NPS is enabled for the CPU workloads
-- Hardware that ships with SNC/NPS on by default (some HPC configurations)
-- Any environment where you can't control the BIOS SNC/NPS setting
-
-### Claim
-
-```yaml
-constraints:
-- matchAttribute: resource.kubernetes.io/numaNode
-  requests: [gpu, nic, cpu, mem]
-  enforcement: preferred          # try NUMA first
-- matchAttribute: resource.kubernetes.io/cpuSocketID
-  requests: [gpu, nic, cpu, mem]
-  enforcement: required           # fall back to socket if NUMA too restrictive
-```
-
----
-
-## Level 4: node — Batch Processing, No Topology Constraint
+## Level 3: node — Batch Processing, No Topology Constraint
 
 **Constraint:** none (same machine only)
 **DMA path:** may cross inter-socket link (UPI/xGMI)
@@ -246,7 +202,7 @@ constraints: []
 
 ---
 
-## Level 5: KubeVirt VM — Full Topology in Guest
+## Level 4: KubeVirt VM — Full Topology in Guest
 
 **Constraint:** same as levels 1-3, plus guest NUMA topology must reflect host placement
 **DMA path:** same as the pod-level constraint, with VEP 115 pxb-pcie placement in the guest
@@ -332,19 +288,22 @@ spec:
 
 ### Trade-off
 
-VFIO passthrough gives near-native GPU performance in the VM, but adds complexity: IOMMU groups, locked memory, ACPI configuration, and the full KEP-5304 → VEP 115 chain. The overhead is only justified when the workload requires VM-level isolation — for workloads that can run in pods, skip straight to levels 1-4.
+VFIO passthrough gives near-native GPU performance in the VM, but adds complexity: IOMMU groups, locked memory, ACPI configuration, and the full KEP-5304 → VEP 115 chain. The overhead is only justified when the workload requires VM-level isolation — for workloads that can run in pods, skip straight to levels 1-3.
 
 ---
 
 ## Summary
 
-| Level | Constraint | AI Use Case | NIC pattern | Yield (SNC off) | Yield (SNC on) |
-|-------|-----------|-------------|-------------|-----------------|----------------|
-| pcieRoot | Same switch | NCCL proxy GPU + NIC, ultra-low-latency inference | 1 NIC with proxy GPU | 2 of 8 (25%) | 2 of 8 (25%) |
-| numaNode | Same memory controller | Training (1 shared NIC), multi-tenant inference (1 VF per GPU), single-GPU serving | Training: 1 NIC shared. Inference: 1 VF per pod | 8 of 8 (100%) | 4 of 8 (50%) |
-| cpuSocketID | Same package | Dense inference on SNC/NPS hardware | 8 inference pods on SNC-2 | 8 of 8 (100%) | 8 of 8 (100%) |
-| node | None | Batch processing | Nightly image processing | 8 of 8 (100%) | 8 of 8 (100%) |
-| VM (single-NUMA) | numaNode + VEP 115 | Isolated inference (multi-tenancy, driver isolation) | 1-2 GPUs + NIC, single NUMA | Same as numaNode | Same as numaNode |
-| VM (multi-NUMA) | numaNode + VEP 115 | Full-node training, multi-socket VM | All GPUs, spans sockets | All GPUs | All GPUs |
+| Level | Constraint | AI Use Case | NIC pattern | Yield (SNC off) |
+|-------|-----------|-------------|-------------|-----------------|
+| pcieRoot | Same switch | NCCL proxy GPU + NIC, ultra-low-latency inference | 1 NIC with proxy GPU | 2 of 8 (25%) |
+| numaNode | Same memory controller | Training (1 shared NIC), multi-tenant inference (1 VF per GPU), single-GPU serving | Training: 1 NIC shared. Inference: 1 VF per pod | 8 of 8 (100%) |
+| node | None | Batch processing | Any | 8 of 8 (100%) |
+| VM (single-NUMA) | numaNode + VEP 115 | Isolated inference (multi-tenancy, driver isolation) | 1-2 GPUs + NIC, single NUMA | Same as numaNode |
+| VM (multi-NUMA) | numaNode + VEP 115 | Full-node training, multi-socket VM | All GPUs, spans sockets | All GPUs |
 
-The distance hierarchy lets users choose the right trade-off. `enforcement: preferred` enables the fallback chain: try pcieRoot, fall back to numaNode, floor at cpuSocketID.
+The recommended constraint for most workloads: `pcieRoot` as `enforcement: preferred`, `numaNode` as `enforcement: required`. The scheduler gets the tightest coupling available, and never places devices cross-NUMA.
+
+### Note on cpuSocketID
+
+`cpuSocketID` is an optional attribute that could serve as a fallback on SNC/NPS hardware where `numaNode` is too restrictive (some NUMA nodes have GPUs but no NICs). However, GPU servers typically run with SNC/NPS off, and the right answer for GPU workloads is usually to disable SNC rather than add a scheduler fallback. It is not included in the core proposal but drivers can publish it if needed for specific deployments.
