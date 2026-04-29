@@ -149,28 +149,44 @@ graph TD
     subgraph "Socket 0"
         subgraph "NUMA 0"
             subgraph "PCIe Root pci0000:15"
+                S_SW0["PEX890xx Switch (4 slots)"]
                 S_GPU0["GPU 1b"]
-                S_NIC0["NIC 1d"]
-                S_SW0["PCIe Switch"]
+                S_NIC0["NIC 1d (CX-6 Dx)"]
+                S_NVMe0["NVMe 18"]
+                S_E0["1 empty"]
                 S_GPU0 --- S_SW0
                 S_NIC0 --- S_SW0
+                S_NVMe0 --- S_SW0
+                S_SW0 -.- S_E0
             end
             subgraph "PCIe Root pci0000:59"
+                S_SW3["PEX890xx Switch (3 slots)"]
                 S_GPU3["GPU 5f"]
-                S_SW3["PCIe Switch"]
+                S_NVMe3["NVMe 5c"]
+                S_E3["1 empty"]
                 S_GPU3 --- S_SW3
+                S_NVMe3 --- S_SW3
+                S_SW3 -.- S_E3
             end
         end
         subgraph "NUMA 1 (no NIC)"
             subgraph "PCIe Root pci0000:37"
+                S_SW1["PEX890xx Switch (3 slots)"]
                 S_GPU1["GPU 3d"]
-                S_SW1["PCIe Switch"]
+                S_NVMe1["NVMe 3a"]
+                S_E1["1 empty"]
                 S_GPU1 --- S_SW1
+                S_NVMe1 --- S_SW1
+                S_SW1 -.- S_E1
             end
             subgraph "PCIe Root pci0000:48"
+                S_SW2["PEX890xx Switch (3 slots)"]
                 S_GPU2["GPU 4e"]
-                S_SW2["PCIe Switch"]
+                S_NVMe2["NVMe 4b"]
+                S_E2["1 empty"]
                 S_GPU2 --- S_SW2
+                S_NVMe2 --- S_SW2
+                S_SW2 -.- S_E2
             end
         end
         S_RC0["Root Complex 0"]
@@ -183,28 +199,44 @@ graph TD
     subgraph "Socket 1"
         subgraph "NUMA 2"
             subgraph "PCIe Root pci0000:97"
+                S_SW4["PEX890xx Switch (4 slots)"]
                 S_GPU4["GPU 9d"]
-                S_NIC1["NIC 9f"]
-                S_SW4["PCIe Switch"]
+                S_NIC1["NIC 9f (CX-6 Dx)"]
+                S_E4a["1 empty"]
+                S_E4b["1 empty (no NVMe)"]
                 S_GPU4 --- S_SW4
                 S_NIC1 --- S_SW4
+                S_SW4 -.- S_E4a
+                S_SW4 -.- S_E4b
             end
             subgraph "PCIe Root pci0000:d7"
+                S_SW7["PEX890xx Switch (3 slots)"]
                 S_GPU7["GPU dd"]
-                S_SW7["PCIe Switch"]
+                S_E7a["1 empty"]
+                S_E7b["1 empty (no NVMe)"]
                 S_GPU7 --- S_SW7
+                S_SW7 -.- S_E7a
+                S_SW7 -.- S_E7b
             end
         end
         subgraph "NUMA 3 (no NIC)"
             subgraph "PCIe Root pci0000:b7"
+                S_SW5["PEX890xx Switch (3 slots)"]
                 S_GPU5["GPU bd"]
-                S_SW5["PCIe Switch"]
+                S_E5a["1 empty"]
+                S_E5b["1 empty (no NVMe)"]
                 S_GPU5 --- S_SW5
+                S_SW5 -.- S_E5a
+                S_SW5 -.- S_E5b
             end
             subgraph "PCIe Root pci0000:c7"
+                S_SW6["PEX890xx Switch (3 slots)"]
                 S_GPU6["GPU cd"]
-                S_SW6["PCIe Switch"]
+                S_E6a["1 empty"]
+                S_E6b["1 empty (no NVMe)"]
                 S_GPU6 --- S_SW6
+                S_SW6 -.- S_E6a
+                S_SW6 -.- S_E6b
             end
         end
         S_RC1["Root Complex 1"]
@@ -220,14 +252,30 @@ graph TD
 
     style S_GPU0 fill:#2a6,color:#fff
     style S_NIC0 fill:#2a6,color:#fff
+    style S_NVMe0 fill:#49a,color:#fff
     style S_GPU3 fill:#49a,color:#fff
+    style S_NVMe3 fill:#49a,color:#fff
     style S_GPU1 fill:#f44,color:#fff
+    style S_NVMe1 fill:#f44,color:#fff
     style S_GPU2 fill:#f44,color:#fff
+    style S_NVMe2 fill:#f44,color:#fff
     style S_GPU4 fill:#2a6,color:#fff
     style S_NIC1 fill:#2a6,color:#fff
     style S_GPU7 fill:#49a,color:#fff
     style S_GPU5 fill:#f44,color:#fff
     style S_GPU6 fill:#f44,color:#fff
+    style S_E0 fill:#333,color:#999,stroke-dasharray: 5
+    style S_E1 fill:#333,color:#999,stroke-dasharray: 5
+    style S_E2 fill:#333,color:#999,stroke-dasharray: 5
+    style S_E3 fill:#333,color:#999,stroke-dasharray: 5
+    style S_E4a fill:#333,color:#999,stroke-dasharray: 5
+    style S_E4b fill:#333,color:#999,stroke-dasharray: 5
+    style S_E5a fill:#333,color:#999,stroke-dasharray: 5
+    style S_E5b fill:#333,color:#999,stroke-dasharray: 5
+    style S_E6a fill:#333,color:#999,stroke-dasharray: 5
+    style S_E6b fill:#333,color:#999,stroke-dasharray: 5
+    style S_E7a fill:#333,color:#999,stroke-dasharray: 5
+    style S_E7b fill:#333,color:#999,stroke-dasharray: 5
     style S_UPI fill:#f44,color:#fff
 ```
 
