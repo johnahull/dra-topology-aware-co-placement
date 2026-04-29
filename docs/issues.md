@@ -371,3 +371,20 @@ Observed on XE8640 with H100 SXM5 GPUs. Not observed on R760xa with A40 GPUs (po
 
 Correct fix: narrow the lock scope to exclude `WaitForGPUFree`, or use a per-claim lock instead of a global lock, or increase the timeout.
 
+
+#### D-11: NVIDIA driver sysfs unbind blocks indefinitely on H100 SXM5
+
+**Repo:** NVIDIA kernel driver (upstream kernel/driver bug)
+**Fix:** Not fixable in DRA driver. Workaround: use `drivers_probe` instead of explicit unbind, or run unbind asynchronously with timeout.
+
+Writing to `/sys/bus/pci/drivers/nvidia/unbind` on H100 SXM5 GPUs blocks indefinitely in the kernel. The nvidia driver's unbind path involves NVLink fabric reconfiguration which can deadlock when multiple GPUs are involved or when the NVSwitch topology is active.
+
+This causes the NVIDIA DRA driver's VFIO bind to hang — the `unbind_from_driver.sh` script or our Go `changeDriver()` function writes to the unbind sysfs file and never returns. Any process that holds a file descriptor on the unbind file enters D-state (uninterruptible sleep) and can only be cleared by a reboot.
+
+Observed on XE8640 with 4x H100 SXM5 + NVLink + NVSwitch, Fedora 44, nvidia driver 595.58. Not observed on R760xa with 2x A40 (discrete GPUs without NVLink).
+
+Possible workarounds:
+- Use `driver_override` + `drivers_probe` to trigger automatic rebind (implemented in our fork but the unbind still hangs when the current driver needs to release the device)
+- Disable NVLink/NVSwitch before unbinding (nvidia-smi --nvlink-status=disabled)
+- Use IOMMUFD instead of legacy VFIO (avoids the unbind entirely on newer kernels with IOMMUFD support)
+
