@@ -214,7 +214,7 @@ The fork adds all four standardized attributes to every discovered NIC device, a
 
 The DRA scheduler's `matchAttribute` constraint is all-or-nothing — if the constraint can't be satisfied, the pod is unschedulable. On hardware where not all devices share a PCIe root (e.g., R760xa where every device has its own root), a `matchAttribute: resource.kubernetes.io/pcieRoot` constraint is unsatisfiable. Users need a way to express "prefer tight coupling but accept looser coupling."
 
-The fix adds an `Enforcement` field to `DeviceConstraint` with two values: `Required` (default, current behavior) and `Preferred` (skip if unsatisfiable). This enables a distance hierarchy: prefer `pcieRoot` (tightest), fall back to `numaNode`, require `cpuSocketID` (loosest floor).
+The fix adds an `Enforcement` field to `DeviceConstraint` with two values: `Required` (default, current behavior) and `Preferred` (skip if unsatisfiable). This enables a two-level hierarchy: prefer `pcieRoot` (same switch), require `numaNode` (same memory controller).
 
 Three commits implement this:
 1. API type + validation + protobuf + OpenAPI generation
@@ -225,14 +225,14 @@ All five Kubernetes binaries (apiserver, scheduler, controller-manager, kubelet,
 
 ---
 
-#### U-2: Standardized `resource.kubernetes.io/numaNode` and `cpuSocketID` not agreed
+#### U-2: Standardized `resource.kubernetes.io/numaNode` not agreed
 
 **Repo:** `kubernetes/kubernetes`
 **Fix:** [Proposal](docs/upstream-proposals/standardize-numanode.md). Discussed in SIG-Node.
 
 Each DRA driver publishes NUMA information under its own vendor-specific attribute name (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`, etc.). For cross-driver `matchAttribute` constraints to work, all drivers must use the same attribute name.
 
-The proposal recommends `resource.kubernetes.io/numaNode` (int) and `resource.kubernetes.io/cpuSocketID` (int) as standardized attributes, with helper functions in the `deviceattribute` library to derive values from sysfs. The `resource.kubernetes.io/` prefix signals that these are well-known attributes with defined semantics, not vendor-specific data.
+The proposal recommends `resource.kubernetes.io/numaNode` (int) as a standardized attribute, with a helper function in the `deviceattribute` library to derive the value from sysfs. The `resource.kubernetes.io/` prefix signals that this is a well-known attribute with defined semantics, not vendor-specific data. `cpuSocketID` is not part of the core proposal — it can be published by drivers independently if needed.
 
 Until this is agreed upstream, each driver fork publishes both the vendor-specific and standardized attributes.
 

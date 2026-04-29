@@ -4,7 +4,7 @@
 
 ## Goal
 
-Use DRA to co-place devices (GPUs, NICs, CPUs, memory) in KubeVirt VMs with full topology — so that devices on the same NUMA node, socket, or PCIe root on the host are reflected with matching topology inside the guest VM.
+Use DRA to co-place devices (GPUs, NICs, CPUs, memory) in KubeVirt VMs with full topology — so that devices on the same NUMA node or PCIe root on the host are reflected with matching topology inside the guest VM.
 
 ## Why
 
@@ -26,11 +26,11 @@ DRA replaces the topology manager's coordination role for these resources. Cross
 
 Each DRA driver (GPU, NIC, CPU, memory) must read and publish the physical location of every device — NUMA node, PCIe root, PCI bus address — as ResourceSlice attributes. Today each driver publishes NUMA under a different vendor-specific name. A standard `resource.kubernetes.io/numaNode` is needed so all drivers speak the same language. With that standard attribute, one `matchAttribute` constraint in the scheduler co-locates GPUs + NICs + CPUs + memory from 4 independent drivers — no middleware required.
 
-**Issues:** [U-2](docs/issues.md#u-2-standardized-resourcekubernetesionumanode-and-cpusocketid-not-agreed) (feature), [D-2](docs/issues.md#d-2-nvidia-gpu-dra-driver-numanode-not-published-for-standard-gpu-devices) (feature), [D-5](docs/issues.md#d-5-dranet-standardized-topology-attributes-not-upstream) (feature), [D-8](docs/issues.md#d-8-amd-gpu-dra-driver-numanode-attribute-not-standardized) (feature)
+**Issues:** [U-2](docs/issues.md#u-2-standardized-resourcekubernetesionumanode-not-agreed) (feature), [D-2](docs/issues.md#d-2-nvidia-gpu-dra-driver-numanode-not-published-for-standard-gpu-devices) (feature), [D-5](docs/issues.md#d-5-dranet-standardized-topology-attributes-not-upstream) (feature), [D-8](docs/issues.md#d-8-amd-gpu-dra-driver-numanode-attribute-not-standardized) (feature)
 
 ### 2. Topology distance hierarchy
 
-Not all co-location is equal. Devices can share a PCIe switch (tightest), a NUMA node (local), or a CPU socket (loosest). The scheduler needs a fallback chain — prefer the tightest coupling available, relax when hardware doesn't support it. This requires an `enforcement: Preferred` capability in the scheduler.
+Not all co-location is equal. Devices can share a PCIe switch (tightest) or a NUMA node (local). The scheduler needs a fallback: prefer `pcieRoot` (same switch), require `numaNode` (same memory controller). This requires an `enforcement: Preferred` capability in the scheduler.
 
 **Issues:** [U-1](docs/issues.md#u-1-enforcement-preferred-not-in-upstream-api) (feature), [U-3](docs/issues.md#u-3-deviceattribute-library-getpcierootattributemapfromcpuid-helper) (feature)
 
@@ -111,7 +111,7 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 |----------|-------------|
 | [Setup Guide](docs/dra-topology-aware-vm-setup.md) | End-to-end setup: kubelet build, DRA drivers, KubeVirt config, VM creation |
 | [Full Technical Document](docs/path-to-topology-aware-vms.md) | Detailed 6-step breakdown with YAML examples, test evidence, and code references |
-| [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot vs cpuSocketNumber debate, SNC/NPS problems |
+| [Topology Attribute Debate](docs/topology-attribute-debate.md) | Upstream numaNode vs pcieRoot debate, SNC/NPS analysis |
 | [Topology Use Cases](docs/topology-use-cases.md) | AI workloads mapped to each distance level: pcieRoot, numaNode, socket, node |
 | [Topology Coordinator Design](docs/topology-coordinator.md) | Partition abstraction, webhook expansion, distance-based fallback |
 | [Patched Repos](docs/patched-repos.md) | All forks, branches, and descriptions |

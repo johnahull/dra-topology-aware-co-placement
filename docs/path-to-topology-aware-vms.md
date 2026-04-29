@@ -8,7 +8,7 @@
 
 ## Goal
 
-Use DRA to co-place devices (GPUs, NICs, CPUs, memory) in KubeVirt VMs with full topology — so that devices on the same NUMA node, socket, or PCIe root on the host are reflected with matching topology inside the guest VM.
+Use DRA to co-place devices (GPUs, NICs, CPUs, memory) in KubeVirt VMs with full topology — so that devices on the same NUMA node or PCIe root on the host are reflected with matching topology inside the guest VM.
 
 ## Why
 
