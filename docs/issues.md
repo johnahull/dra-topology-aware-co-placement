@@ -228,7 +228,7 @@ All five Kubernetes binaries (apiserver, scheduler, controller-manager, kubelet,
 #### U-2: Standardized `resource.kubernetes.io/numaNode` and `cpuSocketID` not agreed
 
 **Repo:** `kubernetes/kubernetes`
-**Fix:** [Proposal](docs/upstream-proposals/standardize-numanode-and-socket.md). Discussed in SIG-Node.
+**Fix:** [Proposal](docs/upstream-proposals/standardize-numanode.md). Discussed in SIG-Node.
 
 Each DRA driver publishes NUMA information under its own vendor-specific attribute name (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`, etc.). For cross-driver `matchAttribute` constraints to work, all drivers must use the same attribute name.
 

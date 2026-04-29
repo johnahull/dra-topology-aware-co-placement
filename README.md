@@ -121,7 +121,7 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 
 | Proposal | Description |
 |----------|-------------|
-| [Standardize numaNode and socket](docs/upstream-proposals/standardize-numanode-and-socket.md) | Engineering proposal: sysfs sources, helper functions, distance hierarchy, SNC/NPS |
+| [Standardize numaNode](docs/upstream-proposals/standardize-numanode.md) | Engineering proposal: sysfs sources, helper functions, enforcement:preferred |
 | [Distance Hierarchy Proposal](docs/upstream-proposals/proposal-topology-distance-hierarchy.md) | Condensed proposal for upstream working group |
 | [KEP-5304 Auto-Populate Metadata](docs/upstream-proposals/kep5304-auto-populate-metadata.md) | Kubelet auto-copies ResourceSlice attributes into KEP-5304 metadata |
 | [KubeVirt Multi-Device DRA Requests](docs/upstream-proposals/kubevirt-multi-device-dra-requests.md) | KubeVirt hostDevices with count>1 DRA requests |

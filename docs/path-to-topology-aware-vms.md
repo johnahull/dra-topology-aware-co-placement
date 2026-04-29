@@ -81,7 +81,7 @@ constraints:
 
 ### Solution
 
-Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` in the upstream `deviceattribute` library, following the same pattern as `pcieRoot` and `pciBusID`. With that standard attribute, cross-driver alignment becomes a single constraint:
+Standardize `resource.kubernetes.io/numaNode` in the upstream `deviceattribute` library, following the same pattern as `pcieRoot` and `pciBusID`. With that standard attribute, cross-driver alignment becomes a single constraint:
 
 ```yaml
 apiVersion: resource.k8s.io/v1
@@ -116,7 +116,7 @@ For shared resources like CPU and memory, [DRAConsumableCapacity](https://github
 
 ### What Was Proven
 
-All 4 drivers have been patched to publish `resource.kubernetes.io/numaNode` and `cpuSocketID` simultaneously with their vendor-specific names. On the NVIDIA A40 system (Dell R760xa), a single `matchAttribute: resource.kubernetes.io/numaNode` constraint aligned GPU + NIC + CPU + memory from 4 different drivers with zero middleware.
+All 4 drivers have been patched to publish `resource.kubernetes.io/numaNode` alongside their vendor-specific names. On the NVIDIA A40 system (Dell R760xa), a single `matchAttribute: resource.kubernetes.io/numaNode` constraint aligned GPU + NIC + CPU + memory from 4 different drivers with zero middleware.
 
 Tested on:
 
@@ -128,7 +128,7 @@ Test: `testing/scripts/demo-standardized-attrs.sh --test 3` (see [NVIDIA A40 tes
 
 ### What's Still Needed
 
-- **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` and `cpuSocketID` in the `deviceattribute` library ([proposal](upstream-proposals/standardize-numanode-and-socket.md))
+- **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` in the `deviceattribute` library ([proposal](upstream-proposals/standardize-numanode.md))
 - **NVIDIA GPU DRA driver** — expose NUMA for standard GPU devices (currently only published for VFIO type)
 - **AMD GPU DRA driver** — publish the standard `resource.kubernetes.io/pciBusID` (currently uses vendor-specific `pciAddr`)
 - **All 4 drivers** — publish standardized attributes alongside vendor-specific ones
@@ -145,12 +145,11 @@ Not all NUMA alignment is equal. Devices can be co-located at different levels o
 | Level | Attribute | What It Means | Coverage (XE9680) |
 |-------|-----------|---------------|-------------------|
 | **Tightest** | `pcieRoot` | Same PCIe switch — lowest latency, GPU-Direct RDMA | ~25% of GPU-NIC pairs |
-| **Local** | `numaNode` | Same memory controller — low latency, same NUMA domain | 100% with SNC off, 50% with SNC on |
-| **Loosest** | `cpuSocketID` | Same physical CPU socket — stable across SNC/NPS modes | 100% |
+| **Local** | `numaNode` | Same memory controller — low latency, same NUMA domain | 100% with SNC off |
 
 On the Dell XE9680, only 1 of 4 GPUs per socket shares a PCIe switch with the NIC. The other 3 GPUs are on the same NUMA node but a different switch. Using `pcieRoot` alone excludes 75% of GPUs. Using only `numaNode` gives 100% coverage but misses the tighter coupling where it's available.
 
-The `cpuSocketID` level matters because Intel SNC (Sub-NUMA Clustering) and AMD NPS modes change what NUMA node IDs mean — a `numaNode` constraint that works with SNC off may be too restrictive with SNC on. `cpuSocketID` is stable regardless of sub-NUMA clustering mode, providing a reliable floor for the hierarchy.
+GPU servers typically run with SNC/NPS off. For the rare case where SNC is enabled, `enforcement: preferred` on `numaNode` allows the constraint to relax gracefully.
 
 ### Solution
 
@@ -158,20 +157,16 @@ Add an `enforcement: Preferred` field to `DeviceConstraint` in the Kubernetes AP
 
 ```yaml
 constraints:
-# Level 1: Try to put GPU + NIC on the same PCIe switch (tightest)
+# Try to put GPU + NIC on the same PCIe switch (tightest)
 - matchAttribute: resource.kubernetes.io/pcieRoot
   requests: [gpu, nic]
   enforcement: Preferred
-# Level 2: Try to put everything on the same NUMA node (local)
+# Must be on the same NUMA node (the critical boundary)
 - matchAttribute: resource.kubernetes.io/numaNode
-  requests: [gpu, nic, cpu, mem]
-  enforcement: Preferred
-# Level 3: At minimum, keep everything on the same socket (loosest)
-- matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu, mem]
 ```
 
-The scheduler evaluates top-down: if pcieRoot can be satisfied, it gets tight coupling. If not (e.g., CPU doesn't publish pcieRoot), it relaxes to numaNode. If numaNode is too restrictive (e.g., SNC splits a NUMA into sub-nodes with no NIC), it falls back to cpuSocketID.
+The scheduler tries pcieRoot first. If unsatisfiable (e.g., CPU doesn't publish pcieRoot, or every slot has its own root port), it relaxes to numaNode only.
 
 ### What Was Proven
 
@@ -179,13 +174,13 @@ Patched all 5 K8s components (apiserver, scheduler, controller-manager, kubelet,
 
 - `pcieRoot: Preferred` + `numaNode: Required` → scheduler relaxed pcieRoot (CPU doesn't publish it) while enforcing numaNode
 - GPU + CPU + NIC + memory all allocated from NUMA 0
-- `cpuSocketID` available as ultimate fallback
+- pcieRoot relaxed, numaNode enforced
 
 Branch: `johnahull/kubernetes` `feature/enforcement-preferred` (see [implementation details](../planning/implementation-sequence.md#phase-1b-scheduler-enforcementpreferred--done)).
 
 ### What's Still Needed
 
-- **Kubernetes upstream** — add `enforcement: Preferred` field to `DeviceConstraint` API; covered by the same [proposal](upstream-proposals/standardize-numanode-and-socket.md)
+- **Kubernetes upstream** — add `enforcement: Preferred` field to `DeviceConstraint` API; covered by the same [proposal](upstream-proposals/standardize-numanode.md)
 - **kube-apiserver** — accept, validate, and store the new field
 - **kube-scheduler** — skip preferred constraints when unsatisfiable
 - **kube-controller-manager, kubelet, kubectl** — preserve the field through the claim lifecycle
@@ -232,7 +227,7 @@ User creates:                        Webhook expands to:
 
 This is most useful for symmetric configurations where the machine can be evenly divided into identical partitions. This is a usability improvement — steps 1-2 provide the core alignment capability without it.
 
-The coordinator also implements the distance hierarchy from step 2: `fallbackAttribute` on topology rules creates a pcieRoot → numaNode → cpuSocketID fallback chain, labeling each partition with its coupling level (`tight` or `local`).
+The coordinator also implements the distance hierarchy from step 2: `fallbackAttribute` on topology rules creates a pcieRoot → numaNode fallback chain, labeling each partition with its coupling level (`tight` or `local`).
 
 ### What Was Proven
 
@@ -432,7 +427,7 @@ From driver discovery to guest NUMA topology, the complete data flow:
    └── matchAttribute: resource.kubernetes.io/numaNode aligns all 4 drivers
 
 2. Scheduler applies distance hierarchy
-   └── enforcement: Preferred on pcieRoot → numaNode → cpuSocketID floor
+   └── enforcement: Preferred on pcieRoot → numaNode required
 
 3. Topology coordinator creates partition DeviceClasses (nice-to-have)
    └── User requests "eighth" → webhook expands to 4 sub-requests + constraints
