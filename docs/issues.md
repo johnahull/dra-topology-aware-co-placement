@@ -345,3 +345,15 @@ The fork adds these capabilities when DRA host devices or GPUs are present in th
 | — | AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu |
 | — | NVIDIA GPU DRA driver VFIO `/host-root` mount validation | [kubernetes-sigs/dra-driver-nvidia-gpu#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate mount at startup, improve error messages |
 | — | KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation |
+
+#### D-9: DRA CPU driver NRI plugin conflicts with kubelet CPU manager on dedicated pods
+
+**Repo:** `kubernetes-sigs/dra-driver-cpu`
+**Fix:** Not started. Workaround: needs investigation.
+
+When a pod has `dedicatedCpuPlacement: true`, the kubelet's CPU manager allocates exclusive CPUs and sets the cgroup cpuset. The DRA CPU driver's NRI plugin also tries to restrict the pod's CPUs based on the `dra.cpu/cpu` capacity of the allocated CPU device (e.g., 64 CPUs for a whole NUMA node). This fails with "not enough cpus available to satisfy request: requested=64, available=0" because the NRI plugin can't find available CPUs — the kubelet has already allocated them.
+
+The DRA CPU device should be a NUMA marker for scheduling purposes (to participate in `matchAttribute: resource.kubernetes.io/numaNode`), not an actual CPU allocator. When the kubelet CPU manager handles CPU placement, the DRA CPU driver's NRI plugin should not attempt to restrict CPUs.
+
+Observed on XE8640 with KubeVirt VMs using `dedicatedCpuPlacement`. Not observed on R760xa (possibly different DRA CPU driver version or NRI behavior).
+
