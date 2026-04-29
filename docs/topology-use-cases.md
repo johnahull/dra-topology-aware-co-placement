@@ -46,16 +46,38 @@ Also applies to ultra-low-latency inference (e.g., financial trading, autonomous
 
 **Yield: 2 of 8 GPUs (25%)**
 
+### When pcieRoot matters vs numaNode
+
+The difference between pcieRoot (same switch, no root complex hop) and numaNode (same NUMA, one root complex hop) is small — measurable in microbenchmarks but typically not the bottleneck. The 58% throughput difference from Ojea 2025 is between NUMA-aligned and **cross-NUMA**, not between same-switch and same-NUMA.
+
+**pcieRoot matters when:**
+- Very large training clusters (1000+ GPUs) where shaving microseconds off every all-reduce iteration compounds over millions of iterations
+- Ultra-low-latency inference where per-packet latency is the SLA (financial trading, autonomous vehicles)
+- GPU-to-NIC microbenchmarks where you're measuring raw DMA bandwidth
+
+**numaNode is sufficient when:**
+- Most production training jobs — network round-trip time between nodes dominates, not the intra-node PCIe hop
+- Inference serving (vLLM, TGI) — request latency is milliseconds, not microseconds
+- Any workload where the NIC is not the hottest path (data loading, checkpointing)
+
+For most users, `numaNode` is the right constraint. NCCL picks the best proxy GPU automatically regardless of whether the constraint is pcieRoot or numaNode.
+
 ### Trade-off
 
 You sacrifice 75% of your GPUs to get the lowest-latency DMA path. Only the proxy GPU needs this — the others communicate over NVLink/xGMI. For single-GPU inference, it restricts which GPUs are usable.
 
+On systems like the R760xa where every slot has its own root port, pcieRoot is unsatisfiable for any GPU+NIC pair — `enforcement: Preferred` is required to fall through to numaNode.
+
 ### Claim
 
 ```yaml
+# Prefer pcieRoot, fall back to numaNode if no GPU+NIC share a switch
 constraints:
 - matchAttribute: resource.kubernetes.io/pcieRoot
   requests: [gpu, nic]
+  enforcement: preferred
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic, cpu, mem]
   enforcement: required
 ```
 
@@ -104,7 +126,7 @@ All on the same NUMA node. This is the most common real-world use case for NUMA 
 
 ### Trade-off
 
-Slightly higher DMA latency than pcieRoot (one root complex hop), but all GPUs are usable. For training and inference workloads where throughput dominates over per-packet latency, this is the right level.
+One root complex hop more than pcieRoot, but all GPUs are usable. This is the right level for the vast majority of AI workloads. The one-hop penalty is negligible compared to network round-trip time (training) or request processing time (inference). The critical gap that numaNode closes is not same-switch vs same-NUMA — it's NUMA-aligned vs cross-NUMA, which is the 58% throughput difference.
 
 ### Claim
 
