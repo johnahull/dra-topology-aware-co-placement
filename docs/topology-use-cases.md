@@ -99,7 +99,19 @@ An LLM training job using 4 GPUs per NUMA node. The GPUs communicate with each o
 
 pcieRoot would only match the 1 GPU sharing a switch with the NIC. numaNode matches all GPUs on the same NUMA, keeping the entire host-side data path local.
 
-### Use Case: Inference Serving
+**NIC sharing for training:** A training pod typically needs just 1 NIC (PF or 1-2 VFs) shared across all GPUs on the NUMA node. NCCL funnels all inter-node traffic through a single proxy GPU anyway — the other GPUs relay via NVLink/xGMI. Per-GPU VFs don't help because only the proxy GPU does RDMA directly. A single 100G/200G NIC is rarely the bottleneck for gradient all-reduce.
+
+### Use Case: Multi-Tenant Inference
+
+Multiple independent inference pods on the same NUMA node, each with its own GPU and NIC VF. Unlike training, these pods don't cooperate — they're separate services that each need their own network identity (IP address, RDMA queue pair).
+
+- 4 independent vLLM pods on NUMA 0, each with 1 GPU + 1 NIC VF + CPU + memory
+- Each pod gets its own SR-IOV VF from the physical NIC on that NUMA node
+- No NVLink between pods — each GPU is isolated
+
+This is where per-GPU VFs matter: not for bandwidth (each VF shares the physical NIC's bandwidth), but for **network isolation** — each pod has its own IP and can be independently routed, load-balanced, and monitored.
+
+### Use Case: Single-GPU Inference Serving
 
 A vLLM or TGI inference pod serving a model on 1 GPU. The pod needs:
 - 1 GPU for the model
@@ -111,9 +123,11 @@ All on the same NUMA node. This is the most common real-world use case for NUMA 
 
 ### Configuration
 
-- GPUs + NIC VFs + CPU + memory on the same NUMA node
+- GPUs + NIC (shared or per-GPU VFs) + CPU + memory on the same NUMA node
+- Training: 1 NIC shared across all GPUs, NCCL proxy handles inter-node RDMA
+- Multi-tenant inference: 1 VF per GPU for network isolation
+- Single-GPU inference: 1 NIC or VF per pod
 - GPUs communicate over NVLink/xGMI (not PCIe) for GPU-to-GPU operations
-- NIC handles inter-node traffic via 1-2 VFs (not 1 per GPU)
 
 ### XE9680 (SNC off)
 
@@ -128,13 +142,34 @@ All on the same NUMA node. This is the most common real-world use case for NUMA 
 
 One root complex hop more than pcieRoot, but all GPUs are usable. This is the right level for the vast majority of AI workloads. The one-hop penalty is negligible compared to network round-trip time (training) or request processing time (inference). The critical gap that numaNode closes is not same-switch vs same-NUMA — it's NUMA-aligned vs cross-NUMA, which is the 58% throughput difference.
 
-### Claim
+### Claims
 
+**Training pod** (4 GPUs + 1 shared NIC, NCCL proxy handles RDMA):
 ```yaml
+requests:
+- name: gpu
+  exactly: {deviceClassName: gpu.nvidia.com, count: 4}
+- name: nic
+  exactly: {deviceClassName: dranet, count: 1}
+- name: cpu
+  exactly: {deviceClassName: dra.cpu, count: 1}
 constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
-  requests: [gpu, nic, cpu, mem]
-  enforcement: required
+  requests: [gpu, nic, cpu]
+```
+
+**Multi-tenant inference** (1 GPU + 1 VF per pod, 4 pods on same NUMA):
+```yaml
+requests:
+- name: gpu
+  exactly: {deviceClassName: gpu.nvidia.com, count: 1}
+- name: nic
+  exactly: {deviceClassName: dranet, count: 1}
+- name: cpu
+  exactly: {deviceClassName: dra.cpu, count: 1}
+constraints:
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic, cpu]
 ```
 
 ---
@@ -267,10 +302,10 @@ VFIO passthrough gives near-native GPU performance in the VM, but adds complexit
 
 ## Summary
 
-| Level | Constraint | AI Use Case | Example | Yield (SNC off) | Yield (SNC on) |
-|-------|-----------|-------------|---------|-----------------|----------------|
-| pcieRoot | Same switch | NCCL proxy GPU + NIC, ultra-low-latency inference | Training inter-node proxy | 2 of 8 (25%) | 2 of 8 (25%) |
-| numaNode | Same memory controller | Training (all devices NUMA-local), inference serving | vLLM pod, multi-GPU training | 8 of 8 (100%) | 4 of 8 (50%) |
+| Level | Constraint | AI Use Case | NIC pattern | Yield (SNC off) | Yield (SNC on) |
+|-------|-----------|-------------|-------------|-----------------|----------------|
+| pcieRoot | Same switch | NCCL proxy GPU + NIC, ultra-low-latency inference | 1 NIC with proxy GPU | 2 of 8 (25%) | 2 of 8 (25%) |
+| numaNode | Same memory controller | Training (1 shared NIC), multi-tenant inference (1 VF per GPU), single-GPU serving | Training: 1 NIC shared. Inference: 1 VF per pod | 8 of 8 (100%) | 4 of 8 (50%) |
 | cpuSocketID | Same package | Dense inference on SNC/NPS hardware | 8 inference pods on SNC-2 | 8 of 8 (100%) | 8 of 8 (100%) |
 | node | None | Batch processing | Nightly image processing | 8 of 8 (100%) | 8 of 8 (100%) |
 | VM | numaNode + VEP 115 | AI workloads in KubeVirt VMs | GPU training/inference VM | Same as numaNode | Same as numaNode |
