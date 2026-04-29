@@ -2,43 +2,53 @@
 
 > **TL;DR:** Different AI workloads need different levels of device co-placement. The topology distance hierarchy (pcieRoot → numaNode → socket → node) lets users choose the right trade-off: tight coupling = best performance but fewer GPUs qualify; local/near coupling = all GPUs available but slightly higher DMA latency.
 
-All examples use a Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM).
+All examples use a Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2x Mellanox ConnectX-6 Dx NICs, 128 CPUs, ~2 TiB RAM) and Dell XE8640 (2-socket Intel Xeon 6448Y, 4x NVIDIA H100 SXM5 GPUs, ConnectX-6 Dx + E810 NICs).
 
 ---
 
-## Level 1: pcieRoot — Ultra-Low-Latency Inference with GPUDirect RDMA
+## Level 1: pcieRoot — NCCL Network Proxy with GPUDirect RDMA
 
 **Constraint:** GPU and NIC on the same PCIe switch
 **DMA path:** GPU → switch → NIC (no root complex hop)
 
 ### Use Case
 
-A financial trading or autonomous vehicle inference service where latency matters more than throughput. Each GPU serves a single model, receiving input directly from the network via RDMA into GPU memory — no CPU copy. The GPU processes and sends results back out the same NIC.
+Multi-node distributed training where NCCL selects a proxy GPU for inter-node communication. NCCL routes inter-node traffic through the GPU that's closest to the NIC — ideally on the same PCIe switch. The other GPUs relay their data to the proxy over NVLink/xGMI (which is 5-10x faster than PCIe), and the proxy sends it out the NIC via GPUDirect RDMA.
+
+Placing the proxy GPU and NIC on the same switch eliminates the root complex hop for every inter-node packet. On large training runs with frequent all-reduce operations, this adds up.
+
+Also applies to ultra-low-latency inference (e.g., financial trading, autonomous vehicles) where a single GPU serves a model and receives input directly from the NIC via RDMA into GPU memory.
 
 ### Configuration
 
-- 1 GPU + 1 NIC per partition, same PCIe switch
-- Latency: sub-microsecond DMA within the switch
-- The extra hop through the root complex for local coupling (level 2) is measurable and matters for this workload
+- 1 GPU + 1 NIC on the same PCIe switch (the NCCL proxy pair)
+- Other GPUs on the same node communicate with the proxy over NVLink/xGMI
+- The proxy GPU handles all inter-node RDMA traffic for the node
 
-### XE9680 (SNC off)
+### XE8640 (4x H100 SXM5)
+
+| PCIe Root | GPU | NIC | Qualifies? |
+|-----------|-----|-----|------------|
+| `pci0000:48` | `4e:00.0` (H100) | — | No |
+| `pci0000:59` | `5f:00.0` (H100) | `5e:00.0` (E810) | **Yes** |
+| `pci0000:c7` | `cb:00.0` (H100) | — | No |
+| `pci0000:d7` | `db:00.0` (H100) | — | No |
+
+**Yield: 1 of 4 GPUs (25%)** — GPU `5f` is the natural NCCL proxy. The other 3 GPUs reach it via NVLink.
+
+### XE9680 (8x MI300X)
 
 | PCIe Root | GPU | NIC | Qualifies? |
 |-----------|-----|-----|------------|
 | `pci0000:15` | `1b:00.0` | `1d:00.0` | **Yes** |
-| `pci0000:37` | `3d:00.0` | — | No |
-| `pci0000:48` | `4e:00.0` | — | No |
-| `pci0000:59` | `5f:00.0` | — | No |
 | `pci0000:97` | `9d:00.0` | `9f:00.0` | **Yes** |
-| `pci0000:b7` | `bd:00.0` | — | No |
-| `pci0000:c7` | `cd:00.0` | — | No |
-| `pci0000:d7` | `dd:00.0` | — | No |
+| (other 6 roots) | GPU only | — | No |
 
 **Yield: 2 of 8 GPUs (25%)**
 
 ### Trade-off
 
-You sacrifice 75% of your GPUs to get the lowest-latency DMA path. Only worth it when the latency difference between tight and local coupling actually matters for the workload.
+You sacrifice 75% of your GPUs to get the lowest-latency DMA path. Only the proxy GPU needs this — the others communicate over NVLink/xGMI. For single-GPU inference, it restricts which GPUs are usable.
 
 ### Claim
 
@@ -51,22 +61,37 @@ constraints:
 
 ---
 
-## Level 2: numaNode — Multi-GPU Training with Per-GPU RDMA
+## Level 2: numaNode — Training and Inference with NUMA-Local Devices
 
-**Constraint:** GPU and NIC on the same memory controller
+**Constraint:** GPU, NIC, CPU, and memory on the same memory controller
 **DMA path:** GPU → switch → root complex → switch → NIC (one extra hop, local memory)
 
-### Use Case
+### Use Case: Multi-GPU Training
 
-An LLM training job where each node runs 4 GPU workers per NUMA node. Each worker does all-reduce over RDMA via its own NIC VF. GPUDirect RDMA sends gradient buffers directly from GPU memory to the NIC. The NIC VFs come from SR-IOV on the physical NICs.
+An LLM training job using 4 GPUs per NUMA node. The GPUs communicate with each other over NVLink/xGMI (bypassing PCIe). Inter-node traffic goes through 1-2 NIC VFs via a proxy GPU. All devices need to be NUMA-local because:
+
+- **CPU** launches kernels, coordinates NCCL, and stages training data from storage into host memory — cross-NUMA CPU↔GPU transfers add latency to every batch
+- **Memory** holds training data buffers, pinned memory for RDMA — cross-NUMA memory access slows every `cudaMemcpy` and RDMA operation
+- **NIC** handles inter-node gradient exchange — GPUDirect RDMA performs best when GPU and NIC share a memory controller
+- **NVMe** (if local) feeds training data — CPU reads from NVMe into NUMA-local memory for the data pipeline
+
+pcieRoot would only match the 1 GPU sharing a switch with the NIC. numaNode matches all GPUs on the same NUMA, keeping the entire host-side data path local.
+
+### Use Case: Inference Serving
+
+A vLLM or TGI inference pod serving a model on 1 GPU. The pod needs:
+- 1 GPU for the model
+- 1 NIC (or NIC VF) for client traffic
+- CPU cores for tokenization, scheduling, HTTP handling
+- Memory for KV cache, request buffers
+
+All on the same NUMA node. This is the most common real-world use case for NUMA co-placement — not ultra-low-latency, just keeping the standard serving path local.
 
 ### Configuration
 
-- 4 GPUs + 4 NIC VFs per NUMA node (VFs from the same physical NIC)
-- GPUs are on different PCIe switches but the same NUMA — GDR works, one extra hop through the root complex
-- CPU on the same NUMA handles coordination (launching kernels, NCCL setup)
-- Memory on the same NUMA holds training data buffers
-- pcieRoot would only match 1 GPU; numaNode matches all 4
+- GPUs + NIC VFs + CPU + memory on the same NUMA node
+- GPUs communicate over NVLink/xGMI (not PCIe) for GPU-to-GPU operations
+- NIC handles inter-node traffic via 1-2 VFs (not 1 per GPU)
 
 ### XE9680 (SNC off)
 
@@ -75,11 +100,11 @@ An LLM training job where each node runs 4 GPU workers per NUMA node. Each worke
 | 0 | 4 (1b, 3d, 4e, 5f) | 2 (1d:00.0, 1d:00.1) | 16 | 64 | ~1 TB |
 | 1 | 4 (9d, bd, cd, dd) | 2 (9f:00.0, 9f:00.1) | 16 | 64 | ~1 TB |
 
-**Yield: 8 of 8 GPUs (100%)** — 2 training workers, each fully NUMA-local.
+**Yield: 8 of 8 GPUs (100%)** — 2 NUMA-local groups, each with all resources co-located.
 
 ### Trade-off
 
-Slightly higher DMA latency than pcieRoot (one root complex hop), but all GPUs are usable. For training workloads where throughput dominates over per-packet latency, this is the right level.
+Slightly higher DMA latency than pcieRoot (one root complex hop), but all GPUs are usable. For training and inference workloads where throughput dominates over per-packet latency, this is the right level.
 
 ### Claim
 
@@ -92,7 +117,7 @@ constraints:
 
 ---
 
-## Level 3: socket — Dense Inference on SNC/NPS Hardware
+## Level 3: cpuSocketID — Dense Inference on SNC/NPS Hardware
 
 **Constraint:** GPU and NIC on the same physical CPU package
 **DMA path:** may cross sub-NUMA boundary within the socket, but no inter-socket link
@@ -101,7 +126,7 @@ constraints:
 
 A cloud provider runs 8 independent inference services on one XE9680 with SNC-2 enabled (4 NUMA nodes). Each service gets 1 GPU + 1 NIC VF. But NUMA 1 and 3 have no NICs — requiring `numaNode` matching would leave 4 GPUs without network access.
 
-With `socket` matching, all 4 GPUs per socket can get a NIC VF from the physical NIC on that socket, even if the NIC is on a different sub-NUMA.
+With `cpuSocketID` matching, all 4 GPUs per socket can get a NIC VF from the physical NIC on that socket, even if the NIC is on a different sub-NUMA.
 
 ### Configuration
 
@@ -166,24 +191,66 @@ constraints: []
 
 ---
 
+## Level 5: KubeVirt VM — Full Topology in Guest
+
+**Constraint:** same as levels 1-3, plus guest NUMA topology must reflect host placement
+**DMA path:** same as the pod-level constraint, with VEP 115 pxb-pcie placement in the guest
+
+### Use Case
+
+A KubeVirt VM running an AI training or inference workload with VFIO-passthrough GPUs and NICs. The VM needs:
+- GPU and NIC VFIO-passthrough devices on the same host NUMA node
+- vCPUs and memory pinned to the same NUMA node as the devices
+- Guest NUMA topology reflecting the host placement — so AI frameworks inside the VM see devices on the correct guest NUMA nodes
+
+Without guest topology, the VM's NCCL/RCCL can't detect GPU-NIC co-locality and may choose suboptimal communication paths.
+
+### Configuration
+
+- DRA allocates GPU + NIC + CPU + memory on the same NUMA (steps 1-3)
+- VFIO binds GPU and NIC to `vfio-pci` (step 5)
+- KEP-5304 metadata carries PCI addresses and NUMA nodes to virt-launcher (step 6)
+- VEP 115 builds guest pxb-pcie topology matching the host placement (step 7)
+
+### Claim
+
+```yaml
+# ResourceClaim for GPU + NIC co-located on NUMA 0
+constraints:
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu, nic]
+
+# VM spec with guest NUMA passthrough
+spec:
+  domain:
+    cpu:
+      dedicatedCpuPlacement: true
+      numa:
+        guestMappingPassthrough: {}
+    devices:
+      hostDevices:
+      - claimName: gpu-claim
+        name: gpu0
+        requestName: gpu
+      - claimName: nic-claim
+        name: nic0
+        requestName: nic
+```
+
+### Trade-off
+
+VFIO passthrough gives near-native GPU performance in the VM, but adds complexity: IOMMU groups, locked memory, ACPI configuration, and the full KEP-5304 → VEP 115 chain. Only needed when the workload must run inside a VM (multi-tenancy, security isolation, OpenShift Virtualization).
+
+---
+
 ## Summary
 
-| Level | Constraint | AI Use Case | GPU:NIC | XE9680 yield (SNC off) | XE9680 yield (SNC on) |
-|-------|-----------|-------------|---------|----------------------|---------------------|
-| pcieRoot | Same switch | Ultra-low-latency inference with GDR | 1:1 | 2 of 8 (25%) | 2 of 8 (25%) |
-| numaNode | Same memory controller | Multi-GPU training with per-GPU RDMA | 4:4 VFs | 8 of 8 (100%) | 4 of 8 (50%) |
-| cpuSocketID | Same package | Dense inference on SNC/NPS hardware | 4:4 VFs | 8 of 8 (100%) | 8 of 8 (100%) |
-| node | None | Batch processing | any | 8 of 8 (100%) | 8 of 8 (100%) |
+| Level | Constraint | AI Use Case | Example | Yield (SNC off) | Yield (SNC on) |
+|-------|-----------|-------------|---------|-----------------|----------------|
+| pcieRoot | Same switch | NCCL proxy GPU + NIC, ultra-low-latency inference | Training inter-node proxy | 2 of 8 (25%) | 2 of 8 (25%) |
+| numaNode | Same memory controller | Training (all devices NUMA-local), inference serving | vLLM pod, multi-GPU training | 8 of 8 (100%) | 4 of 8 (50%) |
+| cpuSocketID | Same package | Dense inference on SNC/NPS hardware | 8 inference pods on SNC-2 | 8 of 8 (100%) | 8 of 8 (100%) |
+| node | None | Batch processing | Nightly image processing | 8 of 8 (100%) | 8 of 8 (100%) |
+| VM | numaNode + VEP 115 | AI workloads in KubeVirt VMs | GPU training/inference VM | Same as numaNode | Same as numaNode |
 
-The distance hierarchy lets users choose the right trade-off. The topology coordinator implements levels 1-2 today via the `fallbackAttribute` mechanism. Level 3 requires `cpuSocketID` as an explicit attribute. Level 4 is the default (no constraints).
-
-## How the Coordinator Maps to This
-
-| Level | Coordinator partition | Coupling label |
-|-------|----------------------|----------------|
-| pcieRoot | eighth | `tight` |
-| numaNode | eighth or quarter | `local` |
-| socket | half | (not yet implemented) |
-| node | full | — |
-
-See [Topology Coordinator Design](topology-coordinator.md) and [Topology Attribute Debate](topology-attribute-debate.md#topology-distance-hierarchy) for implementation details.
+The distance hierarchy lets users choose the right trade-off. `enforcement: preferred` enables the fallback chain: try pcieRoot, fall back to numaNode, floor at cpuSocketID.
