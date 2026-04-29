@@ -401,3 +401,15 @@ On H100 SXM5 systems (HGX platforms with NVLink), the nvidia kernel driver's sys
 
 Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not observed on R760xa with 2x A40 (discrete PCIe, no NVLink).
 
+
+#### D-12: NVIDIA DRA driver CDI spec missing /dev/vfio/vfio and IOMMU group mismatch
+
+**Repo:** `NVIDIA/k8s-dra-driver-gpu` (CDI generation)
+**Fix:** Not started.
+
+When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind needed), the CDI spec may reference the wrong IOMMU group or miss `/dev/vfio/vfio`. Libvirt inside the virt-launcher then reports "VFIO PCI device assignment is not supported by the host."
+
+The CDI spec should include both `/dev/vfio/vfio` (the VFIO container device) and `/dev/vfio/<iommu_group>` for the specific GPU. The IOMMU group must be looked up from `/sys/bus/pci/devices/<BDF>/iommu_group` at prepare time.
+
+Observed on XE8640 with pre-bound vfio-pci GPUs.
+
