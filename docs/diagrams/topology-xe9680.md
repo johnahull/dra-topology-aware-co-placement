@@ -57,34 +57,42 @@ graph TD
 
     subgraph "Socket 1 — NUMA 1"
         subgraph "PCIe Root pci0000:97"
-            SW4["PEX890xx Switch"]
+            SW4["PEX890xx Switch (4 slots)"]
             GPU4["GPU 9d"]
             NIC1["NIC 9f (CX-6 Dx)"]
-            E4_0["2 empty slots"]
+            E4_0["1 empty"]
+            E4_1["1 empty (no NVMe)"]
             GPU4 --- SW4
             NIC1 --- SW4
             SW4 -.- E4_0
+            SW4 -.- E4_1
         end
         subgraph "PCIe Root pci0000:b7"
-            SW5["PEX890xx Switch"]
+            SW5["PEX890xx Switch (3 slots)"]
             GPU5["GPU bd"]
-            E5_0["2 empty slots"]
+            E5_0["1 empty"]
+            E5_1["1 empty (no NVMe)"]
             GPU5 --- SW5
             SW5 -.- E5_0
+            SW5 -.- E5_1
         end
         subgraph "PCIe Root pci0000:c7"
-            SW6["PEX890xx Switch"]
+            SW6["PEX890xx Switch (3 slots)"]
             GPU6["GPU cd"]
-            E6_0["2 empty slots"]
+            E6_0["1 empty"]
+            E6_1["1 empty (no NVMe)"]
             GPU6 --- SW6
             SW6 -.- E6_0
+            SW6 -.- E6_1
         end
         subgraph "PCIe Root pci0000:d7"
-            SW7["PEX890xx Switch"]
+            SW7["PEX890xx Switch (3 slots)"]
             GPU7["GPU dd"]
-            E7_0["2 empty slots"]
+            E7_0["1 empty"]
+            E7_1["1 empty (no NVMe)"]
             GPU7 --- SW7
             SW7 -.- E7_0
+            SW7 -.- E7_1
         end
         RC1["Root Complex 1"]
         SW4 --- RC1
@@ -116,16 +124,21 @@ graph TD
     style E2_0 fill:#333,color:#999,stroke-dasharray: 5
     style E3_0 fill:#333,color:#999,stroke-dasharray: 5
     style E4_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E4_1 fill:#333,color:#999,stroke-dasharray: 5
     style E5_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E5_1 fill:#333,color:#999,stroke-dasharray: 5
     style E6_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E6_1 fill:#333,color:#999,stroke-dasharray: 5
     style E7_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E7_1 fill:#333,color:#999,stroke-dasharray: 5
     style UPI fill:#f44,color:#fff
 ```
 
 **Physical slots per switch:**
-- NUMA 0 switches: GPU + NVMe + 1 empty (+ NIC on root `pci0000:15`)
-- NUMA 1 switches: GPU + 2 empty (+ NIC on root `pci0000:97`)
-- Total: 20 physical slots across 8 switches — 12 populated, 8 empty (NVMe only on NUMA 0)
+- 2 switches with NIC (roots `15`, `97`): 4 slots — NVMe/empty + GPU + empty + NIC
+- 6 switches without NIC: 3 slots — NVMe/empty + GPU + empty
+- NUMA 0: each switch has GPU + NVMe + 1 empty
+- NUMA 1: each switch has GPU + 1 empty (no NVMe), plus NIC on root `97`
 
 ### SNC on (4 NUMA nodes)
 
