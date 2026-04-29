@@ -11,26 +11,42 @@ Diagrams in sections 1 and 2 are based on a **Dell PowerEdge XE9860** (2-socket,
 graph TD
     subgraph "Socket 0 — NUMA 0"
         subgraph "PCIe Root pci0000:15"
+            SW0["PEX890xx Switch"]
             GPU0["GPU 1b"]
-            NIC0["NIC 1d"]
-            SW0["PCIe Switch"]
+            NIC0["NIC 1d (CX-6 Dx)"]
+            NVMe0["NVMe 18"]
+            E0_0["1 empty slot"]
             GPU0 --- SW0
             NIC0 --- SW0
+            NVMe0 --- SW0
+            SW0 -.- E0_0
         end
         subgraph "PCIe Root pci0000:37"
+            SW1["PEX890xx Switch"]
             GPU1["GPU 3d"]
-            SW1["PCIe Switch"]
+            NVMe1["NVMe 3a"]
+            E1_0["1 empty slot"]
             GPU1 --- SW1
+            NVMe1 --- SW1
+            SW1 -.- E1_0
         end
         subgraph "PCIe Root pci0000:48"
+            SW2["PEX890xx Switch"]
             GPU2["GPU 4e"]
-            SW2["PCIe Switch"]
+            NVMe2["NVMe 4b"]
+            E2_0["1 empty slot"]
             GPU2 --- SW2
+            NVMe2 --- SW2
+            SW2 -.- E2_0
         end
         subgraph "PCIe Root pci0000:59"
+            SW3["PEX890xx Switch"]
             GPU3["GPU 5f"]
-            SW3["PCIe Switch"]
+            NVMe3["NVMe 5c"]
+            E3_0["1 empty slot"]
             GPU3 --- SW3
+            NVMe3 --- SW3
+            SW3 -.- E3_0
         end
         RC0["Root Complex 0"]
         SW0 --- RC0
@@ -41,26 +57,34 @@ graph TD
 
     subgraph "Socket 1 — NUMA 1"
         subgraph "PCIe Root pci0000:97"
+            SW4["PEX890xx Switch"]
             GPU4["GPU 9d"]
-            NIC1["NIC 9f"]
-            SW4["PCIe Switch"]
+            NIC1["NIC 9f (CX-6 Dx)"]
+            E4_0["2 empty slots"]
             GPU4 --- SW4
             NIC1 --- SW4
+            SW4 -.- E4_0
         end
         subgraph "PCIe Root pci0000:b7"
+            SW5["PEX890xx Switch"]
             GPU5["GPU bd"]
-            SW5["PCIe Switch"]
+            E5_0["2 empty slots"]
             GPU5 --- SW5
+            SW5 -.- E5_0
         end
         subgraph "PCIe Root pci0000:c7"
+            SW6["PEX890xx Switch"]
             GPU6["GPU cd"]
-            SW6["PCIe Switch"]
+            E6_0["2 empty slots"]
             GPU6 --- SW6
+            SW6 -.- E6_0
         end
         subgraph "PCIe Root pci0000:d7"
+            SW7["PEX890xx Switch"]
             GPU7["GPU dd"]
-            SW7["PCIe Switch"]
+            E7_0["2 empty slots"]
             GPU7 --- SW7
+            SW7 -.- E7_0
         end
         RC1["Root Complex 1"]
         SW4 --- RC1
@@ -75,20 +99,37 @@ graph TD
 
     style GPU0 fill:#2a6,color:#fff
     style NIC0 fill:#2a6,color:#fff
+    style NVMe0 fill:#49a,color:#fff
     style GPU1 fill:#49a,color:#fff
+    style NVMe1 fill:#49a,color:#fff
     style GPU2 fill:#49a,color:#fff
+    style NVMe2 fill:#49a,color:#fff
     style GPU3 fill:#49a,color:#fff
+    style NVMe3 fill:#49a,color:#fff
     style GPU4 fill:#2a6,color:#fff
     style NIC1 fill:#2a6,color:#fff
     style GPU5 fill:#49a,color:#fff
     style GPU6 fill:#49a,color:#fff
     style GPU7 fill:#49a,color:#fff
+    style E0_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E1_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E2_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E3_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E4_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E5_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E6_0 fill:#333,color:#999,stroke-dasharray: 5
+    style E7_0 fill:#333,color:#999,stroke-dasharray: 5
     style UPI fill:#f44,color:#fff
 ```
 
+**Physical slots per switch:**
+- NUMA 0 switches: GPU + NVMe + 1 empty (+ NIC on root `pci0000:15`)
+- NUMA 1 switches: GPU + 2 empty (+ NIC on root `pci0000:97`)
+- Total: 20 physical slots across 8 switches — 12 populated, 8 empty (NVMe only on NUMA 0)
+
 ### SNC on (4 NUMA nodes)
 
-Same physical PCIe tree — SNC only changes which memory controller services each root complex.
+Same physical PCIe tree (same NVMe and empty slots) — SNC only changes which memory controller services each root complex.
 
 ```mermaid
 graph TD
