@@ -357,3 +357,17 @@ The DRA CPU device should be a NUMA marker for scheduling purposes (to participa
 
 Observed on XE8640 with KubeVirt VMs using `dedicatedCpuPlacement`. Not observed on R760xa (possibly different DRA CPU driver version or NRI behavior).
 
+
+#### D-10: NVIDIA DRA driver lock contention causes deadlock during VFIO prepare
+
+**Repo:** `NVIDIA/k8s-dra-driver-gpu` (upstream bug)
+**Fix:** Not started. Workaround: clean state between attempts.
+
+The NVIDIA DRA driver acquires a file-based flock (`pu.lock`) for the entire duration of `PrepareResourceClaims`, including `WaitForGPUFree` which shells out to `fuser` via chroot. If the prepare takes longer than the kubelet's DRA timeout (~30s), the kubelet reports `DeadlineExceeded` and retries. But the previous prepare is still holding the lock, so all subsequent attempts fail with "timeout acquiring lock."
+
+This creates a deadlock: the lock holder is stuck in `WaitForGPUFree`, and the kubelet can't unprepare old claims because unprepare also needs the same lock. New prepare attempts are blocked too.
+
+Observed on XE8640 with H100 SXM5 GPUs. Not observed on R760xa with A40 GPUs (possibly different `WaitForGPUFree` timing or fewer device nodes to check).
+
+Correct fix: narrow the lock scope to exclude `WaitForGPUFree`, or use a per-claim lock instead of a global lock, or increase the timeout.
+
