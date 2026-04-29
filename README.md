@@ -50,8 +50,6 @@ Users should be able to request "a slice of the machine" (e.g., one-eighth) rath
 
 VMs receive devices via VFIO passthrough, not sharing. DRA drivers must manage the full lifecycle: unbind from the native kernel driver, bind to `vfio-pci`, expose `/dev/vfio/*` device nodes, and handle IOMMU groups.
 
-The [NVMe DRA driver](https://github.com/johnahull/dra-driver-nvme) supports both block and VFIO modes with topology attributes.
-
 **Issues:** [D-4](docs/issues.md#d-4-dranet-vfio-support-not-upstream) (feature), [D-6](docs/issues.md#d-6-amd-gpu-dra-driver-vfio-bindunbind-lifecycle-missing) (feature)
 
 ### 6. Device metadata (KEP-5304) *(KubeVirt)*
