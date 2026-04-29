@@ -174,22 +174,18 @@ constraints:
 
 ---
 
-## Level 3: cpuSocketID — Dense Inference on SNC/NPS Hardware
+## Level 3: cpuSocketID — Safety Net for SNC/NPS Hardware
 
 **Constraint:** GPU and NIC on the same physical CPU package
 **DMA path:** may cross sub-NUMA boundary within the socket, but no inter-socket link
 
 ### Use Case
 
-A cloud provider runs 8 independent inference services on one XE9680 with SNC-2 enabled (4 NUMA nodes). Each service gets 1 GPU + 1 NIC VF. But NUMA 1 and 3 have no NICs — requiring `numaNode` matching would leave 4 GPUs without network access.
+`cpuSocketID` is a safety net, not a recommended deployment pattern. GPU servers typically run with SNC/NPS off — GPU workloads don't benefit from finer CPU-side NUMA granularity since GPUs have their own HBM memory. The XE9680 and XE8640 both ship with SNC off by default.
 
-With `cpuSocketID` matching, all 4 GPUs per socket can get a NIC VF from the physical NIC on that socket, even if the NIC is on a different sub-NUMA.
+However, if SNC/NPS is enabled (e.g., the server also runs CPU-bound workloads alongside GPU workloads), it can create NUMA nodes without NICs. On the XE9680 with SNC-2, NUMA 1 and 3 have GPUs but no NICs. A hard `numaNode` constraint would leave those 4 GPUs unusable.
 
-### Configuration
-
-- 1 GPU + 1 NIC VF per service, 8 services total
-- NIC VFs on NUMA 1/3 come from the NIC on NUMA 0/2 — cross sub-NUMA but same socket
-- Sub-NUMA DMA penalty is small (NUMA distance 12 vs 10 on XE9680)
+`cpuSocketID` as the floor of the distance hierarchy prevents this failure. The scheduler tries `numaNode` first (preferred), and falls back to `cpuSocketID` (required) when a NUMA node lacks the required device types. The sub-NUMA DMA penalty within a socket is small (NUMA distance 12 vs 10).
 
 ### XE9680 (SNC on, 4 NUMA nodes)
 
@@ -200,11 +196,13 @@ With `cpuSocketID` matching, all 4 GPUs per socket can get a NIC VF from the phy
 | 1 | 2 | 2 (9d, dd) | 2 (9f:00.0, 9f:00.1) | No |
 | 1 | 3 | 2 (bd, cd) | — | Yes (NIC on NUMA 2) |
 
-**Yield: 8 of 8 GPUs (100%)** — numaNode would only yield 4 (NUMA 0 and 2).
+**Yield: 8 of 8 GPUs (100%)** — `numaNode` alone would only yield 4 (NUMA 0 and 2).
 
-### Trade-off
+### When this matters
 
-GPUs on NUMA 1/3 talking to the NIC on NUMA 0/2 cross a sub-NUMA boundary, but stay within the socket. The latency penalty is small compared to crossing sockets. This is the right level when SNC/NPS creates NUMA nodes without NICs.
+- Shared servers running both GPU and CPU workloads where SNC/NPS is enabled for the CPU workloads
+- Hardware that ships with SNC/NPS on by default (some HPC configurations)
+- Any environment where you can't control the BIOS SNC/NPS setting
 
 ### Claim
 
@@ -215,7 +213,7 @@ constraints:
   enforcement: preferred          # try NUMA first
 - matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu, mem]
-  enforcement: required           # fall back to socket
+  enforcement: required           # fall back to socket if NUMA too restrictive
 ```
 
 ---
