@@ -372,19 +372,32 @@ Observed on XE8640 with H100 SXM5 GPUs. Not observed on R760xa with A40 GPUs (po
 Correct fix: narrow the lock scope to exclude `WaitForGPUFree`, or use a per-claim lock instead of a global lock, or increase the timeout.
 
 
-#### D-11: NVIDIA driver sysfs unbind blocks indefinitely on H100 SXM5
+#### D-11: H100 SXM5 VFIO requires Fabric Manager FABRIC_MODE=1 and boot-time GPU binding
 
-**Repo:** NVIDIA kernel driver (upstream kernel/driver bug)
-**Fix:** Not fixable in DRA driver. Workaround: use `drivers_probe` instead of explicit unbind, or run unbind asynchronously with timeout.
+**Repo:** NVIDIA GPU Operator / Fabric Manager configuration
+**Fix:** Not started. Requires boot-time GPU configuration + Fabric Manager.
 
-Writing to `/sys/bus/pci/drivers/nvidia/unbind` on H100 SXM5 GPUs blocks indefinitely in the kernel. The nvidia driver's unbind path involves NVLink fabric reconfiguration which can deadlock when multiple GPUs are involved or when the NVSwitch topology is active.
+On H100 SXM5 systems (HGX platforms with NVLink), the nvidia kernel driver's sysfs unbind blocks indefinitely because unbinding one GPU triggers NVLink fabric reconfiguration that deadlocks. This makes runtime GPU rebinding from nvidia to vfio-pci impossible. Repeated bind/unbind cycles also corrupt the driver state, causing nvidia-smi to report "No devices were found."
 
-This causes the NVIDIA DRA driver's VFIO bind to hang — the `unbind_from_driver.sh` script or our Go `changeDriver()` function writes to the unbind sysfs file and never returns. Any process that holds a file descriptor on the unbind file enters D-state (uninterruptible sleep) and can only be cleared by a reboot.
+**Correct solution (from NVIDIA-Red Hat Fabric Manager draft):** Use Fabric Manager in `FABRIC_MODE=1` (Shared NVSwitch multitenancy):
+- GPUs are bound to vfio-pci at boot time (never bound to nvidia compute driver)
+- Only NVSwitch devices are managed by the nvidia driver
+- Fabric Manager runs in `FABRIC_MODE=1` and manages NVLink topology via the FM SDK
+- GPU partitions (1, 2, 4, or 8 GPUs) are activated/deactivated via FM SDK client
+- No runtime unbind/rebind needed
 
-Observed on XE8640 with 4x H100 SXM5 + NVLink + NVSwitch, Fedora 44, nvidia driver 595.58. Not observed on R760xa with 2x A40 (discrete GPUs without NVLink).
+**Boot-time configuration required:**
+1. Kernel cmdline: `vfio-pci.ids=10de:2330` to bind H100 GPUs to vfio-pci at boot
+2. Install `nvidia-fabric-manager` package (must match driver version)
+3. Configure FM: `FABRIC_MODE=1`, `UNIX_SOCKET_PATH=/run/nvidia-fabricmanager/fm.sock`
+4. Keep at least one GPU on nvidia for NVML initialization (or modify DRA driver to skip NVML)
+5. Start FM service before DRA driver
 
-Possible workarounds:
-- Use `driver_override` + `drivers_probe` to trigger automatic rebind (implemented in our fork but the unbind still hangs when the current driver needs to release the device)
-- Disable NVLink/NVSwitch before unbinding (nvidia-smi --nvlink-status=disabled)
-- Use IOMMUFD instead of legacy VFIO (avoids the unbind entirely on newer kernels with IOMMUFD support)
+**Workaround tested:** Pre-bind GPUs to vfio-pci before starting DRA driver. VFIO prepare succeeds instantly for pre-bound GPUs (no unbind needed). VM pod starts but crashes due to virt-launcher issue (KV-5).
+
+**DRA driver impact:** The NVIDIA DRA driver needs to detect NVSwitch systems and skip the unbind path entirely, instead using the FM SDK for GPU partition management.
+
+**GPU Operator support:** Draft proposal exists for `ClusterPolicy.FabricManager.Mode: shared-nvswitch` — not yet implemented in the GPU Operator.
+
+Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not observed on R760xa with 2x A40 (discrete PCIe, no NVLink).
 
