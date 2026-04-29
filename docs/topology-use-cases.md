@@ -251,18 +251,48 @@ constraints: []
 **Constraint:** same as levels 1-3, plus guest NUMA topology must reflect host placement
 **DMA path:** same as the pod-level constraint, with VEP 115 pxb-pcie placement in the guest
 
-### Use Case
+### Why VMs Need Guest Topology
 
-A KubeVirt VM running an AI training or inference workload with VFIO-passthrough GPUs and NICs. The VM needs:
-- GPU and NIC VFIO-passthrough devices on the same host NUMA node
-- vCPUs and memory pinned to the same NUMA node as the devices
-- Guest NUMA topology reflecting the host placement — so AI frameworks inside the VM see devices on the correct guest NUMA nodes
+AI frameworks inside the VM read `/sys/bus/pci/devices/*/numa_node` to make topology-aware decisions. Without correct guest NUMA topology:
 
-Without guest topology, the VM's NCCL/RCCL can't detect GPU-NIC co-locality and may choose suboptimal communication paths.
+- **NCCL/RCCL** can't detect GPU-NIC co-locality — may pick the wrong RDMA proxy GPU or disable GPUDirect RDMA entirely
+- **vLLM** can't pin worker threads to the correct NUMA node — wrong memory allocation decisions
+- **Any topology-aware application** sees `numa_node=-1` on all devices and falls back to conservative defaults
+
+DRA places devices correctly on the host, but without the guest topology chain (KEP-5304 → VEP 115 → pxb-pcie), the application inside the VM can't see the placement and makes the same bad decisions it would with random assignment.
+
+### Why Run AI in a VM
+
+- **Multi-tenancy** — cloud providers selling GPU instances to different customers on the same server. VMs give hardware isolation that containers can't provide.
+- **Driver version isolation** — different workloads needing different CUDA/ROCm driver versions. Each VM runs its own GPU driver via VFIO passthrough.
+- **Security / compliance** — regulated industries requiring VM-level isolation for audit compliance.
+- **Legacy migration** — moving existing GPU workloads from VMware/KVM to OpenShift Virtualization without repackaging as containers.
+
+### Use Case: Single-NUMA Inference VM
+
+The typical case — 1-2 GPUs + 1 NIC for inference serving. Everything on one NUMA node, guest sees one NUMA node.
+
+- DRA allocates GPU + NIC + CPU + memory on the same NUMA
+- Guest has 1 NUMA node with all devices showing correct `numa_node=0`
+- vLLM inside the VM pins threads and allocates memory on NUMA 0
+
+### Use Case: Multi-NUMA Training VM
+
+A larger VM with 4+ GPUs that spans sockets (e.g., all 4 GPUs on the XE8640, which requires both sockets). The guest must see 2 NUMA nodes so NCCL knows which GPUs are local to each other.
+
+- DRA allocates GPUs from both NUMA nodes, NIC on NUMA 0
+- Guest has 2 NUMA nodes: NUMA 0 with GPUs + NIC + vCPUs, NUMA 1 with GPUs + vCPUs
+- NCCL inside the VM sees the 2-NUMA layout and optimizes communication — uses NVLink for intra-NUMA GPU-to-GPU, picks the NUMA 0 GPU closest to the NIC as the RDMA proxy
+
+Without guest topology, NCCL in a multi-NUMA VM sees all devices as flat — no locality information, suboptimal proxy selection, and may route traffic through the wrong socket.
+
+### Use Case: Full-Node VM
+
+A VM getting all GPUs on the node (e.g., all 8 MI300X on the XE9680). Spans both sockets by definition. Guest topology mirrors the host — 2 NUMA nodes, 4 GPUs per NUMA, NIC per NUMA.
 
 ### Configuration
 
-- DRA allocates GPU + NIC + CPU + memory on the same NUMA (steps 1-3)
+- DRA allocates GPU + NIC + CPU + memory with NUMA constraints (steps 1-3)
 - VFIO binds GPU and NIC to `vfio-pci` (step 5)
 - KEP-5304 metadata carries PCI addresses and NUMA nodes to virt-launcher (step 6)
 - VEP 115 builds guest pxb-pcie topology matching the host placement (step 7)
@@ -270,18 +300,26 @@ Without guest topology, the VM's NCCL/RCCL can't detect GPU-NIC co-locality and 
 ### Claim
 
 ```yaml
-# ResourceClaim for GPU + NIC co-located on NUMA 0
+# Single-NUMA VM: GPU + NIC on the same NUMA
 constraints:
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic]
 
-# VM spec with guest NUMA passthrough
+# Multi-NUMA VM: GPUs from both NUMAs, NIC on NUMA 0
+# (no cross-NUMA constraint — just co-locate NIC with some GPUs)
+constraints:
+- matchAttribute: resource.kubernetes.io/numaNode
+  requests: [gpu-numa0, nic]
+
+# VM spec (same for both)
 spec:
   domain:
     cpu:
       dedicatedCpuPlacement: true
       numa:
         guestMappingPassthrough: {}
+    features:
+      acpi: {}
     devices:
       hostDevices:
       - claimName: gpu-claim
@@ -294,7 +332,7 @@ spec:
 
 ### Trade-off
 
-VFIO passthrough gives near-native GPU performance in the VM, but adds complexity: IOMMU groups, locked memory, ACPI configuration, and the full KEP-5304 → VEP 115 chain. Only needed when the workload must run inside a VM (multi-tenancy, security isolation, OpenShift Virtualization).
+VFIO passthrough gives near-native GPU performance in the VM, but adds complexity: IOMMU groups, locked memory, ACPI configuration, and the full KEP-5304 → VEP 115 chain. The overhead is only justified when the workload requires VM-level isolation — for workloads that can run in pods, skip straight to levels 1-4.
 
 ---
 
@@ -306,6 +344,7 @@ VFIO passthrough gives near-native GPU performance in the VM, but adds complexit
 | numaNode | Same memory controller | Training (1 shared NIC), multi-tenant inference (1 VF per GPU), single-GPU serving | Training: 1 NIC shared. Inference: 1 VF per pod | 8 of 8 (100%) | 4 of 8 (50%) |
 | cpuSocketID | Same package | Dense inference on SNC/NPS hardware | 8 inference pods on SNC-2 | 8 of 8 (100%) | 8 of 8 (100%) |
 | node | None | Batch processing | Nightly image processing | 8 of 8 (100%) | 8 of 8 (100%) |
-| VM | numaNode + VEP 115 | AI workloads in KubeVirt VMs | GPU training/inference VM | Same as numaNode | Same as numaNode |
+| VM (single-NUMA) | numaNode + VEP 115 | Isolated inference (multi-tenancy, driver isolation) | 1-2 GPUs + NIC, single NUMA | Same as numaNode | Same as numaNode |
+| VM (multi-NUMA) | numaNode + VEP 115 | Full-node training, multi-socket VM | All GPUs, spans sockets | All GPUs | All GPUs |
 
 The distance hierarchy lets users choose the right trade-off. `enforcement: preferred` enables the fallback chain: try pcieRoot, fall back to numaNode, floor at cpuSocketID.
