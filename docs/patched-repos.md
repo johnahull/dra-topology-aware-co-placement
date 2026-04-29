@@ -31,9 +31,10 @@ All forks live under [github.com/johnahull](https://github.com/johnahull).
 
 | Upstream Repo | Fork | Branch | Description |
 |---------------|------|--------|-------------|
-| [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) | [johnahull/kubernetes](https://github.com/johnahull/kubernetes) | `feature/enforcement-preferred` | `enforcement:Preferred` for `DeviceConstraint` (3 commits) + DRA topology hints + CPU manager bug fixes (1 commit) |
+| [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) | [johnahull/kubernetes](https://github.com/johnahull/kubernetes) | `feature/enforcement-preferred` | v1.37-alpha base: `enforcement:Preferred` (3 commits) + DRA topology hints + CPU manager fixes (1 commit) |
+| | | `feature/dra-topology-hints-v1.36` | **v1.36.0 base**: same 4 commits cherry-picked onto v1.36.0 for XE8640 deployment (matches API server + DRA driver library versions) |
 
-Binaries built from this branch: **kube-apiserver**, **kube-scheduler**, **kube-controller-manager**, **kubelet**, **kubectl**. All 5 are required to preserve the `enforcement` field end-to-end (API types, protobuf, OpenAPI, template→claim copy, client-side).
+Binaries built from these branches: **kube-apiserver**, **kube-scheduler**, **kube-controller-manager**, **kubelet**, **kubectl**. All 5 are required to preserve the `enforcement` field end-to-end (API types, protobuf, OpenAPI, template→claim copy, client-side). Use `feature/dra-topology-hints-v1.36` when the API server is stock v1.36.0.
 
 The kubelet commit (`77a449e2573`) adds:
 - `topology_hints.go` — DRA Manager implements `topologymanager.HintProvider`, reads `resource.kubernetes.io/numaNode` from ResourceSlice
@@ -63,11 +64,15 @@ The kubelet commit (`77a449e2573`) adds:
 - **NIC driver:** dranet (`feature/standardized-topology-attrs`)
 - **Status:** All tests passing. VM with `guestMappingPassthrough` + GPU VFIO + DRA CPU pinning working.
 
-### Dell XE8640 (NVIDIA) — down
+### Dell XE8640 (NVIDIA) — in progress
 
 - **IP:** 10.6.62.51
-- **Hardware:** 4x NVIDIA H100 SXM5, ConnectX-7 + E810 NICs, 2-socket Intel
-- **Status:** Filesystem issues, needs repair. Was running full 5-driver stack (GPU + NIC + NVMe + CPU + memory).
+- **Hardware:** 4x NVIDIA H100 SXM5 (NVLink + NVSwitch), CX6Dx + E810 NICs, 4x NVMe, 2-socket Intel, 128 threads, 1 TiB RAM
+- **OS:** Fedora 44, kernel 6.19.14, NVIDIA driver 595.58
+- **K8s:** Custom v1.36.0 (`feature/dra-topology-hints-v1.36`) — all 5 components
+- **KubeVirt:** v1.8.2 with custom virt-controller + virt-launcher (`feature/dra-vfio-numa-passthrough-v1.8.2`)
+- **NIC driver:** dranet (`feature/standardized-topology-attrs`)
+- **Status:** All 5 DRA drivers deployed. VFIO prepare works for driverless GPUs. Blocked on D-11: nvidia sysfs unbind hangs on H100 SXM5 (NVLink fabric reconfiguration). Unbind timeout fix deployed but untested.
 
 ### Dell XE9680 (AMD) — original test system
 
