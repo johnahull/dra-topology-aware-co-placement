@@ -72,7 +72,7 @@ All 7 steps have been proven end-to-end on real hardware with local patches as a
 
 - **Dell R760xa** (NVIDIA A40) — active test system. DRA topology hints in kubelet, `guestMappingPassthrough` working, dranet NIC driver, all DRA. VM running with GPU VFIO + dedicated CPUs pinned to NUMA 0 via DRA topology hints.
 - **Dell XE9680** (AMD MI300X) — original test system. 8-GPU topology coordinator tests, SNC on/off comparison, multi-NUMA VMs.
-- **Dell XE8640** (NVIDIA H100) — down (filesystem issues).
+- **Dell XE8640** (NVIDIA H100) — rebuilt with Fedora 44. All 5 DRA drivers deployed (dranet, dracpu, dramemory, dra-nvme, NVIDIA GPU with VFIO), IOMMU enabled. Blocked on NVIDIA DRA driver KEP-5304 metadata (D-3).
 
 All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for build and deployment.
 
