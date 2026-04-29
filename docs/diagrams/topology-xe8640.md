@@ -20,8 +20,8 @@ graph TD
             CX6_1["ConnectX-6 Dx 27:1 (100G)"]
         end
         subgraph "PCIe Root pci0000:48"
-            SW0["PEX890xx Switch"]
-            GPU0["H100 SXM5 4e:00.0"]
+            SW0["PEX890xx Switch (5 ports)"]
+            GPU0["H100 SXM5 4e:00.0 (slot 22)"]
             NVMe0["NVMe PM173X 4b:00.0"]
             NVMe1["NVMe PM173X 4c:00.0"]
             EMPTY0["Slot 2 (empty)"]
@@ -31,10 +31,10 @@ graph TD
             SW0 -.- EMPTY0
         end
         subgraph "PCIe Root pci0000:59"
-            SW1["PEX890xx Switch"]
-            GPU1["H100 SXM5 5f:00.0"]
-            E810_0["E810-C 5e:00.0 (100G)"]
-            E810_1["E810-C 5e:00.1 (100G)"]
+            SW1["PEX890xx Switch (5 ports)"]
+            GPU1["H100 SXM5 5f:00.0 (slot 24)"]
+            E810_0["E810-C 5e:00.0 (slot 1)"]
+            E810_1["E810-C 5e:00.1"]
             NVMe2["NVMe PM173X 5c:00.0"]
             NVMe3["NVMe PM173X 5d:00.0"]
             SW1 --- GPU1
@@ -47,18 +47,22 @@ graph TD
 
     subgraph "Socket 1 — NUMA 1 (no NICs, no NVMe)"
         subgraph "PCIe Root pci0000:c7"
-            SW2["PEX890xx Switch"]
-            GPU2["H100 SXM5 cb:00.0"]
+            SW2["PEX890xx Switch (5 ports)"]
+            GPU2["H100 SXM5 cb:00.0 (slot 23)"]
             EMPTY2["Slot 4 (empty)"]
+            EMPTY2a["2 ports (no slot#, unused)"]
             SW2 --- GPU2
             SW2 -.- EMPTY2
+            SW2 -.- EMPTY2a
         end
         subgraph "PCIe Root pci0000:d7"
-            SW3["PEX890xx Switch"]
-            GPU3["H100 SXM5 db:00.0"]
+            SW3["PEX890xx Switch (5 ports)"]
+            GPU3["H100 SXM5 db:00.0 (slot 21)"]
             EMPTY3["Slot 3 (empty)"]
+            EMPTY3a["2 ports (no slot#, unused)"]
             SW3 --- GPU3
             SW3 -.- EMPTY3
+            SW3 -.- EMPTY3a
         end
     end
 
@@ -84,7 +88,9 @@ graph TD
     style SW3 fill:#fa4,color:#000
     style EMPTY0 fill:#333,color:#999,stroke-dasharray: 5
     style EMPTY2 fill:#333,color:#999,stroke-dasharray: 5
+    style EMPTY2a fill:#333,color:#999,stroke-dasharray: 5
     style EMPTY3 fill:#333,color:#999,stroke-dasharray: 5
+    style EMPTY3a fill:#333,color:#999,stroke-dasharray: 5
     style UPI fill:#f44,color:#fff
 ```
 
@@ -100,9 +106,11 @@ graph TD
 - Socket 1 has only GPUs — asymmetric. Any pod needing GPU + NIC must use Socket 0 GPUs
 - 4 NVMe drives, all on Socket 0, split across the two switches (2 per switch)
 - NUMA distance 21 cross-socket (vs 32 on the AMD R7525 — Intel UPI is lower latency than AMD Infinity Fabric)
-- **3 empty slots**: Slot 2 on SW0 (NUMA 0), Slots 3 and 4 on SW3/SW2 (NUMA 1). These are downstream ports on the PEX890xx switches with nothing plugged in
+- Each PEX890xx switch has 5 downstream ports (+ 1 mgmt endpoint). Socket 0 switches are nearly full; Socket 1 switches are mostly empty
+- **3 empty physical slots** (with slot numbers): Slot 2 on SW0 (NUMA 0), Slot 4 on SW2 (NUMA 1), Slot 3 on SW3 (NUMA 1)
+- Socket 1 switches also have 2 additional unused ports each (no physical slot number, pcie204 stubs)
 
-**Physical slots:** 8 total, 5 populated, 3 empty.
+**Physical slots:** 8 total, 5 populated, 3 empty. Socket 1 switches have additional unused ports without slot numbers.
 
 Blue = same NUMA as all I/O (Socket 0). Red = GPUs only, no I/O (Socket 1). Orange = PCIe switches. Grey = management NIC. Dashed = empty slot.
 
