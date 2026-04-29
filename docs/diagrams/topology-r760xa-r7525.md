@@ -87,6 +87,8 @@ Blue = same NUMA as GPUs (local). Red = cross-socket from GPUs. Grey = managemen
 | numaNode | GPU ↔ CX-7, E810 (both on NUMA 0) |
 | cpuSocketID | GPU ↔ CX-7, E810 on Socket 0; GPU ↔ BF3, CX6 fails (cross-socket) |
 
+**Physical slots:** 5 total, 5 populated, 0 empty.
+
 ---
 
 ## 2. Dell PowerEdge R760xa — Distance Rings

@@ -24,9 +24,11 @@ graph TD
             GPU0["H100 SXM5 4e:00.0"]
             NVMe0["NVMe PM173X 4b:00.0"]
             NVMe1["NVMe PM173X 4c:00.0"]
+            EMPTY0["Slot 2 (empty)"]
             SW0 --- GPU0
             SW0 --- NVMe0
             SW0 --- NVMe1
+            SW0 -.- EMPTY0
         end
         subgraph "PCIe Root pci0000:59"
             SW1["PEX890xx Switch"]
@@ -47,12 +49,16 @@ graph TD
         subgraph "PCIe Root pci0000:c7"
             SW2["PEX890xx Switch"]
             GPU2["H100 SXM5 cb:00.0"]
+            EMPTY2["Slot 4 (empty)"]
             SW2 --- GPU2
+            SW2 -.- EMPTY2
         end
         subgraph "PCIe Root pci0000:d7"
             SW3["PEX890xx Switch"]
             GPU3["H100 SXM5 db:00.0"]
+            EMPTY3["Slot 3 (empty)"]
             SW3 --- GPU3
+            SW3 -.- EMPTY3
         end
     end
 
@@ -76,6 +82,9 @@ graph TD
     style SW1 fill:#fa4,color:#000
     style SW2 fill:#fa4,color:#000
     style SW3 fill:#fa4,color:#000
+    style EMPTY0 fill:#333,color:#999,stroke-dasharray: 5
+    style EMPTY2 fill:#333,color:#999,stroke-dasharray: 5
+    style EMPTY3 fill:#333,color:#999,stroke-dasharray: 5
     style UPI fill:#f44,color:#fff
 ```
 
@@ -91,8 +100,11 @@ graph TD
 - Socket 1 has only GPUs — asymmetric. Any pod needing GPU + NIC must use Socket 0 GPUs
 - 4 NVMe drives, all on Socket 0, split across the two switches (2 per switch)
 - NUMA distance 21 cross-socket (vs 32 on the AMD R7525 — Intel UPI is lower latency than AMD Infinity Fabric)
+- **3 empty slots**: Slot 2 on SW0 (NUMA 0), Slots 3 and 4 on SW3/SW2 (NUMA 1). These are downstream ports on the PEX890xx switches with nothing plugged in
 
-Blue = same NUMA as all I/O (Socket 0). Red = GPUs only, no I/O (Socket 1). Orange = PCIe switches. Grey = management NIC.
+**Physical slots:** 8 total, 5 populated, 3 empty.
+
+Blue = same NUMA as all I/O (Socket 0). Red = GPUs only, no I/O (Socket 1). Orange = PCIe switches. Grey = management NIC. Dashed = empty slot.
 
 ---
 
