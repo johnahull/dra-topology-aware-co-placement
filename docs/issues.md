@@ -90,8 +90,8 @@ No KubeVirt API changes are needed. The user creates the DRA claim (same pattern
   - No KubeVirt patches needed
 - **Pros:** one system, one constraint, **guaranteed** NUMA alignment at scheduling time. No kubelet patches. Works with default kubelet config (`cpuManagerPolicy: none`). Follows same DRA claim pattern as GPUs (VEP-10) and NICs (VEP-183). No KubeVirt API changes — `dedicatedCpuPlacement` works as-is.
 - **Cons:** extra DRA driver daemonset to deploy. User must keep `cores` and `dra.cpu/cpu` in sync manually (no validation today). On mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK), those pods lose kubelet CPU pinning — but on dedicated GPU nodes this isn't an issue.
-- **Blocker for KubeVirt:** [KV-8](docs/issues.md#kv-8-dedicatedcpuplacement-blocks-scheduling-when-cpumanagerpolicy-none-option-a) — `dedicatedCpuPlacement` requires `kubevirt.io/cpumanager=true` label, which virt-handler only sets for `cpuManagerPolicy: static`. Needs upstream KubeVirt resolution.
-- **Status:** works for pods. Blocked for KubeVirt VMs until KV-8 is resolved.
+- **KubeVirt fix:** [KV-8](#kv-8-dedicatedcpuplacement-blocks-scheduling-when-cpumanagerpolicy-none-option-a) — patched virt-controller to skip cpumanager label check when DRA claims are present.
+- **Status:** running on Dell R760xa (`cpuManagerPolicy: none`, DRA CPU driver deployed, patched KubeVirt)
 
 **Option B: Kubelet DRA topology hints (`cpuManagerPolicy: static`)**
 
@@ -524,7 +524,16 @@ The root cause: KubeVirt equates "dedicated CPUs" with "kubelet CPU manager is s
 
 Recommend raising at the KubeVirt DRA biweekly meeting (Tuesdays, 6 PM CET).
 
-**Workaround:** Use option B (`cpuManagerPolicy: static` with kubelet DRA topology hints) until this is resolved upstream. Or force the label manually and scale down virt-handler (not recommended for production).
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `78c1ee6348`
+
+The fix skips the `kubevirt.io/cpumanager=true` node selector when the VMI has both `dedicatedCpuPlacement: true` AND DRA resource claims. Two files changed:
+
+| File | Change |
+|------|--------|
+| `pkg/virt-controller/services/nodeselectorrenderer.go` | Add `hasDRACPUClaims` field and `WithDRACPUClaims()` option. Skip cpumanager label when `hasDedicatedCPU && hasDRACPUClaims`. |
+| `pkg/virt-controller/services/template.go` | Set `WithDRACPUClaims()` when VMI has `dedicatedCpuPlacement` and `len(vmi.Spec.ResourceClaims) > 0`. |
+
+**Upstream path:** Propose as part of VEP-10 beta or as a standalone enhancement following the `HostDevicesWithDRA` pattern. Raise at KubeVirt DRA biweekly.
 
 ---
 
