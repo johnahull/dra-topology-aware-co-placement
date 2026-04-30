@@ -1,8 +1,10 @@
 # Proposal: Standardize `numaNode` for Cross-Driver Topology Alignment in DRA
 
-**Goal:** Enable users to co-locate GPU, NIC, CPU, and memory for optimal DMA performance with a single ResourceClaim
+**Goal:** Restore cross-driver NUMA coordination that was lost when devices moved from the device plugin API to DRA
 
-Today, `pcieRoot` is the only standard topology attribute, but CPUs and memory don't have one, and GPUs don't always share a PCIe switch with NICs. Every driver publishes NUMA under a different name (`gpu.nvidia.com/numa`, `gpu.amd.com/numaNode`, `dra.cpu/numaNodeID`, `dra.net/numaNode`), so `matchAttribute` can't work cross-driver.
+With device plugins, the kubelet's topology manager coordinates CPU, memory, and device placement onto the same NUMA node. When devices move to DRA, this coordination breaks — DRA allocation happens in the scheduler, and the topology manager has no awareness of DRA devices. Without a standard NUMA attribute, there is no mechanism to co-place GPUs, NICs, CPUs, and memory from different DRA drivers on the same NUMA node.
+
+Every driver publishes NUMA under a different name (`gpu.nvidia.com/numa`, `gpu.amd.com/numaNode`, `dra.cpu/numaNodeID`, `dra.net/numaNode`), so `matchAttribute` can't work cross-driver. Consumers like KubeVirt's virt-launcher must hardcode every driver's naming convention or fall back to mounting host sysfs.
 
 This proposal has two parts. Part 1 is the critical change. Part 2 is an optimization that can follow later.
 
@@ -10,9 +12,26 @@ This proposal has two parts. Part 1 is the critical change. Part 2 is an optimiz
 
 ## Part 1: Standardize `resource.kubernetes.io/numaNode` (critical)
 
-Standardize `resource.kubernetes.io/numaNode` alongside `pcieRoot`. Both are hardware facts from sysfs.
+### The problem
 
-With a standard `numaNode`, one constraint co-locates all four resource types:
+DRA broke the topology manager's coordination. With device plugins:
+
+1. GPU driver returns topology hints via `GetPreferredAllocation()`
+2. NIC driver returns topology hints via `GetPreferredAllocation()`
+3. Topology manager merges hints with CPU/memory placement
+4. All resources land on the same NUMA node
+
+With DRA:
+
+1. GPU driver publishes `gpu.amd.com/numaNode` in ResourceSlice
+2. NIC driver publishes `dra.net/numaNode` in ResourceSlice
+3. CPU driver publishes `dra.cpu/numaNodeID` in ResourceSlice
+4. `matchAttribute` requires a single common name — **none exists**
+5. Resources are placed independently — cross-NUMA assignment is random
+
+### The fix
+
+Standardize `resource.kubernetes.io/numaNode` alongside `pcieRoot` and `pciBusID`. One constraint replaces the topology manager's coordination:
 
 ```yaml
 constraints:
@@ -20,24 +39,41 @@ constraints:
   requests: [gpu, nic, cpu, mem]
 ```
 
-**Why `numaNode` is the critical boundary:**
-- Benchmarks show NUMA-aligned placement achieves **46.93 GB/s** vs **29.68 GB/s** unaligned — a **58% throughput improvement** ([Ojea 2025](https://arxiv.org/abs/2506.23628)). This gap is between NUMA-aligned and cross-NUMA, not between same-switch and same-NUMA.
-- `pcieRoot` only matches devices on the same PCIe switch — 25% of GPU-NIC pairs on typical hardware. `numaNode` covers 100%.
-- CPUs and memory have no `pcieRoot`. `numaNode` is the only attribute that spans all four resource types.
-- On systems where every slot has its own root port (Dell R760xa), `pcieRoot` is unsatisfiable for any GPU+NIC pair. `numaNode` is the only option.
+One attribute, one constraint, four drivers. The scheduler finds a NUMA node where all resource types are available and co-locates them — the same coordination the topology manager provided for device plugins, but at the scheduler level.
 
-**Why `numaNode`, not `pcieRoot` alone:**
+### The consumer problem
 
-| Attribute | GPU+NIC coverage (XE9680) | Includes CPU/memory? |
-|-----------|--------------------------|---------------------|
-| `pcieRoot` | 2 of 8 (25%) | No |
-| `numaNode` | 8 of 8 (100%) | Yes |
+The lack of a standard name also breaks consumers of KEP-5304 device metadata. KubeVirt's virt-launcher needs the NUMA node for each passthrough device to build guest topology (VEP 115 pxb-pcie placement). Today it must:
 
-**What's needed:**
+```go
+// Try every driver's naming convention
+numaAttr := metadata.Attributes["numaNode"]           // AMD GPU
+if numaAttr == nil {
+    numaAttr = metadata.Attributes["numa"]             // NVIDIA GPU
+}
+if numaAttr == nil {
+    // fall back to host sysfs — requires /sys mount
+    numa = readSysfs("/sys/bus/pci/devices/" + pciAddr + "/numa_node")
+}
+```
+
+With standardization:
+```go
+numaAttr := metadata.Attributes["resource.kubernetes.io/numaNode"]
+```
+
+### What's needed
+
 1. Add `resource.kubernetes.io/numaNode` (int) to the `deviceattribute` library, with a helper: `GetNUMANodeByPCIBusID(pciBusID string) (int, error)`
 2. All DRA drivers publish it — one function call alongside existing `pcieRoot`
 
-**Value without Part 2:** A single required `numaNode` constraint aligns all four resource types on any hardware where every NUMA has the devices it needs. This handles the vast majority of real-world deployments — GPU servers run SNC/NPS off by default.
+### The SNC/NPS objection
+
+The community removed `numaNode` from KEP-4381 because SNC/NPS changes NUMA IDs. However:
+- The sysfs value is always correct — it reports which memory controller services the device
+- SNC makes it finer-grained, not incorrect
+- GPU servers run SNC/NPS off by default — GPUs use HBM, not host DRAM
+- A single required `numaNode` constraint handles all hardware with SNC off, which is the vast majority of GPU deployments
 
 ---
 
@@ -83,10 +119,10 @@ Use cases: https://github.com/johnahull/dra-topology-aware-co-placement/blob/mai
 
 ## Use cases
 
-**numaNode (Part 1) — the critical co-placement boundary**
-The right level for most workloads. All GPUs + NIC + CPU + memory on the same NUMA node. Training: 1 shared NIC, NCCL/RCCL proxy handles RDMA. Inference: 1 VF per pod for network isolation. The 58% throughput gap is between NUMA-aligned and cross-NUMA.
+**numaNode (Part 1) — restoring topology manager coordination for DRA**
+The right level for most workloads. All GPUs + NIC + CPU + memory on the same NUMA node. Training: 1 shared NIC, NCCL/RCCL proxy handles RDMA. Inference: 1 VF per pod for network isolation.
 
-**pcieRoot preferred (Part 2) — NCCL proxy GPU + NIC on same switch**
+**pcieRoot preferred (Part 2) — scheduler-level PCIe switch optimization**
 Optimization for systems with PCIe switches. NCCL/RCCL auto-detect this and pick the best proxy anyway — Part 2 pre-optimizes at the scheduler level. Most useful for non-NCCL workloads that don't auto-detect topology.
 
 **No constraint — batch processing**
