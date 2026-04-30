@@ -41,11 +41,11 @@ The kubelet CPU manager stays. A new `HintProvider` in the DRA Manager reads `nu
 - **Cons:** patched kubelet (not upstream). Two systems coordinating (DRA scheduler + topology manager). Topology manager hints are best-effort. Required CPU manager bug fixes (K-2, K-3) to work reliably.
 - **Status:** running on Dell R760xa
 
-**These options are mutually exclusive.** Each requires a different `cpuManagerPolicy` setting:
-- Option A requires `cpuManagerPolicy: none` — the kubelet CPU manager is disabled, DRA CPU driver owns all CPU pinning
-- Option B requires `cpuManagerPolicy: static` — the kubelet CPU manager owns CPU pinning, DRA provides NUMA hints to guide it
+**Which option is active depends on `cpuManagerPolicy`:**
+- `cpuManagerPolicy: none` (default) → option A. The kubelet CPU manager is disabled. Deploy the DRA CPU driver to handle CPU allocation and pinning via NRI. Topology hints are harmless but unused.
+- `cpuManagerPolicy: static` → option B. The kubelet CPU manager is active. DRA topology hints guide it to pin CPUs on the same NUMA as DRA devices. Don't deploy the DRA CPU driver — the kubelet owns CPU pinning.
 
-You cannot run both on the same node.
+A single kubelet binary with the topology hints patch supports both paths. The deployment decides which option to use based on `cpuManagerPolicy` and whether the DRA CPU driver is deployed.
 
 **Key difference: guaranteed vs best-effort.** Option A is guaranteed — the scheduler either finds a node where all resources (GPU + NIC + CPU) match on the same NUMA and schedules there, or the pod stays pending. There's no silent degradation. Option B is best-effort — the topology manager may ignore DRA hints if they conflict with other hint providers (memory manager, other device plugins), silently placing CPUs on a different NUMA than the DRA devices. Option A is the stronger long-term path for this reason.
 
