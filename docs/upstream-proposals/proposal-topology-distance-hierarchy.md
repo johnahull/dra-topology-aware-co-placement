@@ -66,9 +66,6 @@ constraints:
 - **NCCL/RCCL already handle proxy selection** — both frameworks auto-detect PCIe topology and pick the best proxy GPU regardless of scheduler placement. For AI workloads, the scheduler doing it too is redundant.
 - **Minimal real-world benefit** — the performance gain is one root complex hop within a NUMA node. Negligible for training (network round-trip dominates) and inference (millisecond latencies).
 - **API complexity** — adding a new field to `DeviceConstraint` requires changes to all 5 K8s binaries (apiserver, scheduler, controller-manager, kubelet, kubectl).
-- **Can be proposed separately** — standardizing `numaNode` doesn't preclude adding `enforcement: preferred` later.
-
-**Recommendation:** Ship Part 1 first. Propose Part 2 separately if demand emerges from non-NCCL workloads or heterogeneous clusters.
 
 ---
 
