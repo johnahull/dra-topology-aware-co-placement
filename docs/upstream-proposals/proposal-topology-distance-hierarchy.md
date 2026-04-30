@@ -54,6 +54,20 @@ numaAttr := metadata.Attributes["resource.kubernetes.io/numaNode"]
 1. Add `resource.kubernetes.io/numaNode` (int) to the `deviceattribute` library, with a helper: `GetNUMANodeByPCIBusID(pciBusID string) (int, error)`
 2. All DRA drivers publish it — one function call alongside existing `pcieRoot`
 
+### Every driver already publishes NUMA — under different names
+
+All DRA drivers already read NUMA from sysfs and publish it. The data exists. The problem is purely naming:
+
+| Driver | Attribute name | Source |
+|--------|---------------|--------|
+| AMD GPU | `gpu.amd.com/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` |
+| NVIDIA GPU | `gpu.nvidia.com/numa` (VFIO only) | `/sys/bus/pci/devices/<BDF>/numa_node` |
+| CPU | `dra.cpu/numaNodeID` | `/sys/devices/system/node/` |
+| Memory | `dra.memory/numaNode` | NUMA zone |
+| dranet | `dra.net/numaNode` | `/sys/class/net/<iface>/device/numa_node` |
+
+Five drivers, five different names, same sysfs value. Standardizing `resource.kubernetes.io/numaNode` doesn't ask drivers to add new functionality — it asks them to agree on a name they already have.
+
 ### Why `pcieRoot` alone is not enough
 
 `pcieRoot` is already standardized, but it cannot replace `numaNode` for cross-driver coordination:
