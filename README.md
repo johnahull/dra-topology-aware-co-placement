@@ -34,9 +34,11 @@ Not all co-location is equal. Devices can share a PCIe switch (tightest) or a NU
 
 **Issues:** [U-1](docs/issues.md#u-1-enforcement-preferred-not-in-upstream-api) (feature), [U-3](docs/issues.md#u-3-deviceattribute-library-getpcierootattributemapfromcpuid-helper) (feature)
 
-### 3. DRA-aware CPU pinning (kubelet)
+### 3. DRA-aware CPU pinning
 
-DRA scheduling (steps 1-2) co-places devices at the scheduler level, but the kubelet's CPU manager pins vCPUs independently — it has no awareness of DRA device placement. The kubelet needs DRA topology hints so the topology manager can align CPU pinning with the NUMA node where DRA allocated the GPU, NIC, and other devices. Without this, a GPU on NUMA 0 and CPUs on NUMA 1 means cross-NUMA memory access for every GPU operation. This applies to both regular pods and KubeVirt VMs — for VMs it's especially critical because virt-launcher reads `cpuset.cpus` at startup to build guest NUMA topology, so wrong CPU pinning cascades into wrong guest device placement.
+DRA scheduling (steps 1-2) co-places devices at the scheduler level, but CPU pinning is handled separately. Without coordination, CPUs may be pinned to a different NUMA node than the DRA devices. This applies to both regular pods and KubeVirt VMs — for VMs it's especially critical because virt-launcher reads `cpuset.cpus` at startup to build guest NUMA topology, so wrong CPU pinning cascades into wrong guest device placement.
+
+There are [two mutually exclusive options](docs/issues.md#cpu-pinning-with-dra-devices--two-options): **(A)** the DRA CPU driver allocates CPUs as DRA devices alongside GPUs/NICs in the same claim, or **(B)** the kubelet gets DRA topology hints and pins CPUs via its own CPU manager. Both are proven on the R760xa.
 
 **Issues:** [K-1](docs/issues.md#k-1-dra-topology-hints--kubelet-doesnt-provide-numa-hints-for-dra-devices) (feature), [K-2](docs/issues.md#k-2-cpu-manager-reconciler-never-corrects-cgroup-cpuset-mismatches) (bug), [K-3](docs/issues.md#k-3-cpu-manager-cpuset-not-applied-before-container-starts) (bug)
 
