@@ -90,7 +90,8 @@ No KubeVirt API changes are needed. The user creates the DRA claim (same pattern
   - No KubeVirt patches needed
 - **Pros:** one system, one constraint, **guaranteed** NUMA alignment at scheduling time. No kubelet patches. Works with default kubelet config (`cpuManagerPolicy: none`). Follows same DRA claim pattern as GPUs (VEP-10) and NICs (VEP-183). No KubeVirt API changes — `dedicatedCpuPlacement` works as-is.
 - **Cons:** extra DRA driver daemonset to deploy. User must keep `cores` and `dra.cpu/cpu` in sync manually (no validation today). On mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK), those pods lose kubelet CPU pinning — but on dedicated GPU nodes this isn't an issue.
-- **Status:** running on Dell R760xa (`cpuManagerPolicy: none`, DRA CPU driver deployed)
+- **Blocker for KubeVirt:** [KV-8](docs/issues.md#kv-8-dedicatedcpuplacement-blocks-scheduling-when-cpumanagerpolicy-none-option-a) — `dedicatedCpuPlacement` requires `kubevirt.io/cpumanager=true` label, which virt-handler only sets for `cpuManagerPolicy: static`. Needs upstream KubeVirt resolution.
+- **Status:** works for pods. Blocked for KubeVirt VMs until KV-8 is resolved.
 
 **Option B: Kubelet DRA topology hints (`cpuManagerPolicy: static`)**
 
@@ -501,6 +502,29 @@ This was observed with the dranet driver before `Device.Requests` was added to t
 When DRA host devices are passed through via VFIO, the virt-launcher pod needs capabilities for DMA memory locking: `SYS_RESOURCE`, `IPC_LOCK`, and unlimited memlock rlimits. The virt-controller's pod template renderer doesn't add these for DRA-allocated devices (only for device-plugin devices where `permittedHostDevices` entries specify VFIO requirements).
 
 The fork adds these capabilities when DRA host devices or GPUs are present in the VMI spec. The `ReservedOverheadMemlock` feature gate controls the memlock reservation via `reservedOverhead.addedOverhead` in the VM spec.
+
+---
+
+#### KV-8: `dedicatedCpuPlacement` blocks scheduling when `cpuManagerPolicy: none` (option A)
+
+**Repo:** `kubevirt/kubevirt`
+**Component:** `pkg/virt-handler/heartbeat/heartbeat.go`, `pkg/virt-controller/services/nodeselectorrenderer.go`
+
+When using CPU pinning option A (DRA CPU driver with `cpuManagerPolicy: none`), KubeVirt blocks VM scheduling. The virt-handler heartbeat reads `cpu_manager_state` on the node, finds `policyName: none`, and sets `kubevirt.io/cpumanager=false`. The virt-controller adds `kubevirt.io/cpumanager: "true"` as a required node selector when `dedicatedCpuPlacement: true` — so the pod is permanently unschedulable.
+
+The root cause: KubeVirt equates "dedicated CPUs" with "kubelet CPU manager is static." With option A, dedicated CPUs come from the DRA CPU driver via NRI, not the kubelet CPU manager. The cpumanager label check is too narrow.
+
+**Upstream discussion needed.** This is not a simple bug fix — it requires KubeVirt to decide how `dedicatedCpuPlacement` works with DRA. Options:
+
+1. **`CPUsWithDRA` feature gate** — skip the cpumanager label check when DRA CPU claims are present in the VMI spec. Follows the `HostDevicesWithDRA` pattern (already merged upstream for GPU passthrough). Small, contained change.
+
+2. **Decouple concepts** — `dedicatedCpuPlacement` means "build guest NUMA topology and pin vCPUs" without caring how CPUs are allocated. Remove the cpumanager label as a scheduling gate. The label becomes informational.
+
+3. **virt-handler detects DRA CPU driver** — set `kubevirt.io/cpumanager=true` when either `cpuManagerPolicy: static` OR a DRA CPU ResourceSlice exists on the node.
+
+Recommend raising at the KubeVirt DRA biweekly meeting (Tuesdays, 6 PM CET).
+
+**Workaround:** Use option B (`cpuManagerPolicy: static` with kubelet DRA topology hints) until this is resolved upstream. Or force the label manually and scale down virt-handler (not recommended for production).
 
 ---
 
