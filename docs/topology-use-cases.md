@@ -8,6 +8,8 @@ All examples use a Dell XE9680 (2-socket Intel Xeon 6448Y, 8x AMD MI300X GPUs, 2
 
 ## Level 1: pcieRoot — NCCL Network Proxy with GPUDirect RDMA
 
+*Hardware diagrams: [pcieRoot on XE8640](diagrams/use-case-diagrams.md#1-pcieroot--nccl-proxy-xe8640-4x-h100-sxm5), [pcieRoot unsatisfiable on R760xa](diagrams/use-case-diagrams.md#2-pcieroot-unsatisfiable-r760xa-2x-a40)*
+
 **Constraint:** GPU and NIC on the same PCIe switch
 **DMA path:** GPU → switch → NIC (no root complex hop)
 
@@ -84,6 +86,8 @@ constraints:
 ---
 
 ## Level 2: numaNode — Training and Inference with NUMA-Local Devices
+
+*Hardware diagrams: [training pod on XE9680](diagrams/use-case-diagrams.md#3-numanode--training-pod-xe9680-8x-mi300x), [multi-tenant inference on XE9680](diagrams/use-case-diagrams.md#4-numanode--multi-tenant-inference-xe9680)*
 
 **Constraint:** GPU, NIC, CPU, and memory on the same memory controller
 **DMA path:** GPU → switch → root complex → switch → NIC (one extra hop, local memory)
@@ -203,6 +207,8 @@ constraints: []
 ---
 
 ## Level 4: KubeVirt VM — Full Topology in Guest
+
+*Hardware diagrams: [single-NUMA VM on R760xa](diagrams/use-case-diagrams.md#5-kubevirt-single-numa-vm-r760xa), [multi-NUMA VM on XE8640](diagrams/use-case-diagrams.md#6-kubevirt-multi-numa-vm-xe8640-4x-h100)*
 
 **Constraint:** same as levels 1-3, plus guest NUMA topology must reflect host placement
 **DMA path:** same as the pod-level constraint, with VEP 115 pxb-pcie placement in the guest
