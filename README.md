@@ -36,7 +36,7 @@ Not all co-location is equal. Devices can share a PCIe switch (tightest) or a NU
 
 ### 3. DRA-aware CPU pinning (kubelet)
 
-DRA scheduling (steps 1-2) co-places devices at the scheduler level, but the kubelet's CPU manager pins vCPUs independently — it has no awareness of DRA device placement. The kubelet needs DRA topology hints so the topology manager can align CPU pinning with the NUMA node where DRA allocated the GPU, NIC, and other devices. Without this, a GPU on NUMA 0 and CPUs on NUMA 1 means cross-NUMA memory access for every GPU operation.
+DRA scheduling (steps 1-2) co-places devices at the scheduler level, but the kubelet's CPU manager pins vCPUs independently — it has no awareness of DRA device placement. The kubelet needs DRA topology hints so the topology manager can align CPU pinning with the NUMA node where DRA allocated the GPU, NIC, and other devices. Without this, a GPU on NUMA 0 and CPUs on NUMA 1 means cross-NUMA memory access for every GPU operation. This applies to both regular pods and KubeVirt VMs — for VMs it's especially critical because virt-launcher reads `cpuset.cpus` at startup to build guest NUMA topology, so wrong CPU pinning cascades into wrong guest device placement.
 
 **Issues:** [K-1](docs/issues.md#k-1-dra-topology-hints--kubelet-doesnt-provide-numa-hints-for-dra-devices) (feature), [K-2](docs/issues.md#k-2-cpu-manager-reconciler-never-corrects-cgroup-cpuset-mismatches) (bug), [K-3](docs/issues.md#k-3-cpu-manager-cpuset-not-applied-before-container-starts) (bug)
 
