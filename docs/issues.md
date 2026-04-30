@@ -405,11 +405,24 @@ Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not obser
 #### D-12: NVIDIA DRA driver CDI spec missing /dev/vfio/vfio and IOMMU group mismatch
 
 **Repo:** `NVIDIA/k8s-dra-driver-gpu` (CDI generation)
-**Fix:** Not started.
+**Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `cb087a2`
+**Files:** `cmd/gpu-kubelet-plugin/vfio-cdi.go`
+**Status:** Fixed.
 
 When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind needed), the CDI spec may reference the wrong IOMMU group or miss `/dev/vfio/vfio`. Libvirt inside the virt-launcher then reports "VFIO PCI device assignment is not supported by the host."
 
-The CDI spec should include both `/dev/vfio/vfio` (the VFIO container device) and `/dev/vfio/<iommu_group>` for the specific GPU. The IOMMU group must be looked up from `/sys/bus/pci/devices/<BDF>/iommu_group` at prepare time.
+**Fix:** Always include `/dev/vfio/vfio` in `GetCommonEdits()` (was gated behind `enableAPIDevice`). In `GetDeviceSpecsByPCIBusID()`, read the IOMMU group directly from sysfs (`/sys/bus/pci/devices/<BDF>/iommu_group` symlink) instead of using `nvpci.GetGPUByPciBusID()` which doesn't work for vfio-pci-bound GPUs.
 
-Observed on XE8640 with pre-bound vfio-pci GPUs.
+---
+
+#### D-13: NVIDIA DRA driver advertises driverless/nvidia-bound GPUs as VFIO devices
+
+**Repo:** `NVIDIA/k8s-dra-driver-gpu` (VFIO discovery)
+**Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `e589e5a`
+**Files:** `cmd/gpu-kubelet-plugin/nvlib.go`
+**Status:** Fixed.
+
+`enumerateGpuVfioDevices()` treated any NVIDIA GPU not on the nvidia driver as a VFIO candidate. This caused driverless GPUs (stuck after a failed unbind on H100 SXM5) and nvidia-bound GPUs to be advertised in the ResourceSlice as allocatable VFIO devices. When the scheduler picked one, the prepare would fail or hang trying to unbind from nvidia (D-11).
+
+**Fix:** Check the actual kernel driver binding via sysfs (`readlink /sys/bus/pci/devices/<BDF>/driver`) before adding a GPU to the VFIO device list. Only GPUs currently bound to `vfio-pci` are advertised. This prevents the D-11 hang from recurring — even if `Unconfigure` returns a GPU to nvidia, it won't reappear as a VFIO device.
 

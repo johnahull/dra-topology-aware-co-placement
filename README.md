@@ -70,7 +70,7 @@ All 7 steps have been proven end-to-end on real hardware with local patches as a
 
 - **Dell R760xa** (NVIDIA A40) — active test system. DRA topology hints in kubelet, `guestMappingPassthrough` working, dranet NIC driver, all DRA. VM running with GPU VFIO + dedicated CPUs pinned to NUMA 0 via DRA topology hints.
 - **Dell XE9680** (AMD MI300X) — original test system. 8-GPU topology coordinator tests, SNC on/off comparison, multi-NUMA VMs.
-- **Dell XE8640** (NVIDIA H100 SXM5) — rebuilt with Fedora 44. All 5 DRA drivers deployed, IOMMU enabled, KEP-5304 metadata working. VFIO prepare succeeds for driverless GPUs. Blocked on D-11: nvidia sysfs unbind hangs on H100 SXM5 (NVLink). Unbind timeout fix deployed.
+- **Dell XE8640** (NVIDIA H100 SXM5) — rebuilt with Fedora 44. All 5 DRA drivers deployed, IOMMU enabled, KEP-5304 metadata working. VM running with H100 GPU VFIO passthrough, CPUs pinned to NUMA 0 via DRA topology hints. GPUs pre-bound to vfio-pci at boot (`vfio-pci.ids`), one GPU kept on nvidia for NVML. D-11/D-12/D-13 fixed.
 
 All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for build and deployment.
 
