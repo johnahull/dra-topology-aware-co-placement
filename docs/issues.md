@@ -17,6 +17,10 @@ DRA scheduling co-places GPUs, NICs, and other devices on the same NUMA node, bu
 The DRA CPU driver (`kubernetes-sigs/dra-driver-cpu`) allocates CPUs as DRA devices in the same ResourceClaim as GPUs and NICs. A single `matchAttribute: numaNode` constraint aligns all resource types at scheduling time. The CPU driver pins via NRI `CreateContainer` hook. The kubelet CPU manager is disabled.
 
 - **Branch:** uses upstream `dra-driver-cpu` with `feature/standardized-topology-attrs` for numaNode
+- **What needs patching:**
+  - `dra-driver-cpu` — publish `resource.kubernetes.io/numaNode` (our `feature/standardized-topology-attrs` branch; upstream publishes `dra.cpu/numaNodeID` only)
+  - KubeVirt — needs a way to request CPUs via DRA claim instead of (or alongside) `dedicatedCpuPlacement`
+  - No kubelet patches needed
 - **Pros:** one system, one constraint, guaranteed NUMA alignment at scheduling time. No kubelet patches.
 - **Cons:** KubeVirt `dedicatedCpuPlacement` API doesn't know about DRA CPU claims. Extra DRA driver daemonset. `cpuManagerPolicy: none` disables kubelet CPU pinning for all pods — in practice this only matters on mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK, real-time). On dedicated GPU nodes (typical deployment), all CPU-pinned workloads use DRA and this isn't an issue.
 - **Status:** running on Dell R760xa
@@ -26,9 +30,16 @@ The DRA CPU driver (`kubernetes-sigs/dra-driver-cpu`) allocates CPUs as DRA devi
 The kubelet CPU manager stays. A new `HintProvider` in the DRA Manager reads `numaNode` from ResourceSlice attributes for each DRA device and returns topology hints. The topology manager merges these with CPU manager hints to pin CPUs to the same NUMA node as DRA devices.
 
 - **Branch:** `johnahull/kubernetes` `feature/dra-topology-hints`
+- **What needs patching:**
+  - Kubelet `pkg/kubelet/cm/dra/topology_hints.go` (new) — DRA Manager implements `HintProvider`, reads `numaNode` from ResourceSlice
+  - Kubelet `pkg/kubelet/cm/dra/manager.go` — register DRA Manager as topology hint provider, add `nodeName` field
+  - Kubelet `pkg/kubelet/cm/container_manager_linux.go` — wire DRA Manager into topology manager
+  - Kubelet `pkg/kubelet/cm/cpumanager/cpu_manager.go` — fix cpuset reconciler race (K-2) and apply cpuset before container starts (K-3)
+  - No DRA driver patches needed
+  - No KubeVirt patches needed (existing `dedicatedCpuPlacement` works as-is)
 - **Pros:** works with existing KubeVirt `dedicatedCpuPlacement`. No extra driver. Non-DRA pods still get kubelet CPU pinning.
 - **Cons:** patched kubelet (not upstream). Two systems coordinating (DRA scheduler + topology manager). Topology manager hints are best-effort. Required CPU manager bug fixes (K-2, K-3) to work reliably.
-- **Status:** running on Dell R760xa (combined with option A for testing)
+- **Status:** running on Dell R760xa
 
 **These options are mutually exclusive for CPU pinning.** Both set `cpuset.cpus` on the container — running both with `cpuManagerPolicy: static` creates a race. Pick one:
 - `cpuManagerPolicy: none` + option A (DRA owns CPUs)
