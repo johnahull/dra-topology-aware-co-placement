@@ -18,7 +18,7 @@ The DRA CPU driver (`kubernetes-sigs/dra-driver-cpu`) allocates CPUs as DRA devi
 
 - **Branch:** uses upstream `dra-driver-cpu` with `feature/standardized-topology-attrs` for numaNode
 - **Pros:** one system, one constraint, guaranteed NUMA alignment at scheduling time. No kubelet patches.
-- **Cons:** KubeVirt `dedicatedCpuPlacement` API doesn't know about DRA CPU claims. Extra DRA driver daemonset. `cpuManagerPolicy: none` disables kubelet CPU pinning for all pods.
+- **Cons:** KubeVirt `dedicatedCpuPlacement` API doesn't know about DRA CPU claims. Extra DRA driver daemonset. `cpuManagerPolicy: none` disables kubelet CPU pinning for all pods — in practice this only matters on mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK, real-time). On dedicated GPU nodes (typical deployment), all CPU-pinned workloads use DRA and this isn't an issue.
 - **Status:** running on Dell R760xa
 
 **Option B: Kubelet DRA topology hints (`cpuManagerPolicy: static`)**
