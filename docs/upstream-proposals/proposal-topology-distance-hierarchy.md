@@ -67,6 +67,22 @@ numaAttr := metadata.Attributes["resource.kubernetes.io/numaNode"]
 1. Add `resource.kubernetes.io/numaNode` (int) to the `deviceattribute` library, with a helper: `GetNUMANodeByPCIBusID(pciBusID string) (int, error)`
 2. All DRA drivers publish it — one function call alongside existing `pcieRoot`
 
+### Why `pcieRoot` alone is not enough
+
+`pcieRoot` is already standardized, but it cannot replace `numaNode` for cross-driver coordination:
+
+**Many servers don't group devices under shared PCIe roots.** On the Dell R760xa, every PCIe slot has its own root port. Both A40 GPUs and the ConnectX-7 NIC are on NUMA 0, one root complex hop apart, but `matchAttribute: pcieRoot` fails because no two devices share a root. This is common on standard rack servers — only high-density GPU systems (XE8640, XE9680) use PCIe switches that create shared roots. A constraint that fails on standard server hardware isn't a general solution.
+
+**`pcieRoot-as-list` requires transitive reasoning.** The proposed alternative — CPUs publish a list of local PCIe roots — requires set intersection (`is the GPU's pcieRoot in the CPU's list?`), not simple equality. `matchAttribute` does equality matching today. Supporting list intersection requires either a new constraint type or a new allocator feature — more API complexity than standardizing `numaNode`.
+
+**`numaNode` is universal across device types.** Every PCI device has `/sys/bus/pci/devices/<BDF>/numa_node`. Every CPU has a NUMA node. Every memory zone has a NUMA node. It's the one topology concept that exists for all device types in sysfs. `pcieRoot` is PCI-specific — it works for GPUs and NICs but doesn't naturally extend to CPUs and memory without the list-typed workaround.
+
+**Real-world examples where `pcieRoot` fails but `numaNode` works:**
+
+- **Inference serving** — a vLLM pod needs 1 GPU + 1 NIC VF + CPU + memory on the same NUMA. On the R760xa, `pcieRoot` is unsatisfiable. `numaNode` co-locates all four resource types correctly.
+- **Multi-tenant GPU hosting** — 4 independent pods on the same NUMA, each with 1 GPU + 1 SR-IOV VF. The VFs come from a NIC on a different PCIe root than the GPUs. `pcieRoot` excludes all pairings. `numaNode` matches them because they share a memory controller.
+- **KubeVirt VM passthrough** — virt-launcher reads device NUMA from KEP-5304 metadata to build guest topology. With `pcieRoot`, there's no way to determine which NUMA node a device is on without falling back to sysfs. With `numaNode`, the metadata carries the answer directly.
+
 ### The SNC/NPS objection
 
 The community removed `numaNode` from KEP-4381 because SNC/NPS changes NUMA IDs. However:
