@@ -14,20 +14,7 @@ This proposal has two parts. Part 1 is the critical change. Part 2 is an optimiz
 
 ### The problem
 
-DRA broke the topology manager's coordination. With device plugins:
-
-1. GPU driver returns topology hints via `GetPreferredAllocation()`
-2. NIC driver returns topology hints via `GetPreferredAllocation()`
-3. Topology manager merges hints with CPU/memory placement
-4. All resources land on the same NUMA node
-
-With DRA:
-
-1. GPU driver publishes `gpu.amd.com/numaNode` in ResourceSlice
-2. NIC driver publishes `dra.net/numaNode` in ResourceSlice
-3. CPU driver publishes `dra.cpu/numaNodeID` in ResourceSlice
-4. `matchAttribute` requires a single common name — **none exists**
-5. Resources are placed independently — cross-NUMA assignment is random
+A user deploying an AI inference pod needs their GPU, NIC, CPU, and memory on the same NUMA node. With device plugins, the topology manager handled this automatically. With DRA, there is no way to express this — each driver publishes NUMA under a different vendor-specific name, and `matchAttribute` requires a single common name to align devices across drivers. The user cannot write a cross-driver NUMA constraint.
 
 ### The fix
 
