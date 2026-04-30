@@ -28,9 +28,9 @@ Each DRA driver (GPU, NIC, CPU, memory) must read and publish the physical locat
 
 **Issues:** [U-2](docs/issues.md#u-2-standardized-resourcekubernetesionumanode-not-agreed) (feature), [D-2](docs/issues.md#d-2-nvidia-gpu-dra-driver-numanode-not-published-for-standard-gpu-devices) (feature), [D-5](docs/issues.md#d-5-dranet-standardized-topology-attributes-not-upstream) (feature), [D-8](docs/issues.md#d-8-amd-gpu-dra-driver-numanode-attribute-not-standardized) (feature)
 
-### 2. Topology distance hierarchy
+### 2. Topology distance hierarchy *(optional)*
 
-Not all co-location is equal. Devices can share a PCIe switch (tightest) or a NUMA node (local). The scheduler needs a fallback: prefer `pcieRoot` (same switch), require `numaNode` (same memory controller). This requires an `enforcement: Preferred` capability in the scheduler.
+Not all co-location is equal. Devices can share a PCIe switch (tightest) or a NUMA node (local). The scheduler could prefer `pcieRoot` (same switch) and fall back to `numaNode` (same memory controller). This requires an `enforcement: Preferred` capability in the scheduler. Step 1 alone handles the critical co-placement boundary — this step adds an optimization for systems with PCIe switches. NCCL/RCCL already handle PCIe-level proxy selection at the application level.
 
 **Issues:** [U-1](docs/issues.md#u-1-enforcement-preferred-not-in-upstream-api) (feature), [U-3](docs/issues.md#u-3-deviceattribute-library-getpcierootattributemapfromcpuid-helper) (feature)
 
