@@ -45,6 +45,8 @@ The kubelet CPU manager stays. A new `HintProvider` in the DRA Manager reads `nu
 - `cpuManagerPolicy: none` + option A (DRA owns CPUs)
 - `cpuManagerPolicy: static` + option B (kubelet owns CPUs, DRA provides hints)
 
+**Key difference: guaranteed vs best-effort.** Option A is guaranteed — the scheduler either finds a node where all resources (GPU + NIC + CPU) match on the same NUMA and schedules there, or the pod stays pending. There's no silent degradation. Option B is best-effort — the topology manager may ignore DRA hints if they conflict with other hint providers (memory manager, other device plugins), silently placing CPUs on a different NUMA than the DRA devices. Option A is the stronger long-term path for this reason.
+
 ---
 
 #### K-1: DRA topology hints — kubelet doesn't provide NUMA hints for DRA devices
