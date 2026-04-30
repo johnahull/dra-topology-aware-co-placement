@@ -10,19 +10,86 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 #### CPU pinning with DRA devices — two options
 
-DRA scheduling co-places GPUs, NICs, and other devices on the same NUMA node, but CPU pinning is handled separately by the kubelet. Without coordination, CPUs may be pinned to a different NUMA node than the DRA devices. There are two mutually exclusive approaches to solve this:
+DRA scheduling co-places GPUs, NICs, and other devices on the same NUMA node, but CPU pinning is handled separately by the kubelet. Without coordination, CPUs may be pinned to a different NUMA node than the DRA devices. There are two approaches, selected by `cpuManagerPolicy`.
 
-**Option A: DRA CPU driver (`cpuManagerPolicy: none`)**
+**Option A: DRA CPU driver (`cpuManagerPolicy: none`)** — recommended
 
-The DRA CPU driver (`kubernetes-sigs/dra-driver-cpu`) allocates CPUs as DRA devices in the same ResourceClaim as GPUs and NICs. A single `matchAttribute: numaNode` constraint aligns all resource types at scheduling time. The CPU driver pins via NRI `CreateContainer` hook. The kubelet CPU manager is disabled.
+The DRA CPU driver ([kubernetes-sigs/dra-driver-cpu](https://github.com/kubernetes-sigs/dra-driver-cpu)) allocates CPUs as DRA devices in the same ResourceClaim as GPUs and NICs. A single `matchAttribute: numaNode` constraint aligns all resource types at scheduling time. The CPU driver pins via NRI `CreateContainer` hook. The kubelet CPU manager is disabled (`cpuManagerPolicy: none`, which is the default).
+
+Example — one claim co-locates GPU + NIC + CPU on the same NUMA:
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: vm-devices
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.nvidia.com
+        count: 1
+    - name: nic
+      exactly:
+        deviceClassName: dranet
+        count: 1
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        count: 1
+        capacity:
+          requests:
+            dra.cpu/cpu: "8"
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [gpu, nic, cpu]
+```
+
+KubeVirt VM spec referencing the claim:
+
+```yaml
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+spec:
+  template:
+    spec:
+      domain:
+        cpu:
+          dedicatedCpuPlacement: true
+          cores: 8
+          numa:
+            guestMappingPassthrough: {}
+        features:
+          acpi: {}
+        memory:
+          guest: 16Gi
+          hugepages:
+            pageSize: 2Mi
+        devices:
+          hostDevices:
+          - name: gpu0
+            claimName: devices
+            requestName: gpu
+          - name: nic0
+            claimName: devices
+            requestName: nic
+      resourceClaims:
+      - name: devices
+        resourceClaimName: vm-devices
+```
+
+The user sets `cores: 8` in the VM spec and `dra.cpu/cpu: "8"` in the claim — these must match. `dedicatedCpuPlacement: true` is still needed because it tells virt-launcher to build guest NUMA topology and pin vCPUs to physical CPUs. With `cpuManagerPolicy: none`, the kubelet CPU manager doesn't act on it — the DRA CPU driver handles pinning via NRI. Virt-launcher reads `cpuset.cpus.effective` from the cgroup and builds guest NUMA from whatever it sees, regardless of who set the cpuset.
+
+No KubeVirt API changes are needed. The user creates the DRA claim (same pattern as VEP-10 for GPUs and VEP-183 for NICs) and KubeVirt passes it through to the pod spec.
 
 - **Branch:** uses upstream `dra-driver-cpu` with `feature/standardized-topology-attrs` for numaNode
 - **What needs patching:**
   - `dra-driver-cpu` — publish `resource.kubernetes.io/numaNode` (our `feature/standardized-topology-attrs` branch; upstream publishes `dra.cpu/numaNodeID` only)
-  - KubeVirt — needs a way to request CPUs via DRA claim instead of (or alongside) `dedicatedCpuPlacement`
   - No kubelet patches needed
-- **Pros:** one system, one constraint, guaranteed NUMA alignment at scheduling time. No kubelet patches.
-- **Cons:** KubeVirt `dedicatedCpuPlacement` API doesn't know about DRA CPU claims. Extra DRA driver daemonset. `cpuManagerPolicy: none` disables kubelet CPU pinning for all pods — in practice this only matters on mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK, real-time). On dedicated GPU nodes (typical deployment), all CPU-pinned workloads use DRA and this isn't an issue.
+  - No KubeVirt patches needed
+- **Pros:** one system, one constraint, guaranteed NUMA alignment at scheduling time. No kubelet patches. Works with default kubelet config. Follows same DRA claim pattern as GPUs (VEP-10) and NICs (VEP-183).
+- **Cons:** extra DRA driver daemonset. `cpuManagerPolicy: none` disables kubelet CPU pinning for all pods — in practice this only matters on mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK, real-time). On dedicated GPU nodes (typical deployment), all CPU-pinned workloads use DRA and this isn't an issue. User must keep `cores` and `dra.cpu/cpu` in sync manually.
 - **Status:** running on Dell R760xa
 
 **Option B: Kubelet DRA topology hints (`cpuManagerPolicy: static`)**
@@ -37,17 +104,17 @@ The kubelet CPU manager stays. A new `HintProvider` in the DRA Manager reads `nu
   - Kubelet `pkg/kubelet/cm/cpumanager/cpu_manager.go` — fix cpuset reconciler race (K-2) and apply cpuset before container starts (K-3)
   - No DRA driver patches needed
   - No KubeVirt patches needed (existing `dedicatedCpuPlacement` works as-is)
-- **Pros:** works with existing KubeVirt `dedicatedCpuPlacement`. No extra driver. Non-DRA pods still get kubelet CPU pinning.
-- **Cons:** patched kubelet (not upstream). Two systems coordinating (DRA scheduler + topology manager). Topology manager hints are best-effort. Required CPU manager bug fixes (K-2, K-3) to work reliably.
-- **Status:** running on Dell R760xa
+- **Pros:** works with existing KubeVirt `dedicatedCpuPlacement` — single `cores: 8` is the only source of truth. No extra driver. Non-DRA pods still get kubelet CPU pinning.
+- **Cons:** patched kubelet (not upstream). Two systems coordinating (DRA scheduler + topology manager). Topology manager hints are best-effort — may silently ignore hints under conflict. Required CPU manager bug fixes (K-2, K-3) to work reliably.
+- **Status:** tested on Dell R760xa
 
 **Which option is active depends on `cpuManagerPolicy`:**
-- `cpuManagerPolicy: none` (default) → option A. The kubelet CPU manager is disabled. Deploy the DRA CPU driver to handle CPU allocation and pinning via NRI. Topology hints are harmless but unused.
-- `cpuManagerPolicy: static` → option B. The kubelet CPU manager is active. DRA topology hints guide it to pin CPUs on the same NUMA as DRA devices. Don't deploy the DRA CPU driver — the kubelet owns CPU pinning.
+- `cpuManagerPolicy: none` (default) → option A. Deploy the DRA CPU driver. Topology hints patch is harmless but unused.
+- `cpuManagerPolicy: static` → option B. Don't deploy the DRA CPU driver. Topology hints guide the kubelet CPU manager.
 
 A single kubelet binary with the topology hints patch supports both paths. The deployment decides which option to use based on `cpuManagerPolicy` and whether the DRA CPU driver is deployed.
 
-**Key difference: guaranteed vs best-effort.** Option A is guaranteed — the scheduler either finds a node where all resources (GPU + NIC + CPU) match on the same NUMA and schedules there, or the pod stays pending. There's no silent degradation. Option B is best-effort — the topology manager may ignore DRA hints if they conflict with other hint providers (memory manager, other device plugins), silently placing CPUs on a different NUMA than the DRA devices. Option A is the stronger long-term path for this reason.
+**Key difference: guaranteed vs best-effort.** Option A is guaranteed — the scheduler either finds a node where all resources (GPU + NIC + CPU) match on the same NUMA and schedules there, or the pod stays pending. There's no silent degradation. Option B is best-effort — the topology manager may ignore DRA hints if they conflict with other hint providers, silently placing CPUs on a different NUMA than the DRA devices. Option A is the stronger long-term path for this reason.
 
 ---
 
