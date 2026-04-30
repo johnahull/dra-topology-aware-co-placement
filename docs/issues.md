@@ -91,7 +91,7 @@ No KubeVirt API changes are needed. The user creates the DRA claim (same pattern
 - **Pros:** one system, one constraint, **guaranteed** NUMA alignment at scheduling time. No kubelet patches. Works with default kubelet config (`cpuManagerPolicy: none`). Follows same DRA claim pattern as GPUs (VEP-10) and NICs (VEP-183). No KubeVirt API changes — `dedicatedCpuPlacement` works as-is.
 - **Cons:** extra DRA driver daemonset to deploy. User must keep `cores` and `dra.cpu/cpu` in sync manually (no validation today). On mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK), those pods lose kubelet CPU pinning — but on dedicated GPU nodes this isn't an issue.
 - **KubeVirt fix:** [KV-8](#kv-8-dedicatedcpuplacement-blocks-scheduling-when-cpumanagerpolicy-none-option-a) — patched virt-controller to skip cpumanager label check when DRA claims are present.
-- **Status:** running on Dell R760xa (`cpuManagerPolicy: none`, DRA CPU driver deployed, patched KubeVirt)
+- **Status:** running on Dell R760xa (`cpuManagerPolicy: none`, DRA CPU driver deployed, patched KubeVirt). Multi-NUMA VM test (GPU on NUMA 0 + NIC on NUMA 1) passed scheduling and DRA preparation — VM crashes during QEMU startup due to separate VFIO capabilities issue on NIC hostDevice (see KV-7).
 
 **Option B: Kubelet DRA topology hints (`cpuManagerPolicy: static`)**
 

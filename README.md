@@ -70,7 +70,7 @@ The virt-launcher must read the device metadata (step 5) and create matching gue
 
 All 7 steps have been proven end-to-end on real hardware with local patches as a POC:
 
-- **Dell R760xa** (NVIDIA A40) — active test system. DRA topology hints in kubelet, `guestMappingPassthrough` working, dranet NIC driver, all DRA. VM running with GPU VFIO + dedicated CPUs pinned to NUMA 0 via DRA topology hints.
+- **Dell R760xa** (NVIDIA A40) — active test system. Option A CPU pinning (`cpuManagerPolicy: none`, DRA CPU driver). KV-8 fix deployed (patched virt-controller skips cpumanager label check). Multi-NUMA VM test in progress: GPU on NUMA 0 + NIC on NUMA 1 passes scheduling and DRA preparation, blocked on VFIO capabilities for NIC hostDevice.
 - **Dell XE9680** (AMD MI300X) — original test system. 8-GPU topology coordinator tests, SNC on/off comparison, multi-NUMA VMs.
 - **Dell XE8640** (NVIDIA H100 SXM5) — rebuilt with Fedora 44. All 5 DRA drivers deployed, IOMMU enabled, KEP-5304 metadata working. VM running with H100 GPU VFIO passthrough, CPUs pinned to NUMA 0 via DRA topology hints. GPUs pre-bound to vfio-pci at boot (`vfio-pci.ids`), one GPU kept on nvidia for NVML. D-11/D-12/D-13 fixed.
 
@@ -84,10 +84,12 @@ All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setu
 
 | Test | Result |
 |------|--------|
-| 4-driver pod (GPU+NIC+CPU+memory, NUMA-aligned) | Running — CPUs 4,6,68,70 pinned to NUMA 0 via DRA topology hints |
-| KubeVirt VM with `guestMappingPassthrough` | Running — A40 GPU VFIO, dedicated CPUs on NUMA 0, guest sees 1 socket/1 NUMA, hugepages bound to NUMA 0 |
-| DRA topology hints | Working — kubelet reads `numaNode` from ResourceSlice, topology manager aligns CPU pinning |
-| dranet NIC driver | Working — replaced SR-IOV DRA driver, publishes standardized topology attrs |
+| Option A CPU pinning (`cpuManagerPolicy: none`) | Working — DRA CPU driver pins CPUs via NRI, `matchAttribute: numaNode` aligns GPU+NIC+CPU |
+| KV-8 fix (skip cpumanager label with DRA claims) | Working — VM schedules with `kubevirt.io/cpumanager=false` when DRA resource claims present |
+| KubeVirt VM with `guestMappingPassthrough` | Running — A40 GPU VFIO, dedicated CPUs on NUMA 0, guest sees 1 socket/1 NUMA |
+| Multi-NUMA VM (GPU NUMA 0 + NIC NUMA 1) | Scheduling + DRA preparation pass. QEMU startup crash — VFIO capabilities for NIC hostDevice (debugging) |
+| dranet KEP-5304 metadata | Working — publishes `pciBusID` in PrepareResult for KubeVirt passthrough |
+| dranet NIC driver | Working — standardized topology attrs + VFIO support |
 
 ### Dell XE9680 (AMD)
 
