@@ -96,6 +96,64 @@ No KubeVirt API changes are needed. The user creates the DRA claim (same pattern
 
 The kubelet CPU manager stays. A new `HintProvider` in the DRA Manager reads `numaNode` from ResourceSlice attributes for each DRA device and returns topology hints. The topology manager merges these with CPU manager hints to pin CPUs to the same NUMA node as DRA devices.
 
+Example — DRA claim has GPU + NIC only (no CPU request):
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: vm-devices
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.nvidia.com
+        count: 1
+    - name: nic
+      exactly:
+        deviceClassName: dranet
+        count: 1
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [gpu, nic]
+```
+
+KubeVirt VM spec — standard `dedicatedCpuPlacement`, no DRA CPU claim:
+
+```yaml
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+spec:
+  template:
+    spec:
+      domain:
+        cpu:
+          dedicatedCpuPlacement: true
+          cores: 8
+          numa:
+            guestMappingPassthrough: {}
+        features:
+          acpi: {}
+        memory:
+          guest: 16Gi
+          hugepages:
+            pageSize: 2Mi
+        devices:
+          hostDevices:
+          - name: gpu0
+            claimName: devices
+            requestName: gpu
+          - name: nic0
+            claimName: devices
+            requestName: nic
+      resourceClaims:
+      - name: devices
+        resourceClaimName: vm-devices
+```
+
+`cores: 8` is the single source of truth. KubeVirt sets `resources.requests.cpu: 8` on the pod, the kubelet CPU manager allocates 8 exclusive CPUs, and the patched topology hints ensure they're on the same NUMA as the DRA-allocated GPU and NIC. No DRA CPU driver deployed, no capacity to keep in sync.
+
 - **Branch:** `johnahull/kubernetes` `feature/dra-topology-hints`
 - **What needs patching:**
   - Kubelet `pkg/kubelet/cm/dra/topology_hints.go` (new) — DRA Manager implements `HintProvider`, reads `numaNode` from ResourceSlice
