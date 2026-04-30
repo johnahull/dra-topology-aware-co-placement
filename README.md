@@ -72,7 +72,7 @@ All 7 steps have been proven end-to-end on real hardware with local patches as a
 
 - **Dell R760xa** (NVIDIA A40) — active test system. Option A CPU pinning (`cpuManagerPolicy: none`, DRA CPU driver). KV-8 fix deployed (patched virt-controller skips cpumanager label check). Multi-NUMA VM test in progress: GPU on NUMA 0 + NIC on NUMA 1 passes scheduling and DRA preparation, blocked on VFIO capabilities for NIC hostDevice.
 - **Dell XE9680** (AMD MI300X) — original test system. 8-GPU topology coordinator tests, SNC on/off comparison, multi-NUMA VMs.
-- **Dell XE8640** (NVIDIA H100 SXM5) — rebuilt with Fedora 44. All 5 DRA drivers deployed, IOMMU enabled, KEP-5304 metadata working. VM running with H100 GPU VFIO passthrough, CPUs pinned to NUMA 0 via DRA topology hints. GPUs pre-bound to vfio-pci at boot (`vfio-pci.ids`), one GPU kept on nvidia for NVML. D-11/D-12/D-13 fixed.
+- **Dell XE8640** (NVIDIA H100 SXM5) — rebuilt with Fedora 44. All 5 DRA drivers deployed. Option A CPU pinning (`cpuManagerPolicy: none`). Multi-NUMA VM running with 3x H100 VFIO passthrough (2 on NUMA 0, 1 on NUMA 1), correct guest NUMA topology via `pxb-pcie` expanders from KEP-5304 metadata. GPUs pre-bound to vfio-pci at boot (`vfio-pci.ids`), one GPU kept on nvidia for NVML. D-11 through D-15 and KV-9/KV-10 fixed.
 
 All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setup Guide](docs/dra-topology-aware-vm-setup.md) for build and deployment.
 
@@ -104,6 +104,21 @@ All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setu
 | KubeVirt dual-NUMA VM (SNC off) | Running — 2 pxb-pcie expanders, correct guest NUMA topology |
 | KubeVirt dual-NUMA VM (SNC on) | Running — host NUMA 0→guest 0, host NUMA 2→guest 1 |
 | SNC-2 on vs off comparison | Coordinator adapts automatically — 9 vs 5 DeviceClasses |
+
+### Dell XE8640 (NVIDIA H100 SXM5)
+
+2-socket Intel, 4x NVIDIA H100 SXM5 80GB (NVLink), CX6Dx + E810 NICs, 4x NVMe, 128 threads, 1 TiB RAM. K8s custom v1.36.0 (DRA topology hints). Fedora 44, nvidia driver 595.58. Option A: `cpuManagerPolicy: none`, DRA CPU driver NRI pinning.
+
+| Test | Result |
+|------|--------|
+| 3-GPU multi-NUMA VM (2 NUMA 0 + 1 NUMA 1) | Running — 3x H100 VFIO, guest NUMA 0 + NUMA 1, `pxb-pcie` expanders, correct `numatune` |
+| Guest NUMA device affinity | Working — GPUs on NUMA 0 report `numa_node=0`, GPU on NUMA 1 reports `numa_node=1` inside guest |
+| Option A CPU pinning | Working — DRA CPU driver NRI pins compute container to all 128 CPUs (both NUMA nodes) |
+| KEP-5304 metadata → guest NUMA | Working — `DiscoverNUMANodesFromAllMetadata` reads GPU NUMA from KEP-5304, builds guest cells |
+| Boot-time GPU binding (`vfio-pci.ids`) | Working — 3 GPUs on vfio-pci at boot, GPU operator binds 1 to nvidia for NVML |
+| VFIO discovery filter (D-13) | Working — only vfio-pci-bound GPUs in ResourceSlice |
+| Unconfigure skip for pre-bound GPUs (D-14) | Working — GPUs stay on vfio-pci after VM deletion |
+| Single-GPU NUMA-aligned VM | Running — 1 H100 VFIO, CPUs pinned to NUMA 0 via DRA topology hints (option B) |
 
 See [Test Results Summary](testing/results/results-summary.md) for full details, hardware captures, and SNC comparison.
 

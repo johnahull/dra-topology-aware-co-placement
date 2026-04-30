@@ -627,3 +627,57 @@ When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind 
 
 **Fix:** Check the actual kernel driver binding via sysfs (`readlink /sys/bus/pci/devices/<BDF>/driver`) before adding a GPU to the VFIO device list. Only GPUs currently bound to `vfio-pci` are advertised. This prevents the D-11 hang from recurring — even if `Unconfigure` returns a GPU to nvidia, it won't reappear as a VFIO device.
 
+---
+
+#### D-14: NVIDIA DRA driver Unconfigure rebinds pre-bound vfio-pci GPUs to nvidia
+
+**Repo:** `NVIDIA/k8s-dra-driver-gpu`
+**Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `ccdec5c`
+**Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`, `cmd/gpu-kubelet-plugin/deviceinfo.go`
+**Status:** Fixed.
+
+When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvidia. On H100 SXM5 systems with NVLink, this hangs indefinitely (D-11). Worse, the `preConfigureDriver` field that tracks whether Configure performed an unbind is stored in memory and lost on pod restart — so after a plugin restart, Unconfigure always attempts the rebind.
+
+**Fix:** Two-layer check: (1) track the pre-Configure driver in `VfioDeviceInfo.preConfigureDriver` for the current pod lifecycle, and (2) check the kernel cmdline for `vfio-pci.ids=<vendor>:<device>` to detect boot-time pre-binding. If either indicates the GPU was pre-bound to vfio-pci, `Unconfigure` leaves it on vfio-pci instead of attempting the nvidia rebind.
+
+---
+
+#### D-15: NVIDIA DRA driver vfio_pci/IOMMU sysfs checks fail inside containers
+
+**Repo:** `NVIDIA/k8s-dra-driver-gpu`
+**Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `7f4760d`
+**Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`
+**Status:** Fixed.
+
+`checkVfioPCIModuleLoaded()` and `checkIommuEnabled()` check sysfs paths under `/host-root/sys/` (e.g., `/host-root/sys/module/vfio_pci`). In containers where `/host-root` is a bind-mount of the host's `/`, the container's own `/sys` mount doesn't expose host sysfs at `/host-root/sys`. The VfioPciManager fails to initialize with "failed to load vfio_pci module" or "IOMMU is not enabled" even though both are working on the host.
+
+**Fix:** Fall back to checking the unprefixed sysfs path (`/sys/module/vfio_pci`, `/sys/kernel/iommu_groups`) when the host-root prefixed path doesn't exist.
+
+---
+
+### KubeVirt (continued)
+
+#### KV-9: `buildDRANUMACells` unreachable when `dedicatedCpuPlacement` is true
+
+**Repo:** `kubevirt/kubevirt`
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `bfbc78a`
+**Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`, `pkg/dra/utils.go`
+**Status:** Fixed.
+
+The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` branch that only executed when `IsCPUDedicated()` returned false. But KubeVirt requires `dedicatedCpuPlacement: true` for `guestMappingPassthrough`, so the DRA NUMA path was never reached. The first branch always ran, using the kubelet's cpuset to build NUMA topology — which produced a single NUMA cell when `cpuManagerPolicy: none` (all CPUs in the default cpuset).
+
+**Fix:** When `dedicatedCpuPlacement` AND `guestMappingPassthrough` AND DRA resource claims are all present, use the DRA metadata path first. Added `DiscoverNUMANodesFromAllMetadata()` in `pkg/dra/utils.go` which scans all KEP-5304 metadata files for `resource.kubernetes.io/numaNode` attributes and builds guest NUMA cells from the unique NUMA nodes found.
+
+---
+
+#### KV-10: `buildDRANUMAOverrides` only handles HostDevices, not GPUs
+
+**Repo:** `kubevirt/kubevirt`
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `e246337`
+**Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`
+**Status:** Fixed.
+
+`buildDRANUMAOverrides()` iterated only `vmi.Spec.Domain.Devices.HostDevices` to build PCI-to-NUMA override maps for `PlacePCIDevicesWithNUMAAlignment`. GPUs specified via `vmi.Spec.Domain.Devices.GPUs` were missed, so `PlacePCIDevicesWithNUMAAlignment` was never called for GPU devices. GPUs remained on the default PCI root bus and reported NUMA -1 inside the guest.
+
+**Fix:** Iterate both `HostDevices` and `GPUs` to collect DRA claim references, reading PCI address and NUMA node from KEP-5304 metadata for each. This enables `pxb-pcie` expander bus placement for GPU devices with correct guest NUMA affinity.
+

@@ -1,10 +1,16 @@
 # DRA Topology-Aware VM Setup Guide
 
-**Date:** 2026-04-28
+**Date:** 2026-04-30
 
-End-to-end setup for topology-aware KubeVirt VMs using DRA for all device allocation. GPU, NIC, CPU, and memory are co-placed on the same NUMA node by the DRA scheduler, and the kubelet's topology manager pins vCPUs to match — all without device plugins.
+End-to-end setup for topology-aware KubeVirt VMs using DRA for all device allocation. GPU, NIC, CPU, and memory are co-placed on the same NUMA node by the DRA scheduler — all without device plugins.
 
-Verified on Dell R760xa (2x A40 GPUs, CX7 NICs, 2-socket Xeon, 128 CPUs).
+Two CPU pinning options are supported (see [issues.md](issues.md#cpu-pinning-with-dra-devices--two-options)):
+- **Option A** — `cpuManagerPolicy: none`, DRA CPU driver pins via NRI. Multi-NUMA VMs supported.
+- **Option B** — `cpuManagerPolicy: static`, custom kubelet DRA topology hints. Single-NUMA VMs.
+
+Verified on:
+- Dell R760xa (2x A40 GPUs, CX7 NICs, 2-socket Xeon, 128 CPUs) — Option A + B
+- Dell XE8640 (4x H100 SXM5, NVLink, 2-socket Intel, 128 CPUs) — Option A, multi-NUMA VM with 3 GPUs
 
 ---
 
@@ -108,19 +114,47 @@ Removing `cpu_manager_state` forces a clean state on policy change.
 
 ## Step 2: Kubelet Configuration
 
-Edit `/var/lib/kubelet/config.yaml`:
+Edit `/var/lib/kubelet/config.yaml`. Choose one of the two options:
+
+### Option A: DRA CPU Driver Pinning (multi-NUMA)
+
+```yaml
+cpuManagerPolicy: none
+topologyManagerPolicy: none
+featureGates:
+  DynamicResourceAllocation: true
+  DRAResourceClaimDeviceStatus: true
+```
+
+- `none` — disables kubelet CPU pinning; the DRA CPU driver's NRI hook handles cpuset
+- `topologyManagerPolicy: none` — no topology hints needed; DRA scheduler handles alignment
+- `DRAResourceClaimDeviceStatus` — enables KEP-5304 device metadata projection
+
+The DRA CPU driver allocates CPU devices per NUMA node and pins the compute container via NRI `CreateContainer` hook. Multi-NUMA VMs get CPUs from all allocated NUMA nodes.
+
+### Option B: Kubelet DRA Topology Hints (single-NUMA)
 
 ```yaml
 cpuManagerPolicy: static
 topologyManagerPolicy: restricted
 reservedSystemCPUs: "0-3"
+featureGates:
+  DynamicResourceAllocation: true
+  DRAResourceClaimDeviceStatus: true
 ```
 
-- `static` — enables exclusive CPU pinning for Guaranteed QoS pods with integer CPU requests
-- `restricted` — rejects pods if topology hints can't be satisfied; ensures CPUs are pinned to the same NUMA as DRA devices
+- `static` — enables exclusive CPU pinning for Guaranteed QoS pods
+- `restricted` — rejects pods if topology hints can't be satisfied
 - `reservedSystemCPUs` — excludes CPUs 0-3 from allocation (adjust for your system)
 
-Restart kubelet after config changes. Remove `cpu_manager_state` when changing policies.
+Requires the custom kubelet with DRA topology hints (Step 1). The topology manager reads `numaNode` from ResourceSlice and pins CPUs to the same NUMA as DRA devices.
+
+### After changing
+
+```bash
+sudo rm -f /var/lib/kubelet/cpu_manager_state
+sudo systemctl restart kubelet
+```
 
 ---
 
@@ -333,15 +367,68 @@ spec:
 
 ### 4d. NVIDIA GPU DRA Driver
 
-Install via GPU Operator with DRA enabled, or Helm:
+Install via GPU Operator + DRA Helm chart:
 
 ```bash
-helm install nvidia-dra nvidia/nvidia-dra-driver \
+# GPU Operator (loads nvidia kernel module, manages one GPU for NVML)
+helm install gpu-operator nvidia/gpu-operator \
+  --namespace gpu-operator --create-namespace \
+  --set driver.enabled=true
+
+# NVIDIA DRA driver (VFIO passthrough + topology attributes)
+helm install nvidia-dra nvidia/nvidia-dra-driver-gpu \
   --namespace nvidia-dra --create-namespace \
-  --set nvidiaDriverRoot=/run/nvidia/driver
+  --set nvidiaDriverRoot=/usr \
+  --set gpuResourcesEnabledOverride=true \
+  --set features.passthrough.enabled=true \
+  --set resources.gpus.enabled=true
 ```
 
-The NVIDIA DRA driver publishes `gpu-vfio-*` devices for VFIO passthrough and sets `resource.kubernetes.io/numaNode` on all devices.
+After install, enable feature gates on the `gpus` container:
+
+```bash
+kubectl set env daemonset/nvidia-dra-driver-gpu-kubelet-plugin \
+  -n nvidia-dra -c gpus \
+  FEATURE_GATES=PassthroughSupport=true,DeviceMetadata=true
+```
+
+- `PassthroughSupport` — enables VFIO device discovery and `gpu-vfio-*` devices
+- `DeviceMetadata` — enables KEP-5304 metadata (pciBusID, numaNode) in PrepareResult
+
+#### H100 SXM5 / NVLink Systems
+
+On H100 SXM5 (HGX platforms with NVLink), the nvidia driver's sysfs unbind hangs indefinitely during NVLink fabric reconfiguration (D-11). GPUs must be pre-bound to vfio-pci at boot:
+
+```bash
+# Add to kernel cmdline (via grubby or /etc/default/grub)
+grubby --update-kernel=ALL --args="vfio-pci.ids=10de:2330 iommu=on"
+```
+
+This binds all H100 GPUs to vfio-pci at boot. The GPU operator will load the nvidia module and bind one GPU to nvidia for NVML. The remaining GPUs stay on vfio-pci and are available for VFIO passthrough.
+
+**Custom NVIDIA DRA driver image required:** The stock driver needs patches for:
+- VFIO discovery filter — only advertise GPUs actually on vfio-pci (D-13)
+- Unconfigure skip — don't rebind pre-bound GPUs to nvidia (D-14)
+- Sysfs container fix — check `/sys/module/vfio_pci` without host-root prefix (D-15)
+
+Build from `johnahull/dra-driver-nvidia-gpu` branch `feature/standardized-topology-attrs`:
+
+```bash
+GOTOOLCHAIN=auto go build -ldflags "-X sigs.k8s.io/dra-driver-nvidia-gpu/internal/info.version=v25.12.0" \
+  -o /tmp/gpu-kubelet-plugin ./cmd/gpu-kubelet-plugin/
+
+# Build container with patched binary
+cat > /tmp/Dockerfile.nvidia-dra << 'EOF'
+FROM nvcr.io/nvidia/k8s-dra-driver-gpu:v25.12.0
+COPY gpu-kubelet-plugin /usr/bin/gpu-kubelet-plugin
+EOF
+podman build -f /tmp/Dockerfile.nvidia-dra -t localhost/nvidia-dra-driver:patched /tmp/
+
+# Transfer to node and update daemonset
+podman save localhost/nvidia-dra-driver:patched | ssh <node> "sudo ctr -n k8s.io images import -"
+kubectl set image daemonset/nvidia-dra-driver-gpu-kubelet-plugin \
+  -n nvidia-dra gpus=localhost/nvidia-dra-driver:patched
+```
 
 ---
 
@@ -422,11 +509,51 @@ All six feature gates are required:
 
 ### Custom KubeVirt Build
 
-Branch `feature/dra-vfio-numa-passthrough-v1.8.1` on `johnahull/kubevirt` contains fixes for multi-request DRA claims:
+Branch `feature/dra-vfio-numa-passthrough-v1.8.2` on `johnahull/kubevirt` contains:
 
-1. `copyResourceClaims` deduplicates by `{Name, Request}` not just `Name` — prevents dropping NIC when GPU is from the same claim
-2. `WithExtraResourceClaims` adds all VMI claims to the compute container without a Request filter
-3. `WithGPUsDRA` and `WithHostDevicesDRA` simplified to avoid duplicate claim name errors
+**virt-controller fixes:**
+1. `copyResourceClaims` deduplicates by `{Name, Request}` not just `Name`
+2. `WithExtraResourceClaims` adds all VMI claims without a Request filter
+3. `WithGPUsDRA`/`WithHostDevicesDRA` simplified to avoid duplicate claim name errors
+4. VFIO capabilities (CAP_IPC_LOCK, SYS_RAWIO, unlimited MEMLOCK) for DRA GPU pods
+
+**virt-launcher fixes (multi-NUMA):**
+5. `buildDRANUMACells` — discovers NUMA nodes from KEP-5304 metadata (scans all `*-metadata.json` files) and creates guest NUMA cells instead of using kubelet cpuset (KV-9)
+6. `buildDRANUMAOverrides` — iterates both `HostDevices` and `GPUs` for PCI-to-NUMA mapping (KV-10)
+7. `PlacePCIDevicesWithNUMAAlignment` — creates `pxb-pcie` expander buses for correct guest NUMA affinity
+
+Build the virt-launcher inside a CentOS Stream 9 container (matching the base image for libvirt/libnbd):
+
+```bash
+cd ~/devel/kubevirt/kubevirt
+podman run --rm -v $(pwd):/src:Z -w /src quay.io/centos/centos:stream9 bash -c \
+  "dnf install -y epel-release && dnf config-manager --set-enabled crb && \
+   dnf install -y golang gcc-c++ libvirt-devel libnbd-devel && \
+   go build -o /src/_out/virt-launcher ./cmd/virt-launcher/"
+
+# Build container image
+cat > /tmp/Dockerfile.virt-launcher << 'EOF'
+FROM quay.io/kubevirt/virt-launcher:v1.8.2
+COPY _out/virt-launcher /usr/bin/virt-launcher
+EOF
+podman build -f /tmp/Dockerfile.virt-launcher -t localhost/virt-launcher:dra-multi-numa .
+
+# Deploy by tagging over the stock image on the node
+podman save localhost/virt-launcher:dra-multi-numa | \
+  ssh <node> "sudo ctr -n k8s.io images import -; \
+              sudo ctr -n k8s.io images tag localhost/virt-launcher:dra-multi-numa quay.io/kubevirt/virt-launcher:v1.8.2"
+
+# Same approach for custom virt-controller
+go build -o _out/virt-controller ./cmd/virt-controller/
+podman build -f /tmp/Dockerfile.virt-controller -t localhost/virt-controller:dra-fix .
+podman save localhost/virt-controller:dra-fix | \
+  ssh <node> "sudo ctr -n k8s.io images import -; \
+              sudo ctr -n k8s.io images tag localhost/virt-controller:dra-fix quay.io/kubevirt/virt-controller:v1.8.2"
+
+# Restart KubeVirt components
+kubectl delete pods -n kubevirt -l kubevirt.io=virt-controller
+kubectl delete pods -n kubevirt -l kubevirt.io=virt-handler
+```
 
 ---
 
@@ -552,9 +679,147 @@ spec:
 
 Key settings:
 - `dedicatedCpuPlacement: true` — exclusive CPU pinning (Guaranteed QoS)
-- `guestMappingPassthrough: {}` — guest NUMA topology mirrors host CPU placement
+- `guestMappingPassthrough: {}` — guest NUMA topology mirrors host device placement
 - `hugepages.pageSize: 2Mi` — required for NUMA-aware memory binding
 - `reservedOverhead.addedOverhead: 4Gi` — additional locked memory for VFIO DMA
+- `matchAttribute: resource.kubernetes.io/numaNode` — forces single-NUMA alignment
+
+### Multi-NUMA VM (Option A, all GPUs)
+
+For multi-NUMA VMs, use separate requests per GPU with CEL selectors for each NUMA node. No `matchAttribute` constraint — devices from both NUMA nodes are requested explicitly.
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: vm-multi-numa-devices
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu0
+        exactly:
+          deviceClassName: vfio.gpu.nvidia.com
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
+      - name: gpu1
+        exactly:
+          deviceClassName: vfio.gpu.nvidia.com
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
+      - name: gpu2
+        exactly:
+          deviceClassName: vfio.gpu.nvidia.com
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 1"
+      - name: cpu0
+        exactly:
+          deviceClassName: dra.cpu
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
+      - name: cpu1
+        exactly:
+          deviceClassName: dra.cpu
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 1"
+      - name: mem0
+        exactly:
+          deviceClassName: dra.memory
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
+      - name: mem1
+        exactly:
+          deviceClassName: dra.memory
+          selectors:
+          - cel:
+              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 1"
+```
+
+```yaml
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: dra-multi-numa-vm
+spec:
+  running: true
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 4
+          sockets: 2
+          threads: 1
+          dedicatedCpuPlacement: true
+          numa:
+            guestMappingPassthrough: {}
+        memory:
+          guest: 8Gi
+          hugepages:
+            pageSize: 2Mi
+          reservedOverhead:
+            addedOverhead: 4Gi
+        devices:
+          gpus:
+          - name: gpu0
+            claimName: devices
+            requestName: gpu0
+          - name: gpu1
+            claimName: devices
+            requestName: gpu1
+          - name: gpu2
+            claimName: devices
+            requestName: gpu2
+          disks:
+          - name: containerdisk
+            disk:
+              bus: virtio
+          - name: cloudinitdisk
+            disk:
+              bus: virtio
+      volumes:
+      - name: containerdisk
+        containerDisk:
+          image: quay.io/containerdisks/fedora:41
+      - name: cloudinitdisk
+        cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            password: fedora
+            chpasswd:
+              expire: false
+            ssh_pwauth: true
+      resourceClaims:
+      - name: devices
+        resourceClaimTemplateName: vm-multi-numa-devices
+```
+
+Key differences from single-NUMA:
+- `sockets: 2` — guest sees 2 sockets (1 per NUMA node)
+- Separate GPU requests per device (KubeVirt requires 1 device per request for KEP-5304 metadata)
+- CEL selectors target specific NUMA nodes instead of `matchAttribute`
+- `reservedOverhead: 4Gi` — needed for 3 GPU VFIO DMA mappings
+- Requires Option A (`cpuManagerPolicy: none`) — the DRA CPU driver pins CPUs from both NUMA nodes
+- Requires custom virt-launcher from `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` for multi-NUMA guest topology from KEP-5304 metadata
+
+The guest will show 2 NUMA nodes with GPUs on the correct node:
+- Guest NUMA 0: gpu0 + gpu1 (host NUMA 0)
+- Guest NUMA 1: gpu2 (host NUMA 1)
+
+#### KubeVirt cpumanager label
+
+With `cpuManagerPolicy: none`, KubeVirt's virt-handler sets `kubevirt.io/cpumanager=false` on the node, which blocks scheduling for `dedicatedCpuPlacement` VMs. Set the label manually before creating the VM:
+
+```bash
+kubectl label node <node> kubevirt.io/cpumanager=true --overwrite
+```
+
+The virt-handler will reset it periodically. Apply the label just before `kubectl apply` of the VM manifest. Once the pod is scheduled and running, the label can be `false` without affecting the running VM.
 
 ### Verify
 
@@ -655,6 +920,8 @@ kubectl describe node | grep hugepages
 
 | Repository | Branch | Changes |
 |------------|--------|---------|
-| `johnahull/kubernetes` | `feature/enforcement-preferred` | DRA topology hints, CPU manager fixes |
-| `johnahull/kubevirt` | `feature/dra-vfio-numa-passthrough-v1.8.1` | Multi-request DRA claim fixes |
+| `johnahull/kubernetes` | `feature/enforcement-preferred` | DRA topology hints, CPU manager fixes (option B) |
+| `johnahull/kubernetes` | `feature/dra-topology-hints-v1.36` | Same patches on v1.36.0 base (for XE8640) |
+| `johnahull/kubevirt` | `feature/dra-vfio-numa-passthrough-v1.8.2` | DRA claim fixes + DRA NUMA cells from KEP-5304 + GPU pxb-pcie placement |
+| `johnahull/dra-driver-nvidia-gpu` | `feature/standardized-topology-attrs` | VFIO discovery filter, Unconfigure skip, sysfs fix, topology attrs |
 | `johnahull/dranet` | `feature/standardized-topology-attrs` | Standardized topology attributes, VFIO support |

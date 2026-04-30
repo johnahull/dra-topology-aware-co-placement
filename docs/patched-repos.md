@@ -72,7 +72,9 @@ The kubelet commit (`77a449e2573`) adds:
 - **K8s:** Custom v1.36.0 (`feature/dra-topology-hints-v1.36`) — all 5 components
 - **KubeVirt:** v1.8.2 with custom virt-controller + virt-launcher (`feature/dra-vfio-numa-passthrough-v1.8.2`)
 - **NIC driver:** dranet (`feature/standardized-topology-attrs`)
-- **Status:** All 5 DRA drivers deployed. VFIO prepare works for driverless GPUs. Blocked on D-11: nvidia sysfs unbind hangs on H100 SXM5 (NVLink fabric reconfiguration). Unbind timeout fix deployed but untested.
+- **CPU policy:** Option A — `cpuManagerPolicy: none`, DRA CPU driver NRI pinning
+- **GPU binding:** `vfio-pci.ids=10de:2330` kernel cmdline, GPU operator binds 1 GPU to nvidia for NVML
+- **Status:** Multi-NUMA VM running with 3x H100 VFIO (2 NUMA 0 + 1 NUMA 1), correct guest NUMA topology via pxb-pcie. D-11 workaround (boot-time binding), D-12/D-13/D-14/D-15 and KV-9/KV-10 fixed.
 
 ### Dell XE9680 (AMD) — original test system
 
