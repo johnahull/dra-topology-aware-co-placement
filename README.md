@@ -131,6 +131,8 @@ See [Test Results Summary](testing/results/results-summary.md) for full details,
 - [KEP-5491: List Types for Attributes](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/5491-dra-list-types-for-attributes) (alpha in v1.36, feature gate `DRAListTypeAttributes`)
 - [KEP-5491 implementation PR](https://github.com/kubernetes/kubernetes/pull/137190) (merged 2026-03-21)
 - [KEP-5517: DRA for Native Resources](https://github.com/kubernetes/enhancements/pull/5755)
+- [VEP 10: GPUsWithDRA](https://github.com/kubevirt/enhancements/pull/155) — KubeVirt GPU passthrough via DRA using KEP-5304 downward API (beta via [PR #292](https://github.com/kubevirt/enhancements/pull/292)). This project adds NUMA-aware guest topology on top of VEP-10's device plumbing.
+- [VEP 183: NetworkDevicesWithDRA](https://github.com/kubevirt/enhancements/pull/185) — KubeVirt NIC passthrough via DRA. This project adds cross-driver NUMA coordination between VEP-10 GPUs and VEP-183 NICs.
 - [VEP 115: PCI NUMA-Aware Topology](https://github.com/kubevirt/community/pull/303)
 - [DRA driver interoperability tracking](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/56)
 - [`cpuSocketNumber` standardization discussion](https://github.com/kubernetes/enhancements/pull/5316#discussion_r2095270564)
