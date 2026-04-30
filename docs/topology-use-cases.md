@@ -208,7 +208,7 @@ constraints: []
 
 ## Level 4: KubeVirt VM — Full Topology in Guest
 
-*Hardware diagrams: [single-NUMA VM on R760xa](diagrams/use-case-diagrams.md#5-kubevirt-single-numa-vm-r760xa), [multi-NUMA VM on XE8640](diagrams/use-case-diagrams.md#6-kubevirt-multi-numa-vm-xe8640-4x-h100)*
+*Hardware diagrams: [single-NUMA VM on R760xa](diagrams/use-case-diagrams.md#5-kubevirt-single-numa-vm-r760xa), [multi-NUMA VM on XE9680](diagrams/use-case-diagrams.md#6-kubevirt-multi-numa-vm-xe9680-8x-mi300x)*
 
 **Constraint:** same as levels 1-3, plus guest NUMA topology must reflect host placement
 **DMA path:** same as the pod-level constraint, with VEP 115 pxb-pcie placement in the guest

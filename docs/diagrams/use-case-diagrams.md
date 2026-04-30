@@ -258,58 +258,78 @@ graph TD
 
 ---
 
-## 6. KubeVirt Multi-NUMA VM (XE8640, 4x H100)
+## 6. KubeVirt Multi-NUMA VM (XE9680, 8x MI300X)
 
-All 4 GPUs spanning both sockets. Guest sees 2 NUMA nodes. NCCL inside the VM reads guest `numa_node` and selects GPU `5f` (guest NUMA 0, co-located with NIC) as the RDMA proxy. NVLink handles GPU-to-GPU communication across guest NUMA nodes.
+Full-node training VM with all 8 GPUs spanning both sockets. Guest sees 2 NUMA nodes with 4 GPUs + 1 NIC each. NCCL inside the VM reads guest `numa_node` and selects a proxy GPU per NUMA (GPU `1b` on guest NUMA 0, GPU `9d` on guest NUMA 1) for inter-node RDMA. xGMI handles GPU-to-GPU communication within and across guest NUMA nodes.
 
 ```mermaid
 graph TD
     subgraph "Host"
         subgraph "NUMA 0"
-            H_GPU0["GPU 4e (H100)"]
-            H_GPU1["GPU 5f (H100)"]
-            H_NIC["E810 NIC 5e"]
+            H_GPU0["GPU 1b"]
+            H_GPU1["GPU 3d"]
+            H_GPU2["GPU 4e"]
+            H_GPU3["GPU 5f"]
+            H_NIC0["NIC 1d (CX-6 Dx)"]
         end
         subgraph "NUMA 1"
-            H_GPU2["GPU cb (H100)"]
-            H_GPU3["GPU db (H100)"]
+            H_GPU4["GPU 9d"]
+            H_GPU5["GPU bd"]
+            H_GPU6["GPU cd"]
+            H_GPU7["GPU dd"]
+            H_NIC1["NIC 9f (CX-6 Dx)"]
         end
     end
 
     subgraph "Guest VM (2 NUMA nodes)"
         subgraph "Guest NUMA 0 (pxb-pcie bus 0)"
-            G_GPU0["GPU 4e (numa_node=0)"]
-            G_GPU1["GPU 5f (numa_node=0) — PROXY"]
-            G_NIC["NIC 5e (numa_node=0)"]
-            G_CPU0["vCPUs 0-7"]
-            G_GPU1 ---|"GPUDirect RDMA"| G_NIC
+            G_GPU0["GPU 1b (numa_node=0) — PROXY"]
+            G_GPU1["GPU 3d (numa_node=0)"]
+            G_GPU2["GPU 4e (numa_node=0)"]
+            G_GPU3["GPU 5f (numa_node=0)"]
+            G_NIC0["NIC 1d (numa_node=0)"]
+            G_CPU0["vCPUs 0-31"]
+            G_GPU0 ---|"GPUDirect RDMA"| G_NIC0
         end
         subgraph "Guest NUMA 1 (pxb-pcie bus 1)"
-            G_GPU2["GPU cb (numa_node=1)"]
-            G_GPU3["GPU db (numa_node=1)"]
-            G_CPU1["vCPUs 8-15"]
+            G_GPU4["GPU 9d (numa_node=1) — PROXY"]
+            G_GPU5["GPU bd (numa_node=1)"]
+            G_GPU6["GPU cd (numa_node=1)"]
+            G_GPU7["GPU dd (numa_node=1)"]
+            G_NIC1["NIC 9f (numa_node=1)"]
+            G_CPU1["vCPUs 32-63"]
+            G_GPU4 ---|"GPUDirect RDMA"| G_NIC1
         end
     end
 
-    G_GPU0 ---|"NVLink"| G_GPU1
-    G_GPU0 ---|"NVLink"| G_GPU2
-    G_GPU0 ---|"NVLink"| G_GPU3
-    G_GPU1 ---|"NVLink"| G_GPU2
-    G_GPU1 ---|"NVLink"| G_GPU3
-    G_GPU2 ---|"NVLink"| G_GPU3
+    G_GPU0 ---|"xGMI"| G_GPU1
+    G_GPU0 ---|"xGMI"| G_GPU4
+    G_GPU2 ---|"xGMI"| G_GPU3
+    G_GPU4 ---|"xGMI"| G_GPU5
+    G_GPU6 ---|"xGMI"| G_GPU7
 
-    style H_GPU0 fill:#49a,color:#fff
-    style H_GPU1 fill:#2a6,color:#fff
-    style H_NIC fill:#2a6,color:#fff
+    style H_GPU0 fill:#2a6,color:#fff
+    style H_GPU1 fill:#49a,color:#fff
     style H_GPU2 fill:#49a,color:#fff
     style H_GPU3 fill:#49a,color:#fff
-    style G_GPU0 fill:#49a,color:#fff
-    style G_GPU1 fill:#2a6,color:#fff
-    style G_NIC fill:#2a6,color:#fff
-    style G_CPU0 fill:#49a,color:#fff
+    style H_NIC0 fill:#2a6,color:#fff
+    style H_GPU4 fill:#2a6,color:#fff
+    style H_GPU5 fill:#49a,color:#fff
+    style H_GPU6 fill:#49a,color:#fff
+    style H_GPU7 fill:#49a,color:#fff
+    style H_NIC1 fill:#2a6,color:#fff
+    style G_GPU0 fill:#2a6,color:#fff
+    style G_GPU1 fill:#49a,color:#fff
     style G_GPU2 fill:#49a,color:#fff
     style G_GPU3 fill:#49a,color:#fff
+    style G_NIC0 fill:#2a6,color:#fff
+    style G_CPU0 fill:#49a,color:#fff
+    style G_GPU4 fill:#2a6,color:#fff
+    style G_GPU5 fill:#49a,color:#fff
+    style G_GPU6 fill:#49a,color:#fff
+    style G_GPU7 fill:#49a,color:#fff
+    style G_NIC1 fill:#2a6,color:#fff
     style G_CPU1 fill:#49a,color:#fff
 ```
 
-**Key:** Guest sees 2 NUMA nodes matching host placement. NCCL inside the VM detects GPU `5f` + NIC on guest NUMA 0 and selects it as the RDMA proxy. NVLink connects all 4 GPUs across guest NUMA boundaries — GPU-to-GPU communication bypasses PCIe regardless of guest NUMA assignment.
+**Key:** Guest sees 2 NUMA nodes matching host placement. Each guest NUMA has 4 GPUs + 1 NIC — NCCL selects a proxy per NUMA for inter-node RDMA. xGMI connects GPUs within and across guest NUMA nodes. Without guest topology, NCCL sees all 8 GPUs as flat and can't optimize per-NUMA proxy selection.
