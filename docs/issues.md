@@ -88,8 +88,8 @@ No KubeVirt API changes are needed. The user creates the DRA claim (same pattern
   - `dra-driver-cpu` — publish `resource.kubernetes.io/numaNode` (our `feature/standardized-topology-attrs` branch; upstream publishes `dra.cpu/numaNodeID` only)
   - No kubelet patches needed
   - No KubeVirt patches needed
-- **Pros:** one system, one constraint, guaranteed NUMA alignment at scheduling time. No kubelet patches. Works with default kubelet config. Follows same DRA claim pattern as GPUs (VEP-10) and NICs (VEP-183).
-- **Cons:** extra DRA driver daemonset. `cpuManagerPolicy: none` disables kubelet CPU pinning for all pods — in practice this only matters on mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK, real-time). On dedicated GPU nodes (typical deployment), all CPU-pinned workloads use DRA and this isn't an issue. User must keep `cores` and `dra.cpu/cpu` in sync manually.
+- **Pros:** one system, one constraint, **guaranteed** NUMA alignment at scheduling time. No kubelet patches. Works with default kubelet config (`cpuManagerPolicy: none`). Follows same DRA claim pattern as GPUs (VEP-10) and NICs (VEP-183). No KubeVirt API changes — `dedicatedCpuPlacement` works as-is.
+- **Cons:** extra DRA driver daemonset to deploy. User must keep `cores` and `dra.cpu/cpu` in sync manually (no validation today). On mixed-use nodes where non-DRA pods also need exclusive CPUs (e.g., DPDK), those pods lose kubelet CPU pinning — but on dedicated GPU nodes this isn't an issue.
 - **Status:** running on Dell R760xa
 
 **Option B: Kubelet DRA topology hints (`cpuManagerPolicy: static`)**
@@ -162,8 +162,8 @@ spec:
   - Kubelet `pkg/kubelet/cm/cpumanager/cpu_manager.go` — fix cpuset reconciler race (K-2) and apply cpuset before container starts (K-3)
   - No DRA driver patches needed
   - No KubeVirt patches needed (existing `dedicatedCpuPlacement` works as-is)
-- **Pros:** works with existing KubeVirt `dedicatedCpuPlacement` — single `cores: 8` is the only source of truth. No extra driver. Non-DRA pods still get kubelet CPU pinning.
-- **Cons:** patched kubelet (not upstream). Two systems coordinating (DRA scheduler + topology manager). Topology manager hints are best-effort — may silently ignore hints under conflict. Required CPU manager bug fixes (K-2, K-3) to work reliably.
+- **Pros:** single source of truth (`cores: 8`). No extra driver. Non-DRA pods still get kubelet CPU pinning.
+- **Cons:** patched kubelet (not upstream). Two systems coordinating (DRA scheduler + topology manager). **Best-effort** — topology manager may silently ignore DRA hints if they conflict with other hint providers, placing CPUs on a different NUMA than the DRA devices. Required CPU manager bug fixes (K-2, K-3) to work reliably.
 - **Status:** tested on Dell R760xa
 
 **Which option is active depends on `cpuManagerPolicy`:**
