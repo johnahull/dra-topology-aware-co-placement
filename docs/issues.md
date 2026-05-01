@@ -484,22 +484,28 @@ The topology coordinator runs a mutating admission webhook that expands simple "
 #### D-6: AMD GPU DRA driver: VFIO bind/unbind lifecycle missing
 
 **Repo:** `ROCm/k8s-gpu-dra-driver`
-**Fix:** `johnahull/k8s-gpu-dra-driver` `feature/vfio-passthrough`
+**Upstream Issue:** Draft (not yet submitted)
+**Upstream PR:** Pending
+**Branch:** `johnahull/k8s-gpu-dra-driver` `feature/vfio-passthrough-v2`
+**Tested on:** Dell PowerEdge XE9680 with 8x AMD Instinct MI300X GPUs
 
 The AMD GPU DRA driver discovers GPUs but doesn't support VFIO passthrough. For KubeVirt VM use cases, the driver needs to unbind GPUs from the `amdgpu` kernel driver, bind to `vfio-pci`, generate CDI specs for `/dev/vfio/*` device nodes, and handle IOMMU groups. Additionally, GPU discovery breaks after VFIO unbind because the driver reads GPU attributes from sysfs files that disappear when the native driver is unbound.
 
-The fork adds VFIO config support, discovery caching before unbind, and CDI spec generation.
+The v2 branch adds: VFIO device discovery for SR-IOV VFs (GIM-managed PFs and vfio-pci-bound PFs), `VfioDeviceConfig` API type, `VfioPciManager` with per-GPU locking and driver_override cleanup, CDI spec generation for `/dev/vfio/*`, and typed config routing in state management.
 
 ---
 
 #### D-7: AMD GPU DRA driver: KEP-5304 metadata opt-in
 
 **Repo:** `ROCm/k8s-gpu-dra-driver`
-**Fix:** `johnahull/k8s-gpu-dra-driver` `feat/kep5304-device-metadata`
+**Upstream Issue:** [#47](https://github.com/ROCm/k8s-gpu-dra-driver/issues/47)
+**Upstream PR:** [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48)
+**Branch:** `johnahull/k8s-gpu-dra-driver` `feat/kep5304-device-metadata-v2`
+**Tested on:** Dell PowerEdge XE9680 with 8x AMD Instinct MI300X GPUs
 
 The AMD driver publishes `resource.kubernetes.io/pciBusID` in ResourceSlice attributes (on main), but doesn't opt into KEP-5304 device metadata in `PrepareResult`. KubeVirt needs the PCI address projected into the pod as a metadata file, not just visible to the scheduler.
 
-The fork adds `kubeletplugin.EnableDeviceMetadata(true)` and populates `DeviceMetadata.Attributes` with `pciBusID` and `numaNode` in the prepare path.
+The fix adds `kubeletplugin.EnableDeviceMetadata(true)` and populates `DeviceMetadata.Attributes` with `resource.kubernetes.io/pciBusID`, `productName`, and `numaNode` in the prepare path for both full GPUs and partitions.
 
 ---
 
