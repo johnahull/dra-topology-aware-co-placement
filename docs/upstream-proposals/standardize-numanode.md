@@ -75,35 +75,37 @@ This gap is between NUMA-aligned and cross-NUMA, not between same-switch and sam
 
 The lack of a standard `numaNode` attribute creates a concrete problem for consumers of KEP-5304 device metadata. KubeVirt's virt-launcher reads device metadata to build guest NUMA topology (VEP 115 pxb-pcie placement). It needs the NUMA node for each passthrough device.
 
-**Today's code** tries an unqualified `numaNode`, then falls back to sysfs:
+**Today's code** in our fork scans all KEP-5304 metadata files and tries multiple attribute names:
 
 ```go
-// Try KEP-5304 metadata — but what attribute name?
-numaAttrName := resourcev1.QualifiedName("numaNode")
-if attr, ok := device.Attributes[numaAttrName]; ok {
-    return *attr.IntValue, nil
+// Must check multiple names because no standard exists
+for _, name := range []string{
+    "resource.kubernetes.io/numaNode",  // our proposed standard
+    "numaNode",                          // bare (AMD)
+    "numa",                              // vendor (NVIDIA)
+} {
+    if attr, ok := dev.Attributes[name]; ok && attr.IntValue != nil {
+        return *attr.IntValue
+    }
 }
-// Fallback: read sysfs directly
-numa = readSysfs("/sys/bus/pci/devices/" + pciAddr + "/numa_node")
 ```
 
-This works only if the driver publishes `numaNode` unqualified. In practice:
+Each driver publishes NUMA under a different name:
 
-| Driver | What it publishes in metadata | Lookup finds it? |
-|--------|------------------------------|-----------------|
-| AMD GPU | `numaNode` (unqualified) | Yes |
-| NVIDIA GPU | `numa` (different name) | No |
-| SR-IOV NIC | nothing (no numaNode in metadata) | No → sysfs fallback |
-| CPU | `dra.cpu/numaNodeID` (qualified, different name) | No |
+| Driver | Attribute name in metadata | Standard? |
+|--------|---------------------------|-----------|
+| NVIDIA GPU | `numa` + `resource.kubernetes.io/numaNode` (fork) | Fork only |
+| AMD GPU | `numaNode` (unqualified) | No |
+| dranet (NIC) | `resource.kubernetes.io/numaNode` (fork) | Fork only |
+| NVMe | `numaNode` (unqualified) | No |
+| CPU | `dra.cpu/numaNodeID` (qualified) | No |
 
-**With `resource.kubernetes.io/numaNode` standardized**, every driver publishes the same attribute. One lookup, no fallback, no sysfs mount:
+Our forks publish `resource.kubernetes.io/numaNode` alongside vendor-specific names, proving the approach works. But without upstream agreement, every consumer must try multiple names.
+
+**With standardization**, one lookup:
 
 ```go
-// Standardized: one attribute name
-numaAttrName := resourcev1.QualifiedName("resource.kubernetes.io/numaNode")
-if attr, ok := device.Attributes[numaAttrName]; ok {
-    return *attr.IntValue, nil
-}
+numaAttr := dev.Attributes["resource.kubernetes.io/numaNode"]
 ```
 
 ## The SNC/NPS Objection
@@ -211,13 +213,38 @@ The DRA CPU driver (`dra-driver-cpu`) handles CPU and memory pinning via NRI —
 
 ## Evidence
 
-Tested on three systems:
+Tested end-to-end on three systems with 5 independent DRA drivers (GPU, NIC, NVMe, CPU, memory) using `matchAttribute: resource.kubernetes.io/numaNode`:
 
-- **Dell XE9680** (8x MI300X, ConnectX-6 Dx, K8s 1.36): 4-driver pods with NUMA alignment, SNC on/off. KubeVirt VMs with correct guest topology.
-- **Dell R760xa** (2x NVIDIA A40, ConnectX-7, K8s 1.37-alpha): Every slot has its own root — pcieRoot unsatisfiable. Demonstrates why `enforcement: preferred` is essential.
-- **Dell XE8640** (4x H100 SXM5, E810 + ConnectX-6 Dx): PCIe switches group GPU+NIC+NVMe — pcieRoot works for NCCL proxy GPU.
+### Dell XE8640 (4x H100 SXM5, NVLink)
+
+- **5-driver VM claim**: 3x H100 VFIO + Mellanox NIC VFIO + NVMe VFIO + 8 CPUs (4 per NUMA) + memory — all allocated via DRA, VM running with correct guest NUMA topology
+- **Multi-NUMA guest**: 2 guest NUMA cells with `pxb-pcie` expanders, GPUs on correct guest NUMA nodes, built from KEP-5304 metadata using `resource.kubernetes.io/numaNode`
+- **Per-CPU allocation**: DRA CPU driver in individual mode (`--cpu-device-mode=individual`), 128 per-CPU devices, claims use `count: N` with `matchAttribute` — multiple claims share a NUMA node
+- **4-claim test**: pcieRoot match (GPU+NIC+NVMe on `pci0000:59`) + numaNode match (GPU+NIC VF) + 2 GPU-only claims — all 4 H100s allocated with CPUs NUMA-aligned
+- **VFIO safety**: dranet `vfioUnsafe` filter excludes Broadcom NIC with shared IOMMU group, NVMe driver excludes boot disk
+
+### Dell R760xa (2x A40, ConnectX-7)
+
+- **3 concurrent claims**: 2x (GPU+NIC+8 CPUs, numaNode-aligned) + 1x (2 NICs + 8 CPUs) — 24 CPUs allocated across 3 claims from same NUMA node using per-CPU devices
+- **Per-CPU individual mode**: resolved one-device-per-NUMA limitation, multiple claims get exclusive CPUs from same NUMA
+
+### Dell XE9680 (8x MI300X, ConnectX-6 Dx)
+
+- **8-GPU topology**: SNC on/off comparison, topology coordinator partitions, multi-NUMA KubeVirt VMs
+- **pcieRoot coverage**: only 25% of GPUs share a switch with a NIC — demonstrates why `numaNode` is essential
+
+### Key results
+
+| Metric | Value |
+|--------|-------|
+| DRA drivers using `resource.kubernetes.io/numaNode` | 5 (GPU, NIC, NVMe, CPU, memory) |
+| Systems tested | 3 (NVIDIA A40, H100 SXM5, AMD MI300X) |
+| Max devices in single claim | 13 (3 GPUs + 1 NIC + 1 NVMe + 8 CPUs) |
+| Guest NUMA cells from KEP-5304 | 2 (verified with pxb-pcie placement) |
+| Concurrent claims per NUMA | 3 (with per-CPU individual mode) |
 
 Full test results: [testing/results/results-summary.md](../../testing/results/results-summary.md)
+XE8640 test capture: [testing/results/xe8640-multi-numa-vm-2026-05-01.md](../../testing/results/xe8640-multi-numa-vm-2026-05-01.md)
 
 ## Note on `cpuSocketID`
 
