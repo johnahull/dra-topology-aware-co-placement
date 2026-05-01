@@ -268,6 +268,20 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
                 req_str = ', '.join(reqs) if reqs else 'all'
                 print(f'  \033[2mconstraint: matchAttribute={short_ma} requests=[{req_str}]\033[0m')
 
+    spec_requests = c.get('spec', {}).get('devices', {}).get('requests', [])
+    req_summaries = []
+    for req in spec_requests:
+        exactly = req.get('exactly', {})
+        name = req.get('name', '?')
+        count = exactly.get('count', 1)
+        dc = exactly.get('deviceClassName', '?')
+        dc_short = dc.split('.')[-1] if '.' in dc else dc
+        if count > 1:
+            req_summaries.append(f'{name}: {count}x {dc_short}')
+    if req_summaries:
+        req_summary_str = ', '.join(req_summaries)
+        print(f'  \033[2mrequests: {req_summary_str}\033[0m')
+
     results = state.get('devices', {}).get('results', [])
     if not results:
         print('  (no devices)')
