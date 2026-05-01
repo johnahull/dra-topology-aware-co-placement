@@ -220,8 +220,9 @@ The `Manager` struct gains a `nodeName` field, passed from `container_manager_li
 #### K-2: CPU manager reconciler never corrects cgroup cpuset mismatches
 
 **Repo:** `kubernetes/kubernetes`
-**Fix:** `johnahull/kubernetes` `feature/enforcement-preferred` commit `77a449e`
+**Fix:** `johnahull/kubernetes` `fix/cpu-manager-cpuset-race` commit `63d7b7d`
 **File:** `pkg/kubelet/cm/cpumanager/cpu_manager.go`
+**Upstream:** [Issue #138731](https://github.com/kubernetes/kubernetes/issues/138731), [PR #138732](https://github.com/kubernetes/kubernetes/pull/138732) (draft)
 
 The CPU manager's reconciliation loop runs every 10 seconds and is supposed to detect and correct any cgroup cpuset that doesn't match the desired state. It compares the desired cpuset (`state.GetCPUSetOrDefault`) against a `lastUpdateState` value that tracks what was last written to the cgroup. If they match, it skips the update.
 
@@ -236,8 +237,9 @@ The fix removes the `lastUpdateState` pre-population from `AddContainer()`. Inst
 #### K-3: CPU manager cpuset not applied before container starts
 
 **Repo:** `kubernetes/kubernetes`
-**Fix:** `johnahull/kubernetes` `feature/enforcement-preferred` commit `77a449e`
+**Fix:** `johnahull/kubernetes` `fix/cpu-manager-cpuset-race` commit `63d7b7d`
 **File:** `pkg/kubelet/cm/cpumanager/cpu_manager.go`
+**Upstream:** [Issue #138731](https://github.com/kubernetes/kubernetes/issues/138731), [PR #138732](https://github.com/kubernetes/kubernetes/pull/138732) (draft) — same PR as K-2
 
 The kubelet's `PreCreateContainer` callback sets `CpusetCpus` in the CRI container config before calling `CreateContainer`. Containerd is supposed to create the container with that cpuset. However, containerd doesn't reliably apply the `CpusetCpus` field during container creation — the container starts with a cpuset inherited from the pod-level cgroup instead of the dedicated CPU assignment.
 
