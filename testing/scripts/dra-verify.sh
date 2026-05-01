@@ -4,6 +4,7 @@
 # Usage:
 #   dra-verify.sh drivers                    Show DRA driver status
 #   dra-verify.sh attributes                 Show ResourceSlice topology attributes
+#   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
 #   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
 #   dra-verify.sh cpupinning [pod] [-n ns]   Show cpuset vs device NUMA
 #   dra-verify.sh vfio                       Show VFIO-bound devices and CDI specs
@@ -183,6 +184,113 @@ for driver in sorted(drivers):
         if missing:
             line += f'  \033[33m(missing: {\", \".join(missing)})\033[0m'
         print(line)
+    print()
+" 2>/dev/null
+}
+
+# ── claims ───────────────────────────────────────────────────────────────────
+
+cmd_claims() {
+    section "Allocated Resource Claims"
+
+    local nf
+    nf=$(ns_flag)
+
+    { kubectl get resourceclaims $nf -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get vmi $nf -o json 2>/dev/null; } | python3 -c "
+import json, sys
+
+raw = sys.stdin.read()
+parts = raw.split('---SEP---')
+claims_data = json.loads(parts[0])
+slices_data = json.loads(parts[1])
+try:
+    vmi_data = json.loads(parts[2])
+except:
+    vmi_data = {'items': []}
+
+# Build device attr lookup
+device_attrs = {}
+for rs in slices_data.get('items', []):
+    driver = rs['spec']['driver']
+    for dev in rs['spec'].get('devices', []) or []:
+        attrs = dev.get('attributes', {})
+        topo = {}
+        for key, val in attrs.items():
+            short = key.split('/')[-1] if '/' in key else key
+            if short in ('numaNode', 'numa', 'numaNodeID', 'pciBusID', 'cpuSocketID', 'productName'):
+                topo[short] = list(val.values())[0]
+        device_attrs[f'{driver}/{dev[\"name\"]}'] = topo
+
+# Build VMI name lookup from pod names
+vmi_by_pod_prefix = {}
+for vmi in vmi_data.get('items', []):
+    name = vmi['metadata']['name']
+    ns = vmi['metadata']['namespace']
+    vmi_by_pod_prefix[f'virt-launcher-{name}-'] = f'{ns}/{name}'
+
+claims = claims_data.get('items', [])
+if not claims:
+    print('No resource claims found')
+    sys.exit(0)
+
+for c in sorted(claims, key=lambda x: x['metadata']['name']):
+    cname = c['metadata']['name']
+    ns = c['metadata']['namespace']
+    state = c.get('status', {}).get('allocation', {})
+    reserved = c.get('status', {}).get('reservedFor', [])
+
+    if not state:
+        print(f'\033[2m{ns}/{cname}: pending\033[0m')
+        continue
+
+    # Find pod/VM
+    pod_name = reserved[0]['name'] if reserved else '(unreserved)'
+    vm_name = ''
+    for prefix, vmi_ref in vmi_by_pod_prefix.items():
+        if pod_name.startswith(prefix):
+            vm_name = vmi_ref
+            break
+
+    header = f'\033[1m{ns}/{cname}\033[0m'
+    if vm_name:
+        header += f'  →  VM \033[1;35m{vm_name}\033[0m'
+    else:
+        header += f'  →  pod \033[1;36m{pod_name}\033[0m'
+    print(header)
+
+    results = state.get('devices', {}).get('results', [])
+    if not results:
+        print('  (no devices)')
+        print()
+        continue
+
+    print(f'  {\"Request\":<12}{\"Driver\":<25}{\"Device\":<20}{\"NUMA\":<6}{\"PCI Bus ID\":<18}{\"Product\":<30}')
+    print(f'  {\"─\"*12}{\"─\"*25}{\"─\"*20}{\"─\"*6}{\"─\"*18}{\"─\"*30}')
+
+    numas = set()
+    for r in results:
+        driver = r['driver']
+        device = r['device']
+        request = r['request']
+        dev_key = f'{driver}/{device}'
+        topo = device_attrs.get(dev_key, {})
+
+        numa = topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '-')))
+        pci = topo.get('pciBusID', '-')
+        product = str(topo.get('productName', '-'))[:28]
+
+        driver_short = driver if len(driver) <= 23 else driver[:21] + '..'
+        print(f'  {request:<12}{driver_short:<25}{device:<20}{str(numa):<6}{str(pci):<18}{product:<30}')
+
+        if numa != '-':
+            numas.add(str(numa))
+
+    print()
+    if len(numas) == 1:
+        print(f'  \033[32m✓ All devices on NUMA {numas.pop()}\033[0m')
+    elif len(numas) > 1:
+        numa_list = ', '.join(sorted(numas))
+        print(f'  \033[33m! Multi-NUMA: devices on NUMA {numa_list}\033[0m')
     print()
 " 2>/dev/null
 }
@@ -558,6 +666,7 @@ cmd_guest() {
 cmd_all() {
     cmd_drivers
     cmd_attributes
+    cmd_claims
     cmd_alignment
     cmd_vfio
 
@@ -575,6 +684,7 @@ cmd_help() {
     echo "Commands:"
     echo "  drivers                    Show DRA driver DaemonSets, pods, registration"
     echo "  attributes                 Show ResourceSlice topology attributes per driver"
+    echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
     echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
     echo "  cpupinning [pod] [-n ns]   Show container cpuset vs device NUMA nodes"
     echo "  vfio                       Show VFIO-bound devices, IOMMU groups, CDI specs"
@@ -599,6 +709,7 @@ cmd_help() {
 case "$CMD" in
     drivers)    cmd_drivers ;;
     attributes) cmd_attributes ;;
+    claims)     cmd_claims ;;
     alignment)  cmd_alignment ;;
     cpupinning) cmd_cpupinning ;;
     vfio)       cmd_vfio ;;
