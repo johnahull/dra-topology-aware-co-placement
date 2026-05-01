@@ -481,8 +481,8 @@ The fork adds all four standardized attributes to every discovered NIC device, a
 #### D-6: AMD GPU DRA driver: VFIO bind/unbind lifecycle missing
 
 **Repo:** `ROCm/k8s-gpu-dra-driver`
-**Upstream Issue:** Draft (not yet submitted)
-**Upstream PR:** Pending
+**Upstream Issue:** [#49](https://github.com/ROCm/k8s-gpu-dra-driver/issues/49)
+**Upstream PR:** [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50)
 **Branch:** `johnahull/k8s-gpu-dra-driver` `feature/vfio-passthrough-v2`
 **Tested on:** Dell PowerEdge XE9680 with 8x AMD Instinct MI300X GPUs
 
