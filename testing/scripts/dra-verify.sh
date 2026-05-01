@@ -217,7 +217,7 @@ for rs in slices_data.get('items', []):
         topo = {}
         for key, val in attrs.items():
             short = key.split('/')[-1] if '/' in key else key
-            if short in ('numaNode', 'numa', 'numaNodeID', 'pciBusID', 'cpuSocketID', 'productName'):
+            if short in ('numaNode', 'numa', 'numaNodeID', 'pciBusID', 'pcieRoot', 'cpuSocketID', 'productName'):
                 topo[short] = list(val.values())[0]
         device_attrs[f'{driver}/{dev[\"name\"]}'] = topo
 
@@ -264,10 +264,11 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         print()
         continue
 
-    print(f'  {\"Request\":<12}{\"Driver\":<25}{\"Device\":<20}{\"NUMA\":<6}{\"PCI Bus ID\":<18}{\"Product\":<30}')
-    print(f'  {\"─\"*12}{\"─\"*25}{\"─\"*20}{\"─\"*6}{\"─\"*18}{\"─\"*30}')
+    print(f'  {\"Request\":<12}{\"Driver\":<25}{\"Device\":<20}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
+    print(f'  {\"─\"*12}{\"─\"*25}{\"─\"*20}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
 
     numas = set()
+    roots = set()
     for r in results:
         driver = r['driver']
         device = r['device']
@@ -276,11 +277,15 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         topo = device_attrs.get(dev_key, {})
 
         numa = topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '-')))
+        root = topo.get('pcieRoot', '-')
         pci = topo.get('pciBusID', '-')
         product = str(topo.get('productName', '-'))[:28]
 
         driver_short = driver if len(driver) <= 23 else driver[:21] + '..'
-        print(f'  {request:<12}{driver_short:<25}{device:<20}{str(numa):<6}{str(pci):<18}{product:<30}')
+        print(f'  {request:<12}{driver_short:<25}{device:<20}{str(numa):<6}{str(root):<16}{str(pci):<18}{product:<30}')
+
+        if root != '-':
+            roots.add(str(root))
 
         if numa != '-':
             numas.add(str(numa))
@@ -291,6 +296,12 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     elif len(numas) > 1:
         numa_list = ', '.join(sorted(numas))
         print(f'  \033[33m! Multi-NUMA: devices on NUMA {numa_list}\033[0m')
+
+    if len(roots) == 1:
+        print(f'  \033[32m✓ All PCI devices on pcieRoot {roots.pop()}\033[0m')
+    elif len(roots) > 1:
+        root_list = ', '.join(sorted(roots))
+        print(f'  \033[33m! Multiple pcieRoots: {root_list}\033[0m')
     print()
 " 2>/dev/null
 }
