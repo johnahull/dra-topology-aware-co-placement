@@ -587,12 +587,14 @@ Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not obser
 
 **Repo:** `NVIDIA/k8s-dra-driver-gpu` (CDI generation)
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `cb087a2`
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-cdi.go`
 **Status:** Fixed.
 
 When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind needed), the CDI spec may reference the wrong IOMMU group or miss `/dev/vfio/vfio`. Libvirt inside the virt-launcher then reports "VFIO PCI device assignment is not supported by the host."
 
 **Fix:** Always include `/dev/vfio/vfio` in `GetCommonEdits()` (was gated behind `enableAPIDevice`). In `GetDeviceSpecsByPCIBusID()`, read the IOMMU group directly from sysfs (`/sys/bus/pci/devices/<BDF>/iommu_group` symlink) instead of using `nvpci.GetGPUByPciBusID()` which doesn't work for vfio-pci-bound GPUs.
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 
 ---
 
@@ -600,12 +602,14 @@ When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind 
 
 **Repo:** `NVIDIA/k8s-dra-driver-gpu` (VFIO discovery)
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `e589e5a`
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/nvlib.go`
 **Status:** Fixed.
 
 `enumerateGpuVfioDevices()` treated any NVIDIA GPU not on the nvidia driver as a VFIO candidate. This caused driverless GPUs (stuck after a failed unbind on H100 SXM5) and nvidia-bound GPUs to be advertised in the ResourceSlice as allocatable VFIO devices. When the scheduler picked one, the prepare would fail or hang trying to unbind from nvidia (D-11).
 
 **Fix:** Check the actual kernel driver binding via sysfs (`readlink /sys/bus/pci/devices/<BDF>/driver`) before adding a GPU to the VFIO device list. Only GPUs currently bound to `vfio-pci` are advertised. This prevents the D-11 hang from recurring — even if `Unconfigure` returns a GPU to nvidia, it won't reappear as a VFIO device.
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 
 ---
 
@@ -613,12 +617,14 @@ When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind 
 
 **Repo:** `NVIDIA/k8s-dra-driver-gpu`
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `ccdec5c`
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`, `cmd/gpu-kubelet-plugin/deviceinfo.go`
 **Status:** Fixed.
 
 When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvidia. On H100 SXM5 systems with NVLink, this hangs indefinitely (D-11). Worse, the `preConfigureDriver` field that tracks whether Configure performed an unbind is stored in memory and lost on pod restart — so after a plugin restart, Unconfigure always attempts the rebind.
 
 **Fix:** Two-layer check: (1) track the pre-Configure driver in `VfioDeviceInfo.preConfigureDriver` for the current pod lifecycle, and (2) check the kernel cmdline for `vfio-pci.ids=<vendor>:<device>` to detect boot-time pre-binding. If either indicates the GPU was pre-bound to vfio-pci, `Unconfigure` leaves it on vfio-pci instead of attempting the nvidia rebind.
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 
 ---
 
@@ -626,12 +632,14 @@ When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvid
 
 **Repo:** `NVIDIA/k8s-dra-driver-gpu`
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `7f4760d`
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`
 **Status:** Fixed.
 
 `checkVfioPCIModuleLoaded()` and `checkIommuEnabled()` check sysfs paths under `/host-root/sys/` (e.g., `/host-root/sys/module/vfio_pci`). In containers where `/host-root` is a bind-mount of the host's `/`, the container's own `/sys` mount doesn't expose host sysfs at `/host-root/sys`. The VfioPciManager fails to initialize with "failed to load vfio_pci module" or "IOMMU is not enabled" even though both are working on the host.
 
 **Fix:** Fall back to checking the unprefixed sysfs path (`/sys/module/vfio_pci`, `/sys/kernel/iommu_groups`) when the host-root prefixed path doesn't exist.
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 
 ---
 
