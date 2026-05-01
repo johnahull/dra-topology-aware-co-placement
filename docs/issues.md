@@ -274,8 +274,9 @@ Verified on XE8640: 5-driver claim (GPU + NIC + NVMe + CPU + memory) produces me
 #### KV-1: `copyResourceClaims` deduplicates by Name only
 
 **Repo:** `kubevirt/kubevirt`
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1`
+**Fix:** `johnahull/kubevirt` `fix/dra-claim-dedup` commit `cac899b`
 **File:** `pkg/virt-controller/services/renderresources.go`
+**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673)
 
 When the virt-controller creates the virt-launcher pod spec, it copies resource claim references from the VMI spec to the pod's container resources. The `copyResourceClaims` function deduplicates these references to avoid Kubernetes API validation errors on duplicate claim names.
 
