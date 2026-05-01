@@ -175,6 +175,17 @@ A single kubelet binary with the topology hints patch supports both paths. The d
 
 **Key difference: guaranteed vs best-effort.** Option A is guaranteed — the scheduler either finds a node where all resources (GPU + NIC + CPU) match on the same NUMA and schedules there, or the pod stays pending. There's no silent degradation. Option B is best-effort — the topology manager may ignore DRA hints if they conflict with other hint providers, silently placing CPUs on a different NUMA than the DRA devices. Option A is the stronger long-term path for this reason.
 
+**Limitation: DRA CPU driver exposes one device per NUMA node.** The upstream `dra-driver-cpu` publishes a single device per NUMA node (e.g., `cpudevnuma000` with `dra.cpu/cpu: 64`). This device can only be allocated to one claim at a time. Multiple claims needing CPUs from the same NUMA node cannot each get their own CPU device — the second claim fails with "cannot allocate all claims."
+
+This means option A works for single-claim-per-NUMA workloads (one VM per NUMA, or the topology coordinator's partition model) but not for multiple independent pods sharing a NUMA node's CPUs. Option B doesn't have this limitation because the kubelet CPU manager allocates per-container from a shared pool.
+
+Possible upstream improvements:
+- **Per-CPU devices** — expose each CPU as a DRA device with `count: N` in the claim. Most flexible but high device count (128+ devices per node).
+- **Partitioned capacity** — multiple allocations against one device using `consumedCapacity`. DRA supports this but the CPU driver doesn't implement partial allocation today.
+- **`shareID`** — multiple claims share the same CPU device. Loses exclusivity but allows co-location.
+
+Until the CPU driver supports one of these, use option B for multi-claim workloads on the same NUMA node.
+
 ---
 
 #### K-1: DRA topology hints — kubelet doesn't provide NUMA hints for DRA devices
