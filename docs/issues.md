@@ -681,3 +681,37 @@ The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` 
 
 **Fix:** Iterate both `HostDevices` and `GPUs` to collect DRA claim references, reading PCI address and NUMA node from KEP-5304 metadata for each. This enables `pxb-pcie` expander bus placement for GPU devices with correct guest NUMA affinity.
 
+---
+
+#### D-16: dranet should exclude NICs unsuitable for VFIO passthrough
+
+**Repo:** `kubernetes-sigs/dranet`
+**Fix:** Not started.
+
+dranet publishes all discovered NICs in the ResourceSlice, including NICs that cannot be used for VFIO passthrough. The scheduler allocates them, the driver binds to vfio-pci, and QEMU fails at runtime with "group is not viable" or the host loses network connectivity.
+
+NICs that should be excluded from VFIO allocation:
+
+1. **Shared IOMMU group** — if any device in the IOMMU group is bound to a different driver, VFIO requires all devices in the group to be on vfio-pci. Binding one device in a shared group fails unless all siblings are also unbound. Management NICs often share a group with a second port.
+2. **Default gateway interface** — unbinding the interface that carries the host's default route kills network connectivity (SSH, kubectl, etc.).
+3. **Active host IP addresses** — NICs with IP addresses in the host network namespace are likely in use for management traffic.
+
+The filter should happen at discovery time (don't publish the device) or at prepare time (reject the VFIO bind). Discovery-time filtering is safer because the scheduler won't allocate an unpublishable device.
+
+Observed on XE8640: Broadcom `0000:02:00.1` shares IOMMU group 75 with management port `0000:02:00.0` (tg3 driver). QEMU reported "vfio 0000:02:00.1: group 75 is not viable." Workaround: CEL selector targeting a specific Mellanox NIC PCI address.
+
+---
+
+#### D-17: NVMe DRA driver should exclude boot/root disks from VFIO binding
+
+**Repo:** `johnahull/dra-driver-nvme`
+**Fix:** `johnahull/dra-driver-nvme` `main` commit `42b3e92`
+**Files:** `pkg/nvme/nvme.go`
+**Status:** Fixed.
+
+The NVMe DRA driver discovers all PCIe NVMe controllers and publishes them as allocatable devices. When a VM claim requests an NVMe in VFIO mode, the driver unbinds it from the `nvme` kernel driver and binds to `vfio-pci`. If the selected NVMe is the boot disk, unbinding crashes the system by removing the root filesystem.
+
+**Fix:** `hasMountedNamespace()` checks `/proc/1/mounts` (host PID 1's mount namespace, works inside containers) for any mounted partitions on the NVMe's namespaces. Also checks sysfs `holders/` for active device-mapper entries (LVM). Controllers with mounted or in-use namespaces are excluded from discovery.
+
+Key detail: the first version read `/proc/mounts` which inside a container only shows the container's mounts — the host's root filesystem wasn't visible. Reading `/proc/1/mounts` exposes the host's mount table.
+
