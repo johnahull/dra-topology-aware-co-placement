@@ -254,6 +254,17 @@ The fix adds a `updateContainerCPUSet()` call in `AddContainer()`, which runs du
 
 ---
 
+#### K-4: Multi-driver claims may only inject KEP-5304 metadata for one driver
+
+**Repo:** `kubernetes/kubernetes`
+**Fix:** Possibly fixed on main. Needs retest.
+
+When a ResourceClaim contains devices from multiple DRA drivers (e.g., GPU + NIC + CPU + memory), the kubelet's metadata writer may only generate metadata files for one driver's devices. The code in `metadataWriter.processPreparedClaim` iterates `Device.Requests` to associate devices with request names — if `Device.Requests` is not set by a driver, its metadata files are never written.
+
+This was observed with the dranet driver before `Device.Requests` was added to the `PrepareResult`. The upstream kubelet code has since been restructured to aggregate CDI IDs from all drivers per claim, but this needs retesting to confirm the metadata injection works for multi-driver claims end-to-end.
+
+---
+
 ### KubeVirt
 
 #### KV-1: `copyResourceClaims` deduplicates by Name only
@@ -333,6 +344,75 @@ KubeVirt should auto-enable ACPI when guest NUMA topology is configured, or at m
 
 ---
 
+#### KV-7: virt-controller missing VFIO capabilities for DRA host device pods
+
+**Repo:** `kubevirt/kubevirt`
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1`
+
+When DRA host devices are passed through via VFIO, the virt-launcher pod needs capabilities for DMA memory locking: `SYS_RESOURCE`, `IPC_LOCK`, and unlimited memlock rlimits. The virt-controller's pod template renderer doesn't add these for DRA-allocated devices (only for device-plugin devices where `permittedHostDevices` entries specify VFIO requirements).
+
+The fork adds these capabilities when DRA host devices or GPUs are present in the VMI spec. The `ReservedOverheadMemlock` feature gate controls the memlock reservation via `reservedOverhead.addedOverhead` in the VM spec.
+
+---
+
+#### KV-8: `dedicatedCpuPlacement` blocks scheduling when `cpuManagerPolicy: none` (option A)
+
+**Repo:** `kubevirt/kubevirt`
+**Component:** `pkg/virt-handler/heartbeat/heartbeat.go`, `pkg/virt-controller/services/nodeselectorrenderer.go`
+
+When using CPU pinning option A (DRA CPU driver with `cpuManagerPolicy: none`), KubeVirt blocks VM scheduling. The virt-handler heartbeat reads `cpu_manager_state` on the node, finds `policyName: none`, and sets `kubevirt.io/cpumanager=false`. The virt-controller adds `kubevirt.io/cpumanager: "true"` as a required node selector when `dedicatedCpuPlacement: true` — so the pod is permanently unschedulable.
+
+The root cause: KubeVirt equates "dedicated CPUs" with "kubelet CPU manager is static." With option A, dedicated CPUs come from the DRA CPU driver via NRI, not the kubelet CPU manager. The cpumanager label check is too narrow.
+
+**Upstream discussion needed.** This is not a simple bug fix — it requires KubeVirt to decide how `dedicatedCpuPlacement` works with DRA. Options:
+
+1. **`CPUsWithDRA` feature gate** — skip the cpumanager label check when DRA CPU claims are present in the VMI spec. Follows the `HostDevicesWithDRA` pattern (already merged upstream for GPU passthrough). Small, contained change.
+
+2. **Decouple concepts** — `dedicatedCpuPlacement` means "build guest NUMA topology and pin vCPUs" without caring how CPUs are allocated. Remove the cpumanager label as a scheduling gate. The label becomes informational.
+
+3. **virt-handler detects DRA CPU driver** — set `kubevirt.io/cpumanager=true` when either `cpuManagerPolicy: static` OR a DRA CPU ResourceSlice exists on the node.
+
+Recommend raising at the KubeVirt DRA biweekly meeting (Tuesdays, 6 PM CET).
+
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `78c1ee6348`
+
+The fix skips the `kubevirt.io/cpumanager=true` node selector when the VMI has both `dedicatedCpuPlacement: true` AND DRA resource claims. Two files changed:
+
+| File | Change |
+|------|--------|
+| `pkg/virt-controller/services/nodeselectorrenderer.go` | Add `hasDRACPUClaims` field and `WithDRACPUClaims()` option. Skip cpumanager label when `hasDedicatedCPU && hasDRACPUClaims`. |
+| `pkg/virt-controller/services/template.go` | Set `WithDRACPUClaims()` when VMI has `dedicatedCpuPlacement` and `len(vmi.Spec.ResourceClaims) > 0`. |
+
+**Upstream path:** Propose as part of VEP-10 beta or as a standalone enhancement following the `HostDevicesWithDRA` pattern. Raise at KubeVirt DRA biweekly.
+
+---
+
+#### KV-9: `buildDRANUMACells` unreachable when `dedicatedCpuPlacement` is true
+
+**Repo:** `kubevirt/kubevirt`
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `bfbc78a`
+**Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`, `pkg/dra/utils.go`
+**Status:** Fixed.
+
+The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` branch that only executed when `IsCPUDedicated()` returned false. But KubeVirt requires `dedicatedCpuPlacement: true` for `guestMappingPassthrough`, so the DRA NUMA path was never reached. The first branch always ran, using the kubelet's cpuset to build NUMA topology — which produced a single NUMA cell when `cpuManagerPolicy: none` (all CPUs in the default cpuset).
+
+**Fix:** When `dedicatedCpuPlacement` AND `guestMappingPassthrough` AND DRA resource claims are all present, use the DRA metadata path first. Added `DiscoverNUMANodesFromAllMetadata()` in `pkg/dra/utils.go` which scans all KEP-5304 metadata files for `resource.kubernetes.io/numaNode` attributes and builds guest NUMA cells from the unique NUMA nodes found.
+
+---
+
+#### KV-10: `buildDRANUMAOverrides` only handles HostDevices, not GPUs
+
+**Repo:** `kubevirt/kubevirt`
+**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `e246337`
+**Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`
+**Status:** Fixed.
+
+`buildDRANUMAOverrides()` iterated only `vmi.Spec.Domain.Devices.HostDevices` to build PCI-to-NUMA override maps for `PlacePCIDevicesWithNUMAAlignment`. GPUs specified via `vmi.Spec.Domain.Devices.GPUs` were missed, so `PlacePCIDevicesWithNUMAAlignment` was never called for GPU devices. GPUs remained on the default PCI root bus and reported NUMA -1 inside the guest.
+
+**Fix:** Iterate both `HostDevices` and `GPUs` to collect DRA claim references, reading PCI address and NUMA node from KEP-5304 metadata for each. This enables `pxb-pcie` expander bus placement for GPU devices with correct guest NUMA affinity.
+
+---
+
 ### DRA Drivers
 
 #### D-1: SR-IOV DRA driver has no KEP-5304 `pciBusID` metadata
@@ -398,89 +478,6 @@ The fork adds all four standardized attributes to every discovered NIC device, a
 
 ---
 
-### Kubernetes Upstream
-
-#### U-1: `enforcement: Preferred` not in upstream API
-
-**Repo:** `kubernetes/kubernetes`
-**Fix:** `johnahull/kubernetes` `feature/enforcement-preferred` (3 commits)
-
-The DRA scheduler's `matchAttribute` constraint is all-or-nothing — if the constraint can't be satisfied, the pod is unschedulable. On hardware where not all devices share a PCIe root (e.g., R760xa where every device has its own root), a `matchAttribute: resource.kubernetes.io/pcieRoot` constraint is unsatisfiable. Users need a way to express "prefer tight coupling but accept looser coupling."
-
-The fix adds an `Enforcement` field to `DeviceConstraint` with two values: `Required` (default, current behavior) and `Preferred` (skip if unsatisfiable). This enables a two-level hierarchy: prefer `pcieRoot` (same switch), require `numaNode` (same memory controller).
-
-Three commits implement this:
-1. API type + validation + protobuf + OpenAPI generation
-2. Feature gate `DRAListTypeAttributes` enabled by default
-3. Allocator skips preferred constraints when they can't be satisfied
-
-All five Kubernetes binaries (apiserver, scheduler, controller-manager, kubelet, kubectl) must be built from this branch to preserve the `enforcement` field through the entire claim lifecycle.
-
----
-
-#### U-2: Standardized `resource.kubernetes.io/numaNode` not agreed
-
-**Repo:** `kubernetes/kubernetes`
-**Fix:** [Proposal](docs/upstream-proposals/standardize-numanode.md). Discussed in SIG-Node.
-
-Each DRA driver publishes NUMA information under its own vendor-specific attribute name (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`, etc.). For cross-driver `matchAttribute` constraints to work, all drivers must use the same attribute name.
-
-The proposal recommends `resource.kubernetes.io/numaNode` (int) as a standardized attribute, with a helper function in the `deviceattribute` library to derive the value from sysfs. The `resource.kubernetes.io/` prefix signals that this is a well-known attribute with defined semantics, not vendor-specific data. `cpuSocketID` is not part of the core proposal — it can be published by drivers independently if needed.
-
-Until this is agreed upstream, each driver fork publishes both the vendor-specific and standardized attributes.
-
----
-
-#### U-3: `deviceattribute` library: `GetPCIeRootAttributeMapFromCPUId` helper
-
-**Repo:** `kubernetes/kubernetes`
-**Fix:** [PR #138297](https://github.com/kubernetes/kubernetes/pull/138297) (WIP)
-
-The `deviceattribute` library provides helpers like `GetPCIBusIDAttribute()` and `GetPCIeRootAttributeByPCIBusID()` for DRA drivers to derive topology attributes from sysfs. A missing helper is `GetPCIeRootAttributeMapFromCPUId()`, which would let non-PCI drivers (CPU, memory) publish `pcieRoot` attributes by mapping their NUMA node to the PCIe root complexes on that node.
-
-This is needed for the distance hierarchy (U-1) where CPU and memory drivers need to participate in `matchAttribute: resource.kubernetes.io/pcieRoot` constraints.
-
-#### D-8: AMD GPU DRA driver: `numaNode` attribute not standardized
-
-**Repo:** `ROCm/k8s-gpu-dra-driver`
-**Fix:** `johnahull/k8s-gpu-dra-driver` `feature/standardized-topology-attrs`
-
-The AMD driver publishes `numaNode` as a bare unqualified attribute (no domain prefix). PR #36 (merged 2026-04-16) cleaned up attribute names and added `resource.kubernetes.io/pciBusID` via the `deviceattribute` library, but left `numaNode` as bare `"numaNode"`. This won't match `matchAttribute: resource.kubernetes.io/numaNode` from other drivers, breaking cross-driver NUMA alignment.
-
-The fork adds `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` alongside the bare attributes.
-
----
-
-### Topology Coordinator
-
-#### TC-1: 6 bug-fix patches not merged upstream
-
-**Repo:** `fabiendupont/k8s-dra-topology-coordinator`
-**Fix:** `johnahull/k8s-dra-topology-coordinator` branches: `fix/distance-based-fallback`, `fix/numanode-attribute-namespace`, `fix/pcieroot-constraint-non-pci-drivers`, `fix/per-driver-cel-selectors`, `fix/webhook-forward-cel-selectors`, `test/all-fixes-combined`
-
-Six independent bug fixes for the topology coordinator POC:
-1. **Label truncation** — DeviceClass names exceed 63-char label limit
-2. **Attribute namespace** — NUMA attribute uses wrong per-driver namespace in CEL selectors
-3. **CEL selector forwarding** — user-defined CEL selectors on the original DeviceClass not forwarded to partition sub-classes
-4. **pcieRoot filtering** — non-PCI drivers (CPU, memory) fail pcieRoot constraint evaluation
-5. **Distance-based fallback** — pcieRoot → numaNode fallback with `CouplingLevel` abstraction
-6. **Webhook CEL selectors** — webhook expansion doesn't pass CEL selectors from the original claim
-
-All fixes are in separate branches for independent review. Combined branch `test/all-fixes-combined` passes all tests.
-
----
-
-#### TC-2: Webhook unavailable during controller restarts
-
-**Repo:** `fabiendupont/k8s-dra-topology-coordinator`
-**Fix:** Not started.
-
-The topology coordinator runs a mutating admission webhook that expands simple "partition" claims into multi-driver NUMA-aligned requests. During controller pod restarts, the webhook is unavailable and new claims fail. This needs either a webhook failurePolicy change, a readiness gate, or a fallback path.
-
----
-
-### DRA Drivers (additional)
-
 #### D-6: AMD GPU DRA driver: VFIO bind/unbind lifecycle missing
 
 **Repo:** `ROCm/k8s-gpu-dra-driver`
@@ -509,73 +506,16 @@ The fix adds `kubeletplugin.EnableDeviceMetadata(true)` and populates `DeviceMet
 
 ---
 
-### Kubelet (additional)
+#### D-8: AMD GPU DRA driver: `numaNode` attribute not standardized
 
-#### K-4: Multi-driver claims may only inject KEP-5304 metadata for one driver
+**Repo:** `ROCm/k8s-gpu-dra-driver`
+**Fix:** `johnahull/k8s-gpu-dra-driver` `feature/standardized-topology-attrs`
 
-**Repo:** `kubernetes/kubernetes`
-**Fix:** Possibly fixed on main. Needs retest.
+The AMD driver publishes `numaNode` as a bare unqualified attribute (no domain prefix). PR #36 (merged 2026-04-16) cleaned up attribute names and added `resource.kubernetes.io/pciBusID` via the `deviceattribute` library, but left `numaNode` as bare `"numaNode"`. This won't match `matchAttribute: resource.kubernetes.io/numaNode` from other drivers, breaking cross-driver NUMA alignment.
 
-When a ResourceClaim contains devices from multiple DRA drivers (e.g., GPU + NIC + CPU + memory), the kubelet's metadata writer may only generate metadata files for one driver's devices. The code in `metadataWriter.processPreparedClaim` iterates `Device.Requests` to associate devices with request names — if `Device.Requests` is not set by a driver, its metadata files are never written.
-
-This was observed with the dranet driver before `Device.Requests` was added to the `PrepareResult`. The upstream kubelet code has since been restructured to aggregate CDI IDs from all drivers per claim, but this needs retesting to confirm the metadata injection works for multi-driver claims end-to-end.
+The fork adds `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` alongside the bare attributes.
 
 ---
-
-### KubeVirt (additional)
-
-#### KV-7: virt-controller missing VFIO capabilities for DRA host device pods
-
-**Repo:** `kubevirt/kubevirt`
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1`
-
-When DRA host devices are passed through via VFIO, the virt-launcher pod needs capabilities for DMA memory locking: `SYS_RESOURCE`, `IPC_LOCK`, and unlimited memlock rlimits. The virt-controller's pod template renderer doesn't add these for DRA-allocated devices (only for device-plugin devices where `permittedHostDevices` entries specify VFIO requirements).
-
-The fork adds these capabilities when DRA host devices or GPUs are present in the VMI spec. The `ReservedOverheadMemlock` feature gate controls the memlock reservation via `reservedOverhead.addedOverhead` in the VM spec.
-
----
-
-#### KV-8: `dedicatedCpuPlacement` blocks scheduling when `cpuManagerPolicy: none` (option A)
-
-**Repo:** `kubevirt/kubevirt`
-**Component:** `pkg/virt-handler/heartbeat/heartbeat.go`, `pkg/virt-controller/services/nodeselectorrenderer.go`
-
-When using CPU pinning option A (DRA CPU driver with `cpuManagerPolicy: none`), KubeVirt blocks VM scheduling. The virt-handler heartbeat reads `cpu_manager_state` on the node, finds `policyName: none`, and sets `kubevirt.io/cpumanager=false`. The virt-controller adds `kubevirt.io/cpumanager: "true"` as a required node selector when `dedicatedCpuPlacement: true` — so the pod is permanently unschedulable.
-
-The root cause: KubeVirt equates "dedicated CPUs" with "kubelet CPU manager is static." With option A, dedicated CPUs come from the DRA CPU driver via NRI, not the kubelet CPU manager. The cpumanager label check is too narrow.
-
-**Upstream discussion needed.** This is not a simple bug fix — it requires KubeVirt to decide how `dedicatedCpuPlacement` works with DRA. Options:
-
-1. **`CPUsWithDRA` feature gate** — skip the cpumanager label check when DRA CPU claims are present in the VMI spec. Follows the `HostDevicesWithDRA` pattern (already merged upstream for GPU passthrough). Small, contained change.
-
-2. **Decouple concepts** — `dedicatedCpuPlacement` means "build guest NUMA topology and pin vCPUs" without caring how CPUs are allocated. Remove the cpumanager label as a scheduling gate. The label becomes informational.
-
-3. **virt-handler detects DRA CPU driver** — set `kubevirt.io/cpumanager=true` when either `cpuManagerPolicy: static` OR a DRA CPU ResourceSlice exists on the node.
-
-Recommend raising at the KubeVirt DRA biweekly meeting (Tuesdays, 6 PM CET).
-
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `78c1ee6348`
-
-The fix skips the `kubevirt.io/cpumanager=true` node selector when the VMI has both `dedicatedCpuPlacement: true` AND DRA resource claims. Two files changed:
-
-| File | Change |
-|------|--------|
-| `pkg/virt-controller/services/nodeselectorrenderer.go` | Add `hasDRACPUClaims` field and `WithDRACPUClaims()` option. Skip cpumanager label when `hasDedicatedCPU && hasDRACPUClaims`. |
-| `pkg/virt-controller/services/template.go` | Set `WithDRACPUClaims()` when VMI has `dedicatedCpuPlacement` and `len(vmi.Spec.ResourceClaims) > 0`. |
-
-**Upstream path:** Propose as part of VEP-10 beta or as a standalone enhancement following the `HostDevicesWithDRA` pattern. Raise at KubeVirt DRA biweekly.
-
----
-
-## Closed
-
-| # | Issue | Closed By | Notes |
-|---|-------|-----------|-------|
-| — | AMD GPU DRA driver publishes standard `pciBusID` | `ROCm/k8s-gpu-dra-driver` main | Now uses `deviceattribute.GetPCIBusIDAttribute()` |
-| — | AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Published for full GPUs and partitions, but as bare `numaNode` — see D-8 |
-| — | AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu |
-| — | NVIDIA GPU DRA driver VFIO `/host-root` mount validation | [kubernetes-sigs/dra-driver-nvidia-gpu#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate mount at startup, improve error messages |
-| — | KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation |
 
 #### D-9: DRA CPU driver NRI plugin conflicts with kubelet CPU manager on dedicated pods
 
@@ -588,6 +528,7 @@ The DRA CPU device should be a NUMA marker for scheduling purposes (to participa
 
 Observed on XE8640 with KubeVirt VMs using `dedicatedCpuPlacement`. Not observed on R760xa (possibly different DRA CPU driver version or NRI behavior).
 
+---
 
 #### D-10: NVIDIA DRA driver lock contention causes deadlock during VFIO prepare
 
@@ -602,6 +543,7 @@ Observed on XE8640 with H100 SXM5 GPUs. Not observed on R760xa with A40 GPUs (po
 
 Correct fix: narrow the lock scope to exclude `WaitForGPUFree`, or use a per-claim lock instead of a global lock, or increase the timeout.
 
+---
 
 #### D-11: H100 SXM5 VFIO requires Fabric Manager FABRIC_MODE=1 and boot-time GPU binding
 
@@ -632,6 +574,7 @@ On H100 SXM5 systems (HGX platforms with NVLink), the nvidia kernel driver's sys
 
 Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not observed on R760xa with 2x A40 (discrete PCIe, no NVLink).
 
+---
 
 #### D-12: NVIDIA DRA driver CDI spec missing /dev/vfio/vfio and IOMMU group mismatch
 
@@ -685,34 +628,6 @@ When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvid
 
 ---
 
-### KubeVirt (continued)
-
-#### KV-9: `buildDRANUMACells` unreachable when `dedicatedCpuPlacement` is true
-
-**Repo:** `kubevirt/kubevirt`
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `bfbc78a`
-**Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`, `pkg/dra/utils.go`
-**Status:** Fixed.
-
-The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` branch that only executed when `IsCPUDedicated()` returned false. But KubeVirt requires `dedicatedCpuPlacement: true` for `guestMappingPassthrough`, so the DRA NUMA path was never reached. The first branch always ran, using the kubelet's cpuset to build NUMA topology — which produced a single NUMA cell when `cpuManagerPolicy: none` (all CPUs in the default cpuset).
-
-**Fix:** When `dedicatedCpuPlacement` AND `guestMappingPassthrough` AND DRA resource claims are all present, use the DRA metadata path first. Added `DiscoverNUMANodesFromAllMetadata()` in `pkg/dra/utils.go` which scans all KEP-5304 metadata files for `resource.kubernetes.io/numaNode` attributes and builds guest NUMA cells from the unique NUMA nodes found.
-
----
-
-#### KV-10: `buildDRANUMAOverrides` only handles HostDevices, not GPUs
-
-**Repo:** `kubevirt/kubevirt`
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `e246337`
-**Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`
-**Status:** Fixed.
-
-`buildDRANUMAOverrides()` iterated only `vmi.Spec.Domain.Devices.HostDevices` to build PCI-to-NUMA override maps for `PlacePCIDevicesWithNUMAAlignment`. GPUs specified via `vmi.Spec.Domain.Devices.GPUs` were missed, so `PlacePCIDevicesWithNUMAAlignment` was never called for GPU devices. GPUs remained on the default PCI root bus and reported NUMA -1 inside the guest.
-
-**Fix:** Iterate both `HostDevices` and `GPUs` to collect DRA claim references, reading PCI address and NUMA node from KEP-5304 metadata for each. This enables `pxb-pcie` expander bus placement for GPU devices with correct guest NUMA affinity.
-
----
-
 #### D-16: dranet should exclude NICs unsuitable for VFIO passthrough
 
 **Repo:** `kubernetes-sigs/dranet`
@@ -746,4 +661,88 @@ The NVMe DRA driver discovers all PCIe NVMe controllers and publishes them as al
 **Fix:** `hasMountedNamespace()` checks `/proc/1/mounts` (host PID 1's mount namespace, works inside containers) for any mounted partitions on the NVMe's namespaces. Also checks sysfs `holders/` for active device-mapper entries (LVM). Controllers with mounted or in-use namespaces are excluded from discovery.
 
 Key detail: the first version read `/proc/mounts` which inside a container only shows the container's mounts — the host's root filesystem wasn't visible. Reading `/proc/1/mounts` exposes the host's mount table.
+
+---
+
+### Kubernetes Upstream
+
+#### U-1: `enforcement: Preferred` not in upstream API
+
+**Repo:** `kubernetes/kubernetes`
+**Fix:** `johnahull/kubernetes` `feature/enforcement-preferred` (3 commits)
+
+The DRA scheduler's `matchAttribute` constraint is all-or-nothing — if the constraint can't be satisfied, the pod is unschedulable. On hardware where not all devices share a PCIe root (e.g., R760xa where every device has its own root), a `matchAttribute: resource.kubernetes.io/pcieRoot` constraint is unsatisfiable. Users need a way to express "prefer tight coupling but accept looser coupling."
+
+The fix adds an `Enforcement` field to `DeviceConstraint` with two values: `Required` (default, current behavior) and `Preferred` (skip if unsatisfiable). This enables a two-level hierarchy: prefer `pcieRoot` (same switch), require `numaNode` (same memory controller).
+
+Three commits implement this:
+1. API type + validation + protobuf + OpenAPI generation
+2. Feature gate `DRAListTypeAttributes` enabled by default
+3. Allocator skips preferred constraints when they can't be satisfied
+
+All five Kubernetes binaries (apiserver, scheduler, controller-manager, kubelet, kubectl) must be built from this branch to preserve the `enforcement` field through the entire claim lifecycle.
+
+---
+
+#### U-2: Standardized `resource.kubernetes.io/numaNode` not agreed
+
+**Repo:** `kubernetes/kubernetes`
+**Fix:** [Proposal](docs/upstream-proposals/standardize-numanode.md). Discussed in SIG-Node.
+
+Each DRA driver publishes NUMA information under its own vendor-specific attribute name (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`, etc.). For cross-driver `matchAttribute` constraints to work, all drivers must use the same attribute name.
+
+The proposal recommends `resource.kubernetes.io/numaNode` (int) as a standardized attribute, with a helper function in the `deviceattribute` library to derive the value from sysfs. The `resource.kubernetes.io/` prefix signals that this is a well-known attribute with defined semantics, not vendor-specific data. `cpuSocketID` is not part of the core proposal — it can be published by drivers independently if needed.
+
+Until this is agreed upstream, each driver fork publishes both the vendor-specific and standardized attributes.
+
+---
+
+#### U-3: `deviceattribute` library: `GetPCIeRootAttributeMapFromCPUId` helper
+
+**Repo:** `kubernetes/kubernetes`
+**Fix:** [PR #138297](https://github.com/kubernetes/kubernetes/pull/138297) (WIP)
+
+The `deviceattribute` library provides helpers like `GetPCIBusIDAttribute()` and `GetPCIeRootAttributeByPCIBusID()` for DRA drivers to derive topology attributes from sysfs. A missing helper is `GetPCIeRootAttributeMapFromCPUId()`, which would let non-PCI drivers (CPU, memory) publish `pcieRoot` attributes by mapping their NUMA node to the PCIe root complexes on that node.
+
+This is needed for the distance hierarchy (U-1) where CPU and memory drivers need to participate in `matchAttribute: resource.kubernetes.io/pcieRoot` constraints.
+
+---
+
+### Topology Coordinator
+
+#### TC-1: 6 bug-fix patches not merged upstream
+
+**Repo:** `fabiendupont/k8s-dra-topology-coordinator`
+**Fix:** `johnahull/k8s-dra-topology-coordinator` branches: `fix/distance-based-fallback`, `fix/numanode-attribute-namespace`, `fix/pcieroot-constraint-non-pci-drivers`, `fix/per-driver-cel-selectors`, `fix/webhook-forward-cel-selectors`, `test/all-fixes-combined`
+
+Six independent bug fixes for the topology coordinator POC:
+1. **Label truncation** — DeviceClass names exceed 63-char label limit
+2. **Attribute namespace** — NUMA attribute uses wrong per-driver namespace in CEL selectors
+3. **CEL selector forwarding** — user-defined CEL selectors on the original DeviceClass not forwarded to partition sub-classes
+4. **pcieRoot filtering** — non-PCI drivers (CPU, memory) fail pcieRoot constraint evaluation
+5. **Distance-based fallback** — pcieRoot → numaNode fallback with `CouplingLevel` abstraction
+6. **Webhook CEL selectors** — webhook expansion doesn't pass CEL selectors from the original claim
+
+All fixes are in separate branches for independent review. Combined branch `test/all-fixes-combined` passes all tests.
+
+---
+
+#### TC-2: Webhook unavailable during controller restarts
+
+**Repo:** `fabiendupont/k8s-dra-topology-coordinator`
+**Fix:** Not started.
+
+The topology coordinator runs a mutating admission webhook that expands simple "partition" claims into multi-driver NUMA-aligned requests. During controller pod restarts, the webhook is unavailable and new claims fail. This needs either a webhook failurePolicy change, a readiness gate, or a fallback path.
+
+---
+
+## Closed
+
+| # | Issue | Closed By | Notes |
+|---|-------|-----------|-------|
+| — | AMD GPU DRA driver publishes standard `pciBusID` | `ROCm/k8s-gpu-dra-driver` main | Now uses `deviceattribute.GetPCIBusIDAttribute()` |
+| — | AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Published for full GPUs and partitions, but as bare `numaNode` — see D-8 |
+| — | AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu |
+| — | NVIDIA GPU DRA driver VFIO `/host-root` mount validation | [kubernetes-sigs/dra-driver-nvidia-gpu#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate mount at startup, improve error messages |
+| — | KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation |
 
