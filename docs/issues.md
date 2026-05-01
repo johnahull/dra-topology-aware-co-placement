@@ -455,22 +455,6 @@ The NVIDIA driver currently publishes PCI addresses only in ResourceSlice attrib
 
 ---
 
-#### D-4: dranet VFIO support not upstream
-
-**Repo:** `kubernetes-sigs/dranet`
-**Fix:** `johnahull/dranet` `feature/standardized-topology-attrs`
-**Status:** Not upstream. VFIO mode, validation, prepare/unprepare, CDI spec, driver bind/unbind, and KEP-5304 metadata are all in the fork only. Verified: upstream v1.2.0 and `main` have no VFIO code.
-
-dranet (the upstream k8s-sigs DRA network driver) only supports container networking today — attaching NICs to pod network namespaces via NRI. VFIO passthrough support (binding NIC VFs to `vfio-pci` for KubeVirt VM use cases) exists in the fork but hasn't been proposed upstream.
-
-The implementation adds:
-- `Mode` field to `NetworkConfig` (`"netdev"` default vs `"vfio"`)
-- VFIO sysfs bind/unbind operations
-- CDI spec generation for `/dev/vfio/*` device nodes
-- VFIO branch in `prepareResourceClaim` with rollback on failure
-- Skip VFIO devices in NRI hooks (no network namespace operations)
-- Driver restore in `unprepareResourceClaim`
-
 ---
 
 #### D-5: dranet standardized topology attributes not upstream
