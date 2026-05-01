@@ -259,6 +259,10 @@ spec:
 
 ### 4b. CPU Driver
 
+The CPU driver supports two modes:
+- **`individual`** (recommended) — one device per logical CPU. Claims use `count: N` to request N CPUs. Multiple claims can share a NUMA node. Use `matchAttribute: resource.kubernetes.io/numaNode` to align CPUs with GPUs/NICs.
+- **`grouped`** — one device per NUMA node. Only one claim per NUMA. Use for single-claim-per-NUMA workloads (topology coordinator partitions).
+
 ```yaml
 # dracpu-daemonset.yaml
 apiVersion: apps/v1
@@ -281,8 +285,10 @@ spec:
       - name: dracpu
         image: ghcr.io/johnahull/dra-topology-drivers/dracpu:latest
         imagePullPolicy: IfNotPresent
+        command: ["/dracpu"]
         args:
         - --hostname-override=$(NODE_NAME)
+        - --cpu-device-mode=individual
         env:
         - name: NODE_NAME
           valueFrom:
@@ -593,7 +599,7 @@ All devices should have `resource.kubernetes.io/numaNode` set.
 
 ## Step 8: Create a Topology-Aware VM
 
-### ResourceClaimTemplate
+### ResourceClaimTemplate (single-NUMA, with per-CPU devices)
 
 ```yaml
 apiVersion: resource.k8s.io/v1
@@ -607,18 +613,25 @@ spec:
       - name: gpu
         exactly:
           deviceClassName: vfio.gpu.nvidia.com
-      - name: cpu
+      - name: nic
+        exactly:
+          deviceClassName: dra.net
+          selectors:
+          - cel:
+              expression: '!(has(device.attributes["dra.net"].vfioUnsafe) && device.attributes["dra.net"].vfioUnsafe)'
+      - name: cpus
         exactly:
           deviceClassName: dra.cpu
+          count: 8
       - name: mem
         exactly:
           deviceClassName: dra.memory
       constraints:
-      - requests: ["gpu", "cpu", "mem"]
+      - requests: ["gpu", "nic", "cpus", "mem"]
         matchAttribute: resource.kubernetes.io/numaNode
 ```
 
-The `matchAttribute` constraint forces the scheduler to pick devices that share the same `numaNode` value across all three drivers.
+The `matchAttribute` constraint forces the scheduler to pick devices that share the same `numaNode` value across all four drivers. With `--cpu-device-mode=individual`, each CPU is a separate device, so `count: 8` selects 8 CPUs from the matching NUMA node. Multiple claims can each get different CPU counts from the same NUMA node.
 
 ### VirtualMachine
 
