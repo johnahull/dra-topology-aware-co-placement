@@ -400,19 +400,22 @@ for pod_key in sorted(pods):
     if len(numas) == 1:
         print(f'  \033[32m✓ numaNode aligned: all on NUMA {numas.pop()}\033[0m')
     elif len(numas) > 1:
-        print(f'  \033[33m! numaNode SPLIT: devices on NUMA {{\", \".join(sorted(numas))}}\033[0m')
+        numa_list = ', '.join(sorted(numas))
+        print(f'  \033[33m! numaNode SPLIT: devices on NUMA {numa_list}\033[0m')
     else:
         print(f'  \033[2m? numaNode unknown\033[0m')
 
     if len(sockets) == 1:
         print(f'  \033[32m✓ cpuSocketID aligned: all on socket {sockets.pop()}\033[0m')
     elif len(sockets) > 1:
-        print(f'  \033[31m✗ cpuSocketID SPLIT: devices on sockets {{\", \".join(sorted(sockets))}}\033[0m')
+        socket_list = ', '.join(sorted(sockets))
+        print(f'  \033[31m✗ cpuSocketID SPLIT: devices on sockets {socket_list}\033[0m')
 
     if len(roots) == 1:
         print(f'  \033[32m✓ pcieRoot aligned: all on {roots.pop()}\033[0m')
     elif len(roots) > 1:
-        print(f'  \033[33m! pcieRoot differs: {{\", \".join(sorted(roots))}} (expected on most hardware)\033[0m')
+        root_list = ', '.join(sorted(roots))
+        print(f'  \033[33m! pcieRoot differs: {root_list} (expected on most hardware)\033[0m')
 
     print()
 " 2>/dev/null
