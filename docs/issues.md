@@ -259,11 +259,13 @@ The fix adds a `updateContainerCPUSet()` call in `AddContainer()`, which runs du
 #### K-4: Multi-driver claims may only inject KEP-5304 metadata for one driver
 
 **Repo:** `kubernetes/kubernetes`
-**Fix:** Possibly fixed on main. Needs retest.
+**Status:** Fixed upstream. Verified on XE8640.
 
 When a ResourceClaim contains devices from multiple DRA drivers (e.g., GPU + NIC + CPU + memory), the kubelet's metadata writer may only generate metadata files for one driver's devices. The code in `metadataWriter.processPreparedClaim` iterates `Device.Requests` to associate devices with request names — if `Device.Requests` is not set by a driver, its metadata files are never written.
 
-This was observed with the dranet driver before `Device.Requests` was added to the `PrepareResult`. The upstream kubelet code has since been restructured to aggregate CDI IDs from all drivers per claim, but this needs retesting to confirm the metadata injection works for multi-driver claims end-to-end.
+This was observed with the dranet driver before `Device.Requests` was added to the `PrepareResult`. The root cause was drivers not setting `Device.Requests` in their `PrepareResult`, not a kubelet bug. Each driver's `processPreparedClaim` runs independently and writes to driver-specific metadata files (`{driverName}-metadata.json`).
+
+Verified on XE8640: 5-driver claim (GPU + NIC + NVMe + CPU + memory) produces metadata files from 3 drivers (`gpu.nvidia.com-metadata.json`, `dra.net-metadata.json`, `dra.nvme-metadata.json`). CPU driver doesn't publish metadata (no `DeviceMetadata` in individual mode) which is expected.
 
 ---
 
