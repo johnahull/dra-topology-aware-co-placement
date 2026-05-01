@@ -686,7 +686,9 @@ The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` 
 #### D-16: dranet should exclude NICs unsuitable for VFIO passthrough
 
 **Repo:** `kubernetes-sigs/dranet`
-**Fix:** Not started.
+**Fix:** `johnahull/dranet` `feature/standardized-topology-attrs` commit `7567974`
+**Files:** `pkg/filter/vfio_safety.go`, `pkg/driver/dra_hooks.go`
+**Status:** Fixed.
 
 dranet publishes all discovered NICs in the ResourceSlice, including NICs that cannot be used for VFIO passthrough. The scheduler allocates them, the driver binds to vfio-pci, and QEMU fails at runtime with "group is not viable" or the host loses network connectivity.
 
