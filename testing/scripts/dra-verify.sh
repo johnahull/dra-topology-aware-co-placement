@@ -258,6 +258,16 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         header += f'  →  pod \033[1;36m{pod_name}\033[0m'
     print(header)
 
+    constraints = c.get('spec', {}).get('devices', {}).get('constraints', [])
+    if constraints:
+        for con in constraints:
+            ma = con.get('matchAttribute', '')
+            reqs = con.get('requests', [])
+            if ma:
+                short_ma = ma.split('/')[-1] if '/' in ma else ma
+                req_str = ', '.join(reqs) if reqs else 'all'
+                print(f'  \033[2mconstraint: matchAttribute={short_ma} requests=[{req_str}]\033[0m')
+
     results = state.get('devices', {}).get('results', [])
     if not results:
         print('  (no devices)')
