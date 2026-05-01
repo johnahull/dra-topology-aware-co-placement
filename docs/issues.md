@@ -524,7 +524,9 @@ The fork adds `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuS
 #### D-9: DRA CPU driver NRI plugin conflicts with kubelet CPU manager on dedicated pods
 
 **Repo:** `kubernetes-sigs/dra-driver-cpu`
-**Fix:** Not started. Workaround: needs investigation.
+**Fix:** `johnahull/dra-driver-cpu` `fix/skip-allocation-dedicated-cpus` commit `f3fa402`
+**File:** `pkg/driver/dra_hooks.go`
+**Upstream:** [Issue #134](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/134), [PR #135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) (draft)
 
 When a pod has `dedicatedCpuPlacement: true`, the kubelet's CPU manager allocates exclusive CPUs and sets the cgroup cpuset. The DRA CPU driver's NRI plugin also tries to restrict the pod's CPUs based on the `dra.cpu/cpu` capacity of the allocated CPU device (e.g., 64 CPUs for a whole NUMA node). This fails with "not enough cpus available to satisfy request: requested=64, available=0" because the NRI plugin can't find available CPUs — the kubelet has already allocated them.
 
