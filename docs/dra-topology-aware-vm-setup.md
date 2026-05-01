@@ -436,6 +436,30 @@ kubectl set image daemonset/nvidia-dra-driver-gpu-kubelet-plugin \
   -n nvidia-dra gpus=localhost/nvidia-dra-driver:patched
 ```
 
+### 4e. NVMe Driver
+
+Discovers local PCIe NVMe controllers and exposes them as DRA devices. Automatically excludes boot/root disks by checking `/proc/1/mounts` and sysfs partition holders.
+
+```bash
+# Deploy from johnahull/dra-driver-nvme
+kubectl apply -f https://raw.githubusercontent.com/johnahull/dra-driver-nvme/main/deploy/daemonset.yaml
+```
+
+For VFIO passthrough to VMs, add a config to the claim:
+
+```yaml
+config:
+- requests: ["nvme0"]
+  opaque:
+    driver: dra.nvme
+    parameters:
+      apiVersion: nvme.dra.io/v1alpha1
+      kind: NvmeConfig
+      mode: vfio
+```
+
+The driver publishes KEP-5304 metadata (`resource.kubernetes.io/pciBusID`, `numaNode`) for KubeVirt guest topology.
+
 ---
 
 ## Step 5: DeviceClasses
@@ -476,6 +500,15 @@ spec:
   selectors:
   - cel:
       expression: "device.driver == 'dra.memory'"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.nvme
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.nvme'"
 ```
 
 The `vfio.gpu.nvidia.com` DeviceClass is created automatically by the NVIDIA DRA driver.
@@ -697,15 +730,15 @@ Key settings:
 - `reservedOverhead.addedOverhead: 4Gi` — additional locked memory for VFIO DMA
 - `matchAttribute: resource.kubernetes.io/numaNode` — forces single-NUMA alignment
 
-### Multi-NUMA VM (Option A, all GPUs)
+### Multi-NUMA VM (Option A, all GPUs + NIC + NVMe)
 
-For multi-NUMA VMs, use separate requests per GPU with CEL selectors for each NUMA node. No `matchAttribute` constraint — devices from both NUMA nodes are requested explicitly.
+For multi-NUMA VMs, use separate requests per GPU with CEL selectors for each NUMA node, per-CPU devices with `count: N`, and VFIO configs for NIC and NVMe. Tested on XE8640 with 5 DRA drivers.
 
 ```yaml
 apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
-  name: vm-multi-numa-devices
+  name: vm-5driver
 spec:
   spec:
     devices:
@@ -715,54 +748,73 @@ spec:
           deviceClassName: vfio.gpu.nvidia.com
           selectors:
           - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 0'
       - name: gpu1
         exactly:
           deviceClassName: vfio.gpu.nvidia.com
           selectors:
           - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 0'
       - name: gpu2
         exactly:
           deviceClassName: vfio.gpu.nvidia.com
           selectors:
           - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 1"
-      - name: cpu0
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 1'
+      - name: nic0
+        exactly:
+          deviceClassName: dra.net
+          selectors:
+          - cel:
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 0 && !(has(device.attributes["dra.net"].vfioUnsafe) && device.attributes["dra.net"].vfioUnsafe)'
+      - name: nvme0
+        exactly:
+          deviceClassName: dra.nvme
+          selectors:
+          - cel:
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 0'
+      - name: cpus-numa0
         exactly:
           deviceClassName: dra.cpu
+          count: 4
           selectors:
           - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
-      - name: cpu1
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 0'
+      - name: cpus-numa1
         exactly:
           deviceClassName: dra.cpu
+          count: 4
           selectors:
           - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 1"
-      - name: mem0
-        exactly:
-          deviceClassName: dra.memory
-          selectors:
-          - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 0"
-      - name: mem1
-        exactly:
-          deviceClassName: dra.memory
-          selectors:
-          - cel:
-              expression: "device.attributes[\"resource.kubernetes.io\"].numaNode == 1"
+              expression: 'device.attributes["resource.kubernetes.io"].numaNode == 1'
+      config:
+      - requests: ["nic0"]
+        opaque:
+          driver: dra.net
+          parameters:
+            mode: vfio
+      - requests: ["nvme0"]
+        opaque:
+          driver: dra.nvme
+          parameters:
+            apiVersion: nvme.dra.io/v1alpha1
+            kind: NvmeConfig
+            mode: vfio
 ```
 
 ```yaml
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
-  name: dra-multi-numa-vm
+  name: dra-topology-vm
 spec:
   running: true
   template:
+    metadata:
+      annotations:
+        kubevirt.io/pci-topology-version: v3
     spec:
+      architecture: amd64
       domain:
         cpu:
           cores: 4
@@ -788,6 +840,13 @@ spec:
           - name: gpu2
             claimName: devices
             requestName: gpu2
+          hostDevices:
+          - name: nic0
+            claimName: devices
+            requestName: nic0
+          - name: nvme0
+            claimName: devices
+            requestName: nvme0
           disks:
           - name: containerdisk
             disk:
@@ -795,6 +854,8 @@ spec:
           - name: cloudinitdisk
             disk:
               bus: virtio
+        machine:
+          type: q35
       volumes:
       - name: containerdisk
         containerDisk:
@@ -809,20 +870,25 @@ spec:
             ssh_pwauth: true
       resourceClaims:
       - name: devices
-        resourceClaimTemplateName: vm-multi-numa-devices
+        resourceClaimTemplateName: vm-5driver
 ```
 
 Key differences from single-NUMA:
 - `sockets: 2` — guest sees 2 sockets (1 per NUMA node)
 - Separate GPU requests per device (KubeVirt requires 1 device per request for KEP-5304 metadata)
 - CEL selectors target specific NUMA nodes instead of `matchAttribute`
-- `reservedOverhead: 4Gi` — needed for 3 GPU VFIO DMA mappings
+- Per-CPU devices with `count: 4` per NUMA — DRA CPU driver in individual mode
+- NIC and NVMe with VFIO opaque configs for passthrough
+- `vfioUnsafe` selector excludes NICs with shared IOMMU groups
+- `reservedOverhead: 4Gi` — needed for GPU + NIC + NVMe VFIO DMA mappings
 - Requires Option A (`cpuManagerPolicy: none`) — the DRA CPU driver pins CPUs from both NUMA nodes
 - Requires custom virt-launcher from `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` for multi-NUMA guest topology from KEP-5304 metadata
 
-The guest will show 2 NUMA nodes with GPUs on the correct node:
-- Guest NUMA 0: gpu0 + gpu1 (host NUMA 0)
+The guest will show 2 NUMA nodes with devices on the correct node:
+- Guest NUMA 0: gpu0 + gpu1 + nic0 + nvme0 (host NUMA 0)
 - Guest NUMA 1: gpu2 (host NUMA 1)
+
+Tested on XE8640: 5 DRA drivers (GPU, NIC, NVMe, CPU, memory) in one claim, VM Running with correct `pxb-pcie` guest NUMA topology.
 
 #### KubeVirt cpumanager label
 
