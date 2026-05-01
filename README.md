@@ -84,12 +84,13 @@ All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setu
 
 | Test | Result |
 |------|--------|
-| Option A CPU pinning (`cpuManagerPolicy: none`) | Working — DRA CPU driver pins CPUs via NRI, `matchAttribute: numaNode` aligns GPU+NIC+CPU |
+| Per-CPU individual mode (`--cpu-device-mode=individual`) | Working — 128 CPU devices, `count: N` in claims, multi-claim per NUMA |
+| 3 claims × 8 CPUs NUMA-aligned (GPU+NIC+CPU) | Working — all CPUs on correct NUMA via `matchAttribute` |
+| Option A CPU pinning (`cpuManagerPolicy: none`) | Working — DRA CPU driver pins CPUs via NRI |
 | KV-8 fix (skip cpumanager label with DRA claims) | Working — VM schedules with `kubevirt.io/cpumanager=false` when DRA resource claims present |
 | KubeVirt VM with `guestMappingPassthrough` | Running — A40 GPU VFIO, dedicated CPUs on NUMA 0, guest sees 1 socket/1 NUMA |
-| Multi-NUMA VM (GPU NUMA 0 + NIC NUMA 1) | Scheduling + DRA preparation pass. QEMU startup crash — VFIO capabilities for NIC hostDevice (debugging) |
+| dranet VFIO safety filter (D-16) | Working — `vfioUnsafe` attribute, shared IOMMU group + default gateway detection |
 | dranet KEP-5304 metadata | Working — publishes `pciBusID` in PrepareResult for KubeVirt passthrough |
-| dranet NIC driver | Working — standardized topology attrs + VFIO support |
 
 ### Dell XE9680 (AMD)
 
@@ -111,14 +112,16 @@ All open and closed issues are tracked in [issues.md](docs/issues.md). See [Setu
 
 | Test | Result |
 |------|--------|
-| 3-GPU multi-NUMA VM (2 NUMA 0 + 1 NUMA 1) | Running — 3x H100 VFIO, guest NUMA 0 + NUMA 1, `pxb-pcie` expanders, correct `numatune` |
+| Per-CPU individual mode | Working — 128 CPU devices, `count: N` in claims, multi-claim per NUMA |
+| 4-claim test (pcieRoot + numaNode + 2 GPU-only) | Working — all 4 H100s allocated with 4 CPUs each, all NUMA-aligned |
+| 3-GPU multi-NUMA VM (2 NUMA 0 + 1 NUMA 1) | Running — 3x H100 VFIO + NIC + 8 CPUs (4/NUMA), guest NUMA 0+1, `pxb-pcie` expanders |
 | Guest NUMA device affinity | Working — GPUs on NUMA 0 report `numa_node=0`, GPU on NUMA 1 reports `numa_node=1` inside guest |
-| Option A CPU pinning | Working — DRA CPU driver NRI pins compute container to all 128 CPUs (both NUMA nodes) |
+| Option A CPU pinning | Working — DRA CPU driver NRI pins compute container cpuset |
 | KEP-5304 metadata → guest NUMA | Working — `DiscoverNUMANodesFromAllMetadata` reads GPU NUMA from KEP-5304, builds guest cells |
 | Boot-time GPU binding (`vfio-pci.ids`) | Working — 3 GPUs on vfio-pci at boot, GPU operator binds 1 to nvidia for NVML |
 | VFIO discovery filter (D-13) | Working — only vfio-pci-bound GPUs in ResourceSlice |
-| Unconfigure skip for pre-bound GPUs (D-14) | Working — GPUs stay on vfio-pci after VM deletion |
-| Single-GPU NUMA-aligned VM | Running — 1 H100 VFIO, CPUs pinned to NUMA 0 via DRA topology hints (option B) |
+| dranet VFIO safety filter (D-16) | Working — shared IOMMU group detection, `vfioUnsafe` attribute |
+| NVMe boot disk exclusion (D-17) | Working — `/proc/1/mounts` check skips boot NVMe |
 
 See [Test Results Summary](testing/results/results-summary.md) for full details, hardware captures, and SNC comparison.
 

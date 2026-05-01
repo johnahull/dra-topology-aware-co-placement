@@ -175,16 +175,29 @@ A single kubelet binary with the topology hints patch supports both paths. The d
 
 **Key difference: guaranteed vs best-effort.** Option A is guaranteed — the scheduler either finds a node where all resources (GPU + NIC + CPU) match on the same NUMA and schedules there, or the pod stays pending. There's no silent degradation. Option B is best-effort — the topology manager may ignore DRA hints if they conflict with other hint providers, silently placing CPUs on a different NUMA than the DRA devices. Option A is the stronger long-term path for this reason.
 
-**Limitation: DRA CPU driver exposes one device per NUMA node.** The upstream `dra-driver-cpu` publishes a single device per NUMA node (e.g., `cpudevnuma000` with `dra.cpu/cpu: 64`). This device can only be allocated to one claim at a time. Multiple claims needing CPUs from the same NUMA node cannot each get their own CPU device — the second claim fails with "cannot allocate all claims."
+**DRA CPU driver modes.** The upstream `dra-driver-cpu` supports two modes via `--cpu-device-mode`:
 
-This means option A works for single-claim-per-NUMA workloads (one VM per NUMA, or the topology coordinator's partition model) but not for multiple independent pods sharing a NUMA node's CPUs. Option B doesn't have this limitation because the kubelet CPU manager allocates per-container from a shared pool.
+- **`grouped`** (default) — one device per NUMA node (e.g., `cpudevnuma000`). Only one claim per NUMA node. Use for single-claim-per-NUMA workloads (topology coordinator partitions).
+- **`individual`** — one device per logical CPU (e.g., `cpudev000` through `cpudev127`). Claims use `count: N` to request N CPUs. Multiple claims can share a NUMA node. Use `matchAttribute: resource.kubernetes.io/numaNode` to align CPUs with GPUs/NICs.
 
-Possible upstream improvements:
-- **Per-CPU devices** — expose each CPU as a DRA device with `count: N` in the claim. Most flexible but high device count (128+ devices per node).
-- **Partitioned capacity** — multiple allocations against one device using `consumedCapacity`. DRA supports this but the CPU driver doesn't implement partial allocation today.
-- **`shareID`** — multiple claims share the same CPU device. Loses exclusivity but allows co-location.
+Individual mode resolves the one-device-per-NUMA limitation. Tradeoff: the scheduler picks any N CPUs matching the NUMA selector without topology-aware packing (no core/cache affinity). For most VM and GPU workloads this is acceptable.
 
-Until the CPU driver supports one of these, use option B for multi-claim workloads on the same NUMA node.
+Both R760xa and XE8640 are deployed with `--cpu-device-mode=individual`. Tested: 4 claims each requesting 4 CPUs from the same NUMA node, all NUMA-aligned with GPUs and NICs via `matchAttribute`.
+
+Example claim with per-CPU allocation:
+```yaml
+requests:
+- name: gpu
+  exactly:
+    deviceClassName: vfio.gpu.nvidia.com
+- name: cpus
+  exactly:
+    deviceClassName: dra.cpu
+    count: 8
+constraints:
+- requests: ["gpu", "cpus"]
+  matchAttribute: resource.kubernetes.io/numaNode
+```
 
 ---
 
