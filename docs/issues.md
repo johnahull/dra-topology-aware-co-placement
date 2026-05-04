@@ -20,10 +20,12 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 ### NVIDIA GPU DRA Driver
 
-| PR | Title | State | Issue | Comments |
-|---|---|---|---|---|
-| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO passthrough lifecycle — CDI spec, discovery, unconfigure, sysfs | Open | D-1 thru D-8 | No reviewer comments yet |
-| [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | — | shivamerla assigned varunrsekar |
+| PR/Issue | Title | State | Comments |
+|---|---|---|---|
+| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Reworked per varunrsekar feedback. Dropped issues 1,4. Kept issues 2,3. Awaiting re-review. |
+| [#1099](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1099) | Support GPUs pre-bound to vfio-pci via kernel cmdline | Open (feature request) | Filed per varunrsekar request to split from #1090. PR pending — waiting for #1090 acceptance first. |
+| [#1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089) | VFIO discovery advertises non-vfio GPUs and Unconfigure rebinds pre-bound GPUs | Open (bug) | Responded with logs and repro steps. Issues 1,4 resolved via config/helm. |
+| [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | shivamerla assigned varunrsekar |
 
 ### AMD GPU DRA Driver
 
