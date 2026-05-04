@@ -121,6 +121,26 @@ All issues discovered during DRA topology-aware VM testing on R760xa.
 
 ---
 
+### 10. VFIO passthrough fails in non-root mode: libvirt prlimit requires CAP_SYS_RESOURCE
+
+**Symptom:** VM with VFIO GPU passthrough fails with `cannot limit locked memory of process 111 to 9007199254740991: Operation not permitted`. Affects both DRA and device-plugin provisioned devices when the `Root` feature gate is not enabled (the default).
+
+**Root cause:** virt-handler's external `prlimit64` on virtqemud works correctly — `IsVFIOVMI` returns true, `FindVirtqemudProcess` finds the process, and `SetProcessMemoryLockRLimit` succeeds (confirmed via verbosity 5 logs: `Cur: 18572378928 Max:18572378928`). However, libvirt inside the container makes a **second** `prlimit()` call — `virProcessSetMaxMemLock()` calls `prlimit(QEMU_pid, RLIMIT_MEMLOCK, 2^53-1)` from virtqemud on the QEMU child process. The Linux kernel requires `CAP_SYS_RESOURCE` for `prlimit()` on another process, regardless of whether the value is being raised or lowered. In non-root mode, the container has only `NET_BIND_SERVICE` with `Drop: ["ALL"]` — no `CAP_SYS_RESOURCE`.
+
+**Fix:** Two changes scoped to VFIO VMIs only:
+1. virt-api webhook (`vmi-mutator.go`): skip `markAsNonroot()` when `IsVFIOVMI(vmi)` is true
+2. virt-controller (`rendercontainer.go`): add `CAP_SYS_RESOURCE` for VFIO VMIs
+
+Non-VFIO VMs remain non-root with minimal capabilities.
+
+**Issue:** [kubevirt/kubevirt#17694](https://github.com/kubevirt/kubevirt/issues/17694)
+**PR:** [kubevirt/kubevirt#17696](https://github.com/kubevirt/kubevirt/pull/17696) (draft)
+**Related:** [#12433](https://github.com/kubevirt/kubevirt/issues/12433), [#10379](https://github.com/kubevirt/kubevirt/issues/10379), [harvester#9059](https://github.com/harvester/harvester/issues/9059), [cozystack#1367](https://github.com/cozystack/cozystack/issues/1367)
+
+**Files:** `pkg/virt-api/webhooks/mutating-webhook/mutators/vmi-mutator.go`, `pkg/virt-controller/services/rendercontainer.go`, `pkg/virt-controller/services/template.go`
+
+---
+
 ## Summary
 
 | # | Component | Severity | Status |
@@ -134,3 +154,4 @@ All issues discovered during DRA topology-aware VM testing on R760xa.
 | 7 | KubeVirt: guestMappingPassthrough wrong NUMA | High | Fixed via kubelet #3 |
 | 8 | SR-IOV DRA driver: no KEP-5304 metadata | Medium | Not fixed, use dranet |
 | 9 | dra-driver-nvme: multiple bugs | Medium | Fixed, pushed |
+| 10 | KubeVirt: VFIO non-root memlock prlimit | High | Draft PR [#17696](https://github.com/kubevirt/kubevirt/pull/17696) |

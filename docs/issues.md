@@ -2,6 +2,49 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
+## Upstream PR Status (as of 2026-05-04)
+
+### KubeVirt
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Draft | KV-7 | New — awaiting review |
+| [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Open | KV-7 | Superseded by #17696. Vladikr reviewed, responded with root cause. Waiting for response before closing. |
+| [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Open (hold) | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (lgtmed). oshoval put on hold. |
+
+### Kubernetes
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open | K-2, K-3 | No reviewer comments yet |
+
+### NVIDIA GPU DRA Driver
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO passthrough lifecycle — CDI spec, discovery, unconfigure, sysfs | Open | D-1 thru D-8 | No reviewer comments yet |
+| [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | — | shivamerla assigned varunrsekar |
+
+### AMD GPU DRA Driver
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open | — | No reviewer comments yet |
+| [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Open | — | No reviewer comments yet |
+| [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Open | — | No reviewer comments yet |
+
+### DRA CPU Driver
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) | Skip CPU allocation when available CPU pool is empty | Open | — | pravk03 commented on docs gap; active discussion |
+
+### dranet
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#187](https://github.com/kubernetes-sigs/dranet/pull/187) | Mark NICs with shared IOMMU groups as vfio-unsafe | Closed | — | Self-closed — only relevant with VFIO passthrough mode |
+
 ---
 
 ## Open
@@ -276,7 +319,7 @@ Verified on XE8640: 5-driver claim (GPU + NIC + NVMe + CPU + memory) produces me
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `fix/dra-claim-dedup` commit `cac899b`
 **File:** `pkg/virt-controller/services/renderresources.go`
-**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673)
+**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673) (on hold — dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) which is lgtmed)
 
 When the virt-controller creates the virt-launcher pod spec, it copies resource claim references from the VMI spec to the pod's container resources. The `copyResourceClaims` function deduplicates these references to avoid Kubernetes API validation errors on duplicate claim names.
 
@@ -349,14 +392,31 @@ KubeVirt should auto-enable ACPI when guest NUMA topology is configured, or at m
 
 ---
 
-#### KV-7: virt-controller missing VFIO capabilities for DRA host device pods
+#### KV-7: VFIO passthrough fails in non-root mode — libvirt prlimit requires CAP_SYS_RESOURCE
 
 **Repo:** `kubevirt/kubevirt`
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1`
+**Upstream:** [Issue #17694](https://github.com/kubevirt/kubevirt/issues/17694), [PR #17696](https://github.com/kubevirt/kubevirt/pull/17696) (draft)
+**Supersedes:** [PR #17675](https://github.com/kubevirt/kubevirt/pull/17675) (original IPC_LOCK/SYS_RAWIO PR — wrong fix, awaiting reviewer response before closing)
+**Related upstream:** [#12433](https://github.com/kubevirt/kubevirt/issues/12433), [#10379](https://github.com/kubevirt/kubevirt/issues/10379)
+**Files:** `pkg/virt-api/webhooks/mutating-webhook/mutators/vmi-mutator.go`, `pkg/virt-controller/services/rendercontainer.go`, `pkg/virt-controller/services/template.go`
 
-When DRA host devices are passed through via VFIO, the virt-launcher pod needs capabilities for DMA memory locking: `SYS_RESOURCE`, `IPC_LOCK`, and unlimited memlock rlimits. The virt-controller's pod template renderer doesn't add these for DRA-allocated devices (only for device-plugin devices where `permittedHostDevices` entries specify VFIO requirements).
+VFIO GPU passthrough fails in default non-root mode (when the `Root` feature gate is not enabled) with: `cannot limit locked memory of process 111 to 9007199254740991: Operation not permitted`. Affects both DRA and device-plugin provisioned devices.
 
-The fork adds these capabilities when DRA host devices or GPUs are present in the VMI spec. The `ReservedOverheadMemlock` feature gate controls the memlock reservation via `reservedOverhead.addedOverhead` in the VM spec.
+**Root cause (confirmed via virt-handler verbosity 5 logs):**
+
+virt-handler's external `prlimit64` on virtqemud works correctly — `IsVFIOVMI` returns true, `FindVirtqemudProcess` finds the process, and `SetProcessMemoryLockRLimit` succeeds (sets ~17.3 GiB). However, libvirt inside the container makes a **second** `prlimit()` call — `virProcessSetMaxMemLock()` calls `prlimit(QEMU_pid, RLIMIT_MEMLOCK, 2^53-1)` from virtqemud on the QEMU child process. The Linux kernel requires `CAP_SYS_RESOURCE` for `prlimit()` on another process, regardless of whether the value is being raised or lowered. In non-root mode, the container has only `NET_BIND_SERVICE` with `Drop: ["ALL"]`.
+
+**What we ruled out:**
+- `IPC_LOCK` is not needed (virt-handler handles memlock externally)
+- `SYS_RAWIO` is not needed (VFIO uses ioctls, not iopl/ioperm)
+- Setting memlock to `math.MaxInt64` in virt-handler doesn't help (libvirt's prlimit from virtqemud to QEMU child still requires `CAP_SYS_RESOURCE`)
+- Setting `resources.requests.memory` higher than `memory.guest` doesn't help (the issue is the capability check, not the memlock size)
+
+**Fix (tested successfully):**
+1. virt-api webhook (`vmi-mutator.go`): skip `markAsNonroot()` when `IsVFIOVMI(vmi)` is true — forces root mode
+2. virt-controller (`rendercontainer.go`): add `CAP_SYS_RESOURCE` for VFIO VMIs — root containers don't include it in the default capability set
+
+Non-VFIO VMs remain non-root with minimal capabilities.
 
 ---
 
