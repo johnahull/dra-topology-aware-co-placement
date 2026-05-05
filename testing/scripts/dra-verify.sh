@@ -1038,7 +1038,7 @@ for profile in sorted(by_profile):
                         for sel in selectors:
                             print(f"    \033[2m{drv}: {sel}\033[0m")
 
-                aligns = params.get("alignments", [])
+                aligns = params.get("alignments") or []
                 for a in aligns:
                     attr = a.get("attribute", "?")
                     enf = a.get("enforcement", "required")
