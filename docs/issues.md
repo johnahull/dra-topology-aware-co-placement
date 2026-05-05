@@ -8,6 +8,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
+| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Draft | KV-8 | New — awaiting review |
 | [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Draft | KV-7 | New — awaiting review |
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Open | KV-7 | Superseded by #17696. Vladikr reviewed, responded with root cause. Waiting for response before closing. |
 | [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Open (hold) | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (lgtmed). oshoval put on hold. |
@@ -441,7 +442,8 @@ The root cause: KubeVirt equates "dedicated CPUs" with "kubelet CPU manager is s
 
 Recommend raising at the KubeVirt DRA biweekly meeting (Tuesdays, 6 PM CET).
 
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `78c1ee6348`
+**Upstream:** [PR #17708](https://github.com/kubevirt/kubevirt/pull/17708) (draft)
+**Fix:** Skip cpumanager label when `len(vmi.Spec.ResourceClaims) > 0`. Files: `nodeselectorrenderer.go`, `template.go`.
 
 The fix skips the `kubevirt.io/cpumanager=true` node selector when the VMI has both `dedicatedCpuPlacement: true` AND DRA resource claims. Two files changed:
 
