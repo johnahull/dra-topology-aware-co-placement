@@ -1,0 +1,32 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-1
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: compute-domain-nvidia-com-dra-cpu-dra-memory-d-ba1838c2-quarter-numa0
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-2
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: compute-domain-nvidia-com-dra-cpu-dra-memory-d-ba1838c2-quarter-numa0
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-3
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: compute-domain-nvidia-com-dra-cpu-dra-memory-d-ba1838c2-quarter-numa1

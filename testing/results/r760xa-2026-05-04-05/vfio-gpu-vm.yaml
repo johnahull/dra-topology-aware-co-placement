@@ -1,0 +1,41 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: test-main-vm
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 4
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+          hostDevices:
+          - claimName: test-main
+            name: gpu0
+            requestName: gpu
+          interfaces:
+          - bridge: {}
+            name: default
+        machine:
+          type: q35
+        memory:
+          guest: 4Gi
+        resources:
+          requests:
+            memory: 6Gi
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: test-main
+        resourceClaimName: test-main
+      volumes:
+      - containerDisk:
+          image: quay.io/containerdisks/fedora:41
+          imagePullPolicy: IfNotPresent
+        name: containerdisk
