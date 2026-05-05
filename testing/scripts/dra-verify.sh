@@ -709,12 +709,27 @@ cmd_slices() {
     section "ResourceSlice Hardware Summary"
 
     local verbose="$VERBOSE"
-    kubectl get resourceslices -o json 2>/dev/null | VERBOSE="$verbose" python3 -c "
+    { kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | VERBOSE="$verbose" python3 -c "
 import json, sys, os
 from collections import defaultdict
 
 verbose = os.environ.get('VERBOSE', '') == '1'
-data = json.load(sys.stdin)
+raw = sys.stdin.read()
+parts = raw.split('---SEP---')
+data = json.loads(parts[0])
+try:
+    claims_data = json.loads(parts[1])
+except:
+    claims_data = {'items': []}
+
+# Build set of allocated device keys: 'driver/device'
+allocated = {}
+for c in claims_data.get('items', []):
+    reserved = c.get('status', {}).get('reservedFor', [])
+    pod_name = reserved[0]['name'] if reserved else ''
+    for r in c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', []):
+        key = f'{r[\"driver\"]}/{r[\"device\"]}'
+        allocated[key] = pod_name
 
 # {driver: {numa: [devices]}}
 by_driver = defaultdict(lambda: defaultdict(list))
@@ -754,6 +769,7 @@ for rs in data.get('items', []):
         num_vfs = ''
         if 'dra.net/sriovVfs' in attrs:
             num_vfs = str(list(attrs['dra.net/sriovVfs'].values())[0])
+        dev_key = f'{driver}/{dev[\"name\"]}'
         by_driver[driver][numa].append({
             'name': dev['name'],
             'pci': pci,
@@ -761,6 +777,7 @@ for rs in data.get('items', []):
             'is_vf': is_vf,
             'has_sriov': has_sriov,
             'num_vfs': num_vfs,
+            'pod': allocated.get(dev_key, ''),
         })
 
 for node in sorted(nodes):
@@ -770,12 +787,22 @@ for node in sorted(nodes):
 for driver in sorted(by_driver):
     numas = by_driver[driver]
     total = sum(len(devs) for devs in numas.values())
-    print(f'\033[1m{driver}\033[0m ({total} devices):')
+    alloc_count = sum(1 for devs in numas.values() for d in devs if d['pod'])
+    free_count = total - alloc_count
+    status = f'{total} devices'
+    if alloc_count > 0:
+        status += f', \033[31m{alloc_count} used\033[0m, \033[32m{free_count} free\033[0m'
+    print(f'\033[1m{driver}\033[0m ({status}):')
     for numa in sorted(numas):
         devs = numas[numa]
         is_cpu = 'cpu' in driver.lower()
         if is_cpu and len(devs) > 8:
-            print(f'  \033[2mNUMA {numa}:\033[0m {len(devs)} CPUs')
+            used = sum(1 for d in devs if d['pod'])
+            free = len(devs) - used
+            extra = ''
+            if used > 0:
+                extra = f' \033[31m({used} used, {free} free)\033[0m'
+            print(f'  \033[2mNUMA {numa}:\033[0m {len(devs)} CPUs{extra}')
         else:
             parts = []
             for d in devs:
@@ -794,6 +821,9 @@ for driver in sorted(by_driver):
                 if tags:
                     tag_str = ', '.join(tags)
                     label += f' \033[33m[{tag_str}]\033[0m'
+                if d['pod']:
+                    pod_short = d['pod'][:30]
+                    label += f' \033[31m→{pod_short}\033[0m'
                 parts.append(label)
             line = ', '.join(parts)
             print(f'  \033[2mNUMA {numa}:\033[0m {line}')
