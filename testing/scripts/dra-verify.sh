@@ -958,97 +958,99 @@ for sock in sorted(sockets):
 cmd_deviceclasses() {
     section "Topology Coordinator Device Classes"
 
-    kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null | python3 -c "
+    kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null | python3 -c '
 import json, sys
 from collections import defaultdict
 
 data = json.load(sys.stdin)
-items = data.get('items', [])
+items = data.get("items", [])
 if not items:
-    print('  No topology coordinator device classes found.')
+    print("  No topology coordinator device classes found.")
     sys.exit(0)
 
-# Group by profile
 by_profile = defaultdict(list)
 for dc in items:
-    labels = dc.get('metadata', {}).get('labels', {})
-    profile = labels.get('nodepartition.dra.k8s.io/profile', '(unknown)')
+    labels = dc.get("metadata", {}).get("labels", {})
+    profile = labels.get("nodepartition.dra.k8s.io/profile", "(unknown)")
     by_profile[profile].append(dc)
 
 for profile in sorted(by_profile):
-    print(f'\n\033[1mProfile: {profile}\033[0m')
+    print(f"\n\033[1mProfile: {profile}\033[0m")
     classes = by_profile[profile]
-    # Sort by partition type order then NUMA
-    order = {'eighth': 0, 'quarter': 1, 'half': 2, 'full': 3}
+    order = {"eighth": 0, "quarter": 1, "half": 2, "full": 3}
     classes.sort(key=lambda dc: (
-        order.get(dc['metadata']['labels'].get('nodepartition.dra.k8s.io/partitionType', ''), 99),
-        dc['metadata']['labels'].get('nodepartition.dra.k8s.io/numa', ''),
+        order.get(dc["metadata"]["labels"].get("nodepartition.dra.k8s.io/partitionType", ""), 99),
+        dc["metadata"]["labels"].get("nodepartition.dra.k8s.io/numa", ""),
     ))
 
     for dc in classes:
-        labels = dc['metadata']['labels']
-        name = dc['metadata']['name']
-        pt = labels.get('nodepartition.dra.k8s.io/partitionType', '?')
-        numa = labels.get('nodepartition.dra.k8s.io/numa', '')
-        coupling = labels.get('nodepartition.dra.k8s.io/coupling', '')
+        labels = dc["metadata"]["labels"]
+        name = dc["metadata"]["name"]
+        pt = labels.get("nodepartition.dra.k8s.io/partitionType", "?")
+        numa = labels.get("nodepartition.dra.k8s.io/numa", "")
+        coupling = labels.get("nodepartition.dra.k8s.io/coupling", "")
 
-        header = f'  \033[33m{pt}\033[0m'
+        header = f"  \033[33m{pt}\033[0m"
         tags = []
         if numa:
-            tags.append(f'NUMA {numa.replace(\"_\", \",\")}')
+            numa_display = numa.replace("_", ",")
+            tags.append(f"NUMA {numa_display}")
         if coupling:
             tags.append(coupling)
         if tags:
-            header += f' ({", ".join(tags)})'
-        header += ':'
+            tag_str = ", ".join(tags)
+            header += f" ({tag_str})"
+        header += ":"
         print(header)
 
-        # Parse opaque config
-        configs = dc.get('spec', {}).get('config', [])
+        configs = dc.get("spec", {}).get("config", [])
         for cfg in configs:
-            opaque = cfg.get('opaque', {})
-            params = opaque.get('parameters', {})
+            opaque = cfg.get("opaque", {})
+            params = opaque.get("parameters", {})
             if isinstance(params, str):
                 try:
                     params = json.loads(params)
-                except:
+                except Exception:
                     continue
-            if params.get('kind') != 'PartitionConfig':
+            if params.get("kind") != "PartitionConfig":
                 continue
 
-            subs = params.get('subResources', [])
-            for sr in sorted(subs, key=lambda s: s.get('deviceClass', '')):
-                drv = sr.get('deviceClass', '?')
-                count = sr.get('count', 0)
-                cap = sr.get('capacity', {})
-                selectors = sr.get('selectors', [])
+            subs = params.get("subResources", [])
+            for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
+                drv = sr.get("deviceClass", "?")
+                count = sr.get("count", 0)
+                cap = sr.get("capacity", {})
+                selectors = sr.get("selectors", [])
 
-                label = f'    \033[36m{drv:<22}\033[0m'
+                label = f"    \033[36m{drv:<22}\033[0m"
                 if cap:
-                    cap_parts = [f'{k}: {v}' for k, v in sorted(cap.items())]
-                    label += f'{count} (capacity: {", ".join(cap_parts)})'
+                    cap_parts = [f"{k}: {v}" for k, v in sorted(cap.items())]
+                    cap_str = ", ".join(cap_parts)
+                    label += f"{count} (capacity: {cap_str})"
                 else:
-                    label += f'{count} device{\"s\" if count != 1 else \"\"}'
+                    suffix = "s" if count != 1 else ""
+                    label += f"{count} device{suffix}"
                 print(label)
 
                 if selectors:
                     for sel in selectors:
-                        print(f'      \033[2m{sel}\033[0m')
+                        print(f"      \033[2m{sel}\033[0m")
 
-            aligns = params.get('alignments', [])
+            aligns = params.get("alignments", [])
             if aligns:
                 for a in aligns:
-                    attr = a.get('attribute', '?')
-                    enf = a.get('enforcement', 'required')
-                    reqs = a.get('requests', [])
-                    req_str = f' across {len(reqs)} requests' if reqs else ''
-                    print(f'    \033[32mAlignment: {attr} ({enf}{req_str})\033[0m')
+                    attr = a.get("attribute", "?")
+                    enf = a.get("enforcement", "required")
+                    reqs = a.get("requests", [])
+                    req_str = f" across {len(reqs)} requests" if reqs else ""
+                    print(f"    \033[32mAlignment: {attr} ({enf}{req_str})\033[0m")
 
-        print(f'    \033[2mDeviceClass: {name}\033[0m')
+        print(f"    \033[2mDeviceClass: {name}\033[0m")
     print()
 
-print(f'Total: {len(items)} device class{\"es\" if len(items) != 1 else \"\"}')
-" 2>/dev/null
+total_suffix = "es" if len(items) != 1 else ""
+print(f"Total: {len(items)} device class{total_suffix}")
+' 2>/dev/null
 }
 
 # ── all ───────────────────────────────────────────────────────────────────────
