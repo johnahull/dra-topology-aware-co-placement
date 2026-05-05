@@ -741,10 +741,22 @@ for rs in data.get('items', []):
                 val = attrs[key]
                 product = str(list(val.values())[0])
                 break
+        is_vf = False
+        if 'dra.net/isSriovVf' in attrs:
+            is_vf = attrs['dra.net/isSriovVf'].get('bool', False)
+        has_sriov = False
+        if 'dra.net/sriov' in attrs:
+            has_sriov = attrs['dra.net/sriov'].get('bool', False)
+        num_vfs = ''
+        if 'dra.net/sriovVfs' in attrs:
+            num_vfs = str(list(attrs['dra.net/sriovVfs'].values())[0])
         by_driver[driver][numa].append({
             'name': dev['name'],
             'pci': pci,
             'product': product,
+            'is_vf': is_vf,
+            'has_sriov': has_sriov,
+            'num_vfs': num_vfs,
         })
 
 for node in sorted(nodes):
@@ -766,10 +778,24 @@ for driver in sorted(by_driver):
                 label = d['name']
                 if d['pci']:
                     label += f' ({d[\"pci\"]})'
-                elif d['product'] and len(d['product']) < 30:
-                    label += f' [{d[\"product\"][:25]}]'
+                tags = []
+                if d['is_vf']:
+                    tags.append('VF')
+                if d['has_sriov'] and d['num_vfs'] and d['num_vfs'] != '0':
+                    tags.append(f'PF:{d[\"num_vfs\"]}VFs')
+                elif d['has_sriov']:
+                    tags.append('PF')
+                if d['product']:
+                    tags.append(d['product'][:35])
+                if tags:
+                    tag_str = ', '.join(tags)
+                    label += f' \033[33m[{tag_str}]\033[0m'
                 parts.append(label)
-            print(f'  \033[2mNUMA {numa}:\033[0m {', '.join(parts)}')
+            if len(parts) > 4:
+                line = ', '.join(parts[:4]) + f', ... +{len(parts)-4} more'
+            else:
+                line = ', '.join(parts)
+            print(f'  \033[2mNUMA {numa}:\033[0m {line}')
     print()
 " 2>/dev/null
 }
