@@ -245,3 +245,8 @@ All devices NUMA-aligned. Both GPUs correctly assigned to NUMA 0 pods. NUMA 1 po
 | CPU driver individual mode exceeds 32-device claim limit | dra-driver-cpu | Fixed by switching to grouped mode |
 | CPU driver hostname-override empty | dra-driver-cpu | Fixed by setting to actual node name |
 | GPU driver stale ResourceSlice after restart | NVIDIA DRA driver | Fixed by restarting pod |
+| Coordinator uses dra.net (all NICs) instead of dra.net-sriov-vf | Topology coordinator | Workaround: patch device class after generation, scale down coordinator |
+| dra.net-sriov-vf CEL expression wrong (.BoolValue) | dranet DeviceClass | Fixed: `has(device.attributes['dra.net'].isSriovVf) && ...` |
+| dranet advertises PCI NICs without interfaces (Broadcom BCM5720) | dranet | Investigating — PCI devices at 0000:02:00.0/1 have no /net dir but dranet still advertises them. Filter code added but not effective — `discoverNetworkInterfaces` may be associating an interface via alternate sysfs path |
+| Direct claims with matchAttribute work (GPU+VF+CPU) | Test success | All 3 pods NUMA-aligned without coordinator |
+| Coordinator claims with patched device class work | Test success | 3 quarter pods: 2 on NUMA 0 (1 GPU each), 1 on NUMA 1 |
