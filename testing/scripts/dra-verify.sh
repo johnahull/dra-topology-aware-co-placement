@@ -824,6 +824,7 @@ for rs in data.get('items', []):
         is_vf = get_bool(['dra.net/isSriovVf'])
         has_sriov = get_bool(['dra.net/sriov'])
         num_vfs = get_attr(['dra.net/sriovVfs'])
+        product = get_attr(['productName', 'dra.net/pciDevice', 'dra.net/pciVendor', 'model'])
 
         drv_label = DRIVER_LABELS.get(driver, driver.split('.')[-1] if '.' in driver else driver)
         is_cpu = 'cpu' in driver.lower()
@@ -840,6 +841,7 @@ for rs in data.get('items', []):
             'is_vf': is_vf,
             'has_sriov': has_sriov,
             'num_vfs': num_vfs,
+            'product': product or '',
         })
 
 # ── Group by Socket → NUMA → pcieRoot ──
@@ -878,12 +880,15 @@ for sock in sorted(sockets):
                             tags.append(f'PF:{d[\"num_vfs\"]}VFs')
                         elif d['has_sriov']:
                             tags.append('PF')
+                        if d['product']:
+                            tags.append(d['product'][:35])
                         if tags:
-                            label += f' \033[33m[{\",\".join(tags)}]\033[0m'
+                            label += f' \033[33m[{\", \".join(tags)}]\033[0m'
                         names.append(label)
-                    label_str = ', '.join(names)
-                    if len(label_str) > 120:
+                    if len(names) > 3:
                         label_str = ', '.join(names[:3]) + f', ... +{len(names)-3} more'
+                    else:
+                        label_str = ', '.join(names)
                     print(f'║     {drv_label}: {label_str}')
         print('║')
     print(f'\033[36m╚{\"═\" * 20}╝\033[0m')
