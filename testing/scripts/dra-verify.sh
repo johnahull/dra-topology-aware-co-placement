@@ -2,6 +2,7 @@
 # dra-verify.sh — Verify DRA topology-aware co-placement stack
 #
 # Usage:
+#   dra-verify.sh slices                     Show hardware summary from ResourceSlices
 #   dra-verify.sh drivers                    Show DRA driver status
 #   dra-verify.sh attributes                 Show ResourceSlice topology attributes
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
@@ -699,9 +700,83 @@ cmd_guest() {
     virtctl ssh $ns_arg "$target_vm" -- "for d in /sys/bus/pci/devices/*/numa_node; do dev=\$(basename \$(dirname \$d)); node=\$(cat \$d); class=\$(cat /sys/bus/pci/devices/\$dev/class 2>/dev/null); [ \"\$node\" != \"-1\" ] && echo \"  \$dev: numa=\$node class=\$class\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed)${NC}"
 }
 
+# ── slices ────────────────────────────────────────────────────────────────────
+
+cmd_slices() {
+    section "ResourceSlice Hardware Summary"
+
+    kubectl get resourceslices -o json 2>/dev/null | python3 -c "
+import json, sys
+from collections import defaultdict
+
+data = json.load(sys.stdin)
+
+# {driver: {numa: [devices]}}
+by_driver = defaultdict(lambda: defaultdict(list))
+nodes = set()
+
+for rs in data.get('items', []):
+    driver = rs['spec']['driver']
+    node = rs['spec'].get('nodeName', rs['spec'].get('pool', {}).get('name', '?'))
+    nodes.add(node)
+    for dev in rs['spec'].get('devices', []) or []:
+        attrs = dev.get('attributes', {})
+        numa = '?'
+        for key in ('resource.kubernetes.io/numaNode', 'numaNode', 'numa',
+                     'dra.cpu/numaNodeID', 'dra.net/numaNode', 'dra.memory/numaNode'):
+            if key in attrs:
+                val = attrs[key]
+                numa = str(list(val.values())[0])
+                break
+        pci = ''
+        for key in ('resource.kubernetes.io/pciBusID', 'dra.net/pciAddress'):
+            if key in attrs:
+                val = attrs[key]
+                pci = str(list(val.values())[0])
+                break
+        product = ''
+        for key in ('productName', 'dra.net/pciDevice', 'model'):
+            if key in attrs:
+                val = attrs[key]
+                product = str(list(val.values())[0])
+                break
+        by_driver[driver][numa].append({
+            'name': dev['name'],
+            'pci': pci,
+            'product': product,
+        })
+
+for node in sorted(nodes):
+    print(f'\033[1mNode:\033[0m {node}')
+    print()
+
+for driver in sorted(by_driver):
+    numas = by_driver[driver]
+    total = sum(len(devs) for devs in numas.values())
+    print(f'\033[1m{driver}\033[0m ({total} devices):')
+    for numa in sorted(numas):
+        devs = numas[numa]
+        is_cpu = 'cpu' in driver.lower()
+        if is_cpu and len(devs) > 8:
+            print(f'  \033[2mNUMA {numa}:\033[0m {len(devs)} CPUs')
+        else:
+            parts = []
+            for d in devs:
+                label = d['name']
+                if d['pci']:
+                    label += f' ({d[\"pci\"]})'
+                elif d['product'] and len(d['product']) < 30:
+                    label += f' [{d[\"product\"][:25]}]'
+                parts.append(label)
+            print(f'  \033[2mNUMA {numa}:\033[0m {', '.join(parts)}')
+    print()
+" 2>/dev/null
+}
+
 # ── all ───────────────────────────────────────────────────────────────────────
 
 cmd_all() {
+    cmd_slices
     cmd_drivers
     cmd_attributes
     cmd_claims
@@ -720,6 +795,7 @@ cmd_help() {
     echo "Usage: $(basename "$0") <command> [options]"
     echo ""
     echo "Commands:"
+    echo "  slices                     Show hardware summary from ResourceSlices"
     echo "  drivers                    Show DRA driver DaemonSets, pods, registration"
     echo "  attributes                 Show ResourceSlice topology attributes per driver"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
@@ -745,6 +821,7 @@ cmd_help() {
 # ── Dispatch ──────────────────────────────────────────────────────────────────
 
 case "$CMD" in
+    slices)     cmd_slices ;;
     drivers)    cmd_drivers ;;
     attributes) cmd_attributes ;;
     claims)     cmd_claims ;;
