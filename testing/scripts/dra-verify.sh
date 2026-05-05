@@ -36,10 +36,12 @@ shift || true
 
 NAMESPACE=""
 TARGET=""
+VERBOSE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -n|--namespace) NAMESPACE="$2"; shift 2 ;;
+        -v|--verbose) VERBOSE="1"; shift ;;
         -h|--help) CMD="help"; shift ;;
         *) TARGET="$1"; shift ;;
     esac
@@ -706,10 +708,12 @@ cmd_guest() {
 cmd_slices() {
     section "ResourceSlice Hardware Summary"
 
-    kubectl get resourceslices -o json 2>/dev/null | python3 -c "
-import json, sys
+    local verbose="$VERBOSE"
+    kubectl get resourceslices -o json 2>/dev/null | VERBOSE="$verbose" python3 -c "
+import json, sys, os
 from collections import defaultdict
 
+verbose = os.environ.get('VERBOSE', '') == '1'
 data = json.load(sys.stdin)
 
 # {driver: {numa: [devices]}}
@@ -785,7 +789,7 @@ for driver in sorted(by_driver):
                     tags.append(f'PF:{d[\"num_vfs\"]}VFs')
                 elif d['has_sriov']:
                     tags.append('PF')
-                if d['product']:
+                if verbose and d['product']:
                     tags.append(d['product'][:35])
                 if tags:
                     tag_str = ', '.join(tags)
@@ -805,10 +809,12 @@ for driver in sorted(by_driver):
 cmd_topology() {
     section "Device Topology Map"
 
-    kubectl get resourceslices -o json 2>/dev/null | python3 -c "
-import json, sys
+    local verbose="$VERBOSE"
+    kubectl get resourceslices -o json 2>/dev/null | VERBOSE="$verbose" python3 -c "
+import json, sys, os
 from collections import defaultdict
 
+verbose = os.environ.get('VERBOSE', '') == '1'
 data = json.load(sys.stdin)
 
 DRIVER_LABELS = {
@@ -906,7 +912,7 @@ for sock in sorted(sockets):
                             tags.append(f'PF:{d[\"num_vfs\"]}VFs')
                         elif d['has_sriov']:
                             tags.append('PF')
-                        if d['product']:
+                        if verbose and d['product']:
                             tags.append(d['product'][:35])
                         if tags:
                             label += f' \033[33m[{\", \".join(tags)}]\033[0m'
@@ -958,6 +964,7 @@ cmd_help() {
     echo ""
     echo "Options:"
     echo "  -n, --namespace NS         Kubernetes namespace"
+    echo "  -v, --verbose              Show PCI device models (slices, topology)"
     echo ""
     echo "Examples:"
     echo "  $(basename "$0") drivers"
