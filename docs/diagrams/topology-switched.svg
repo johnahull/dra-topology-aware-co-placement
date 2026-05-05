@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 -20 1200 584.75" width="1200" height="584">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1e1e1e" />
+    </marker>
+  </defs>
+  <rect x="0" y="-20" width="1200" height="584.75" fill="#ffffff" />
+  <g opacity="1.0">
+    <text x="400" y="20.0" font-size="20" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe-Switched Topology</text>
+  </g>
+  <rect x="20" y="30" width="1160" height="420" fill="#f8f9fa" stroke="#868e96" stroke-width="2" opacity="1.0" rx="42.0" ry="42.0" />
+  <rect x="60" y="55" width="520" height="390" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="39.0" ry="39.0" />
+  <g opacity="1.0">
+    <text x="293.6" y="88.0" font-size="22" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">CPU0</text>
+  </g>
+  <rect x="620" y="55" width="520" height="390" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="39.0" ry="39.0" />
+  <g opacity="1.0">
+    <text x="853.6" y="88.0" font-size="22" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">CPU1</text>
+  </g>
+  <rect x="110" y="130" width="110" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="122.1" y="154.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 0</text>
+  </g>
+  <rect x="410" y="130" width="110" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="422.1" y="154.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 1</text>
+  </g>
+  <rect x="670" y="130" width="110" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="682.1" y="154.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 0</text>
+  </g>
+  <rect x="970" y="130" width="110" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="982.1" y="154.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 1</text>
+  </g>
+  <rect x="80" y="230" width="200" height="36" fill="#d0ebff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="137.1" y="254.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe Switch</text>
+  </g>
+  <rect x="360" y="230" width="200" height="36" fill="#d0ebff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="417.1" y="254.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe Switch</text>
+  </g>
+  <rect x="640" y="230" width="200" height="36" fill="#d0ebff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="697.1" y="254.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe Switch</text>
+  </g>
+  <rect x="920" y="230" width="200" height="36" fill="#d0ebff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="977.1" y="254.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe Switch</text>
+  </g>
+  <rect x="90" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="114.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="110.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card0</text>
+  </g>
+  <rect x="190" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="214.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="210.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card1</text>
+  </g>
+  <rect x="370" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="394.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="390.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card2</text>
+  </g>
+  <rect x="470" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="494.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="490.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card3</text>
+  </g>
+  <rect x="650" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="674.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="670.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card4</text>
+  </g>
+  <rect x="750" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="774.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="770.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card5</text>
+  </g>
+  <rect x="930" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="954.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="950.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card6</text>
+  </g>
+  <rect x="1030" y="340" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="1054.4" y="359.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="1050.5" y="379.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card7</text>
+  </g>
+  <path d="M165,166 L180,230" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M465,166 L460,230" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M725,166 L740,230" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M1025,166 L1020,230" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M180,266 L130,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M180,266 L230,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M460,266 L410,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M460,266 L510,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M740,266 L690,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M740,266 L790,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M1020,266 L970,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <path d="M1020,266 L1070,340" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <g opacity="1.0">
+    <text x="60" y="475.0" font-size="15" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">- 1 device — no specific constraints</text>
+  </g>
+  <g opacity="1.0">
+    <text x="60" y="497.0" font-size="15" font-family="Cascadia, monospace" fill="#1971c2" text-anchor="start">- 2 devices — same PCIe root port or switch (pcieRoot)</text>
+  </g>
+  <g opacity="1.0">
+    <text x="60" y="519.0" font-size="15" font-family="Cascadia, monospace" fill="#2f9e44" text-anchor="start">- 4 devices — same CPU / NUMA node (numaNode / cpuSocketID)</text>
+  </g>
+  <g opacity="1.0">
+    <text x="60" y="541.0" font-size="15" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">- 8 devices — no specific constraints (full node)</text>
+  </g>
+</svg>

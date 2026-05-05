@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 -20 720 418.75" width="720" height="418">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1e1e1e" />
+    </marker>
+  </defs>
+  <rect x="0" y="-20" width="720" height="418.75" fill="#ffffff" />
+  <g opacity="1.0">
+    <text x="250" y="20.0" font-size="20" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Single-Socket Topology</text>
+  </g>
+  <rect x="20" y="30" width="680" height="320" fill="#f8f9fa" stroke="#868e96" stroke-width="2" opacity="1.0" rx="32.0" ry="32.0" />
+  <rect x="60" y="55" width="600" height="290" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="29.0" ry="29.0" />
+  <g opacity="1.0">
+    <text x="333.6" y="88.0" font-size="22" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">CPU0</text>
+  </g>
+  <rect x="100" y="130" width="90" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="108.7" y="153.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 0</text>
+  </g>
+  <rect x="230" y="130" width="90" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="238.7" y="153.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 1</text>
+  </g>
+  <rect x="360" y="130" width="90" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="368.7" y="153.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 2</text>
+  </g>
+  <rect x="490" y="130" width="90" height="36" fill="#dee2e6" stroke="#495057" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="498.7" y="153.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Root Port 3</text>
+  </g>
+  <rect x="105" y="250" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="129.4" y="269.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="125.5" y="289.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card0</text>
+  </g>
+  <path d="M145,166 L145,250" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <rect x="235" y="250" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="259.4" y="269.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="255.5" y="289.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card1</text>
+  </g>
+  <path d="M275,166 L275,250" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <rect x="365" y="250" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="389.4" y="269.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="385.5" y="289.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card2</text>
+  </g>
+  <path d="M405,166 L405,250" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <rect x="495" y="250" width="80" height="50" fill="#ffffff" stroke="#495057" stroke-width="2" opacity="1.0" rx="5.0" ry="5.0" />
+  <g opacity="1.0">
+    <text x="519.4" y="269.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">PCIe</text>
+  </g>
+  <g opacity="1.0">
+    <text x="515.5" y="289.5" font-size="13" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Card3</text>
+  </g>
+  <path d="M535,166 L535,250" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <g opacity="1.0">
+    <text x="60" y="375.0" font-size="15" font-family="Cascadia, monospace" fill="#2f9e44" text-anchor="start">All devices on one CPU — no topology constraint needed</text>
+  </g>
+</svg>
