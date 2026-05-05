@@ -3,6 +3,7 @@
 #
 # Usage:
 #   dra-verify.sh slices                     Show hardware summary from ResourceSlices
+#   dra-verify.sh topology                   Show devices grouped by pcieRoot, numaNode, cpuSocketID
 #   dra-verify.sh drivers                    Show DRA driver status
 #   dra-verify.sh attributes                 Show ResourceSlice topology attributes
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
@@ -773,6 +774,93 @@ for driver in sorted(by_driver):
 " 2>/dev/null
 }
 
+# ── topology ──────────────────────────────────────────────────────────────────
+
+cmd_topology() {
+    section "Device Topology Map"
+
+    kubectl get resourceslices -o json 2>/dev/null | python3 -c "
+import json, sys
+from collections import defaultdict
+
+data = json.load(sys.stdin)
+
+devices = []
+for rs in data.get('items', []):
+    driver = rs['spec']['driver']
+    for dev in rs['spec'].get('devices', []) or []:
+        attrs = dev.get('attributes', {})
+
+        def get_attr(names):
+            for n in names:
+                if n in attrs:
+                    v = attrs[n]
+                    vals = list(v.values())
+                    return str(vals[0]) if vals else '?'
+            return None
+
+        numa = get_attr(['resource.kubernetes.io/numaNode', 'numaNode', 'numa',
+                         'dra.cpu/numaNodeID', 'dra.net/numaNode', 'dra.memory/numaNode'])
+        socket = get_attr(['resource.kubernetes.io/cpuSocketID', 'cpuSocketID',
+                           'dra.cpu/socketID'])
+        root = get_attr(['resource.kubernetes.io/pcieRoot'])
+        pci = get_attr(['resource.kubernetes.io/pciBusID', 'dra.net/pciAddress'])
+
+        driver_short = driver.split('.')[-1] if '.' in driver else driver
+        is_cpu = 'cpu' in driver.lower()
+
+        devices.append({
+            'name': dev['name'],
+            'driver': driver,
+            'driver_short': driver_short,
+            'numa': numa or '?',
+            'socket': socket or '?',
+            'root': root or '-',
+            'pci': pci or '',
+            'is_cpu': is_cpu,
+        })
+
+# ── Group by Socket → NUMA → pcieRoot ──
+sockets = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+for d in devices:
+    sockets[d['socket']][d['numa']][d['root']].append(d)
+
+for sock in sorted(sockets):
+    print(f'\033[1m\033[36m╔══ Socket {sock} ══╗\033[0m')
+    numas = sockets[sock]
+    for numa in sorted(numas):
+        roots = numas[numa]
+        print(f'\033[1m║ NUMA {numa}\033[0m')
+        for root in sorted(roots):
+            devs = roots[root]
+            if root != '-':
+                print(f'\033[2m║   pcieRoot: {root}\033[0m')
+            # group by driver
+            by_driver = defaultdict(list)
+            for d in devs:
+                by_driver[d['driver']].append(d)
+            for drv in sorted(by_driver):
+                dlist = by_driver[drv]
+                drv_short = dlist[0]['driver_short']
+                if dlist[0]['is_cpu'] and len(dlist) > 8:
+                    print(f'║     {drv_short}: {len(dlist)} CPUs')
+                else:
+                    names = []
+                    for d in dlist:
+                        label = d['name']
+                        if d['pci']:
+                            label += f' ({d[\"pci\"]})'
+                        names.append(label)
+                    label_str = ', '.join(names)
+                    if len(label_str) > 90:
+                        label_str = ', '.join(names[:3]) + f', ... +{len(names)-3} more'
+                    print(f'║     {drv_short}: {label_str}')
+        print('║')
+    print(f'\033[36m╚{\"═\" * 20}╝\033[0m')
+    print()
+" 2>/dev/null
+}
+
 # ── all ───────────────────────────────────────────────────────────────────────
 
 cmd_all() {
@@ -796,6 +884,7 @@ cmd_help() {
     echo ""
     echo "Commands:"
     echo "  slices                     Show hardware summary from ResourceSlices"
+    echo "  topology                   Show devices grouped by socket, NUMA, pcieRoot"
     echo "  drivers                    Show DRA driver DaemonSets, pods, registration"
     echo "  attributes                 Show ResourceSlice topology attributes per driver"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
@@ -822,6 +911,7 @@ cmd_help() {
 
 case "$CMD" in
     slices)     cmd_slices ;;
+    topology)   cmd_topology ;;
     drivers)    cmd_drivers ;;
     attributes) cmd_attributes ;;
     claims)     cmd_claims ;;
