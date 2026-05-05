@@ -959,16 +959,60 @@ cmd_deviceclasses() {
     section "Topology Coordinator Device Classes"
 
     local verbose="$VERBOSE"
-    kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null | VERBOSE="$verbose" python3 -c '
-import json, sys, os
+    { kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; } | VERBOSE="$verbose" python3 -c '
+import json, sys, os, re
 from collections import defaultdict
 
 verbose = os.environ.get("VERBOSE", "") == "1"
-data = json.load(sys.stdin)
-items = data.get("items", [])
+
+raw = sys.stdin.read()
+dc_part, slice_part = raw.split("---SEP---", 1)
+dc_data = json.loads(dc_part)
+slice_data = json.loads(slice_part)
+
+items = dc_data.get("items", [])
 if not items:
     print("  No topology coordinator device classes found.")
     sys.exit(0)
+
+NUMA_ATTRS = [
+    "resource.kubernetes.io/numaNode",
+    "nodepartition.dra.k8s.io/numaNode",
+    "dra.net/numaNode",
+    "dra.cpu/numaNodeID",
+    "dra.memory/numaNode",
+    "dra.nvme/numaNode",
+    "numaNode",
+    "numa",
+]
+
+def get_numa(dev):
+    """Get NUMA node from device, checking all known attribute names."""
+    attrs = dev.get("attributes", {})
+    for attr_name in NUMA_ATTRS:
+        if attr_name in attrs:
+            val = attrs[attr_name]
+            if isinstance(val, dict) and "int" in val:
+                return val["int"]
+            if isinstance(val, (int, float)):
+                return int(val)
+    return None
+
+def extract_numa_values(selectors):
+    """Extract NUMA node integers from CEL selector strings."""
+    numas = set()
+    for sel in (selectors or []):
+        for m in re.findall(r"numaNode\w*\s*==\s*(\d+)", sel):
+            numas.add(int(m))
+    return numas
+
+# Build device index: driver -> numa -> [device names]
+dev_by_driver_numa = defaultdict(lambda: defaultdict(list))
+for s in slice_data.get("items", []):
+    driver = s["spec"]["driver"]
+    for d in s["spec"].get("devices", []):
+        numa = get_numa(d)
+        dev_by_driver_numa[driver][numa].append(d["name"])
 
 by_profile = defaultdict(list)
 for dc in items:
@@ -992,13 +1036,12 @@ for profile in sorted(by_profile):
         numa = labels.get("nodepartition.dra.k8s.io/numa", "")
         coupling = labels.get("nodepartition.dra.k8s.io/coupling", "")
 
-        # Build header: "eighth · NUMA 0 → deviceclass-name"
         header = f"  \033[33m{pt}\033[0m"
         if numa:
             numa_display = numa.replace("_", ",").replace("numa", "")
-            header += f" \033[2m·\033[0m NUMA {numa_display}"
+            header += f" \033[2m\xb7\033[0m NUMA {numa_display}"
         if coupling:
-            header += f" \033[2m·\033[0m {coupling}"
+            header += f" \033[2m\xb7\033[0m {coupling}"
         header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
         print(header)
 
@@ -1032,11 +1075,25 @@ for profile in sorted(by_profile):
 
             if verbose:
                 for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
+                    drv = sr.get("deviceClass", "?")
+                    count = sr.get("count", 0)
                     selectors = sr.get("selectors", [])
-                    if selectors:
-                        drv = sr.get("deviceClass", "?")
-                        for sel in selectors:
-                            print(f"    \033[2m{drv}: {sel}\033[0m")
+                    target_numas = extract_numa_values(selectors)
+
+                    # Find matching devices from ResourceSlices
+                    matching = []
+                    if target_numas:
+                        for n in sorted(target_numas):
+                            matching.extend(dev_by_driver_numa[drv].get(n, []))
+                    else:
+                        for numa_devs in dev_by_driver_numa[drv].values():
+                            matching.extend(numa_devs)
+
+                    if drv == "dra.cpu" and len(matching) > 8:
+                        print(f"    \033[2m{drv}: {len(matching)} CPUs available (need {count})\033[0m")
+                    elif matching:
+                        dev_list = ", ".join(sorted(matching))
+                        print(f"    \033[2m{drv}: {dev_list}\033[0m")
 
                 aligns = params.get("alignments") or []
                 for a in aligns:
