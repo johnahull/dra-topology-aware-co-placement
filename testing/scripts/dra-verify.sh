@@ -1130,19 +1130,26 @@ for profile in sorted(by_profile):
         # Reconstruct individual partition slots by grouping devices
         # by PCIe root within each target NUMA (only for sub-NUMA tiers)
         if pt in ("quarter", "eighth") and target_numas and any(sr.get("count", 0) > 0 for sr in subs):
-            # Find PCIe roots that have devices from drivers in this partition
-            gpu_driver = None
+            # Find the GPU/accelerator driver in ResourceSlices that matches
+            # a sub-resource DeviceClass (handles vfio.gpu.nvidia.com → gpu.nvidia.com)
+            gpu_slice_driver = None
             for sr in subs:
                 drv = sr.get("deviceClass", "")
                 if "gpu" in drv or "nvidia" in drv or "amd" in drv:
-                    gpu_driver = drv
+                    if drv in dev_tree:
+                        gpu_slice_driver = drv
+                    else:
+                        for tree_drv in dev_tree:
+                            if tree_drv in drv or drv in tree_drv:
+                                gpu_slice_driver = tree_drv
+                                break
                     break
 
             # Collect PCIe root groups within target NUMAs
             pcie_groups = defaultdict(lambda: defaultdict(list))
             for numa_val in sorted(target_numas):
-                if gpu_driver and gpu_driver in dev_tree:
-                    for pcie, devs in dev_tree[gpu_driver][numa_val].items():
+                if gpu_slice_driver and gpu_slice_driver in dev_tree:
+                    for pcie, devs in dev_tree[gpu_slice_driver][numa_val].items():
                         if pcie is not None:
                             for d in devs:
                                 pcie_groups[numa_val][pcie].append(d)
@@ -1179,10 +1186,17 @@ for profile in sorted(by_profile):
                             drv = sr.get("deviceClass", "?")
                             count = sr.get("count", 0)
                             cap = sr.get("capacity", {})
+                            # Resolve DeviceClass name to ResourceSlice driver name
+                            tree_drv = drv
+                            if drv not in dev_tree:
+                                for td in dev_tree:
+                                    if td in drv or drv in td:
+                                        tree_drv = td
+                                        break
                             # Show matching devices for this PCIe root
-                            matching = [d["name"] for d in dev_tree[drv].get(numa_val, {}).get(pcie, [])]
+                            matching = [d["name"] for d in dev_tree[tree_drv].get(numa_val, {}).get(pcie, [])]
                             if not matching:
-                                matching = [d["name"] for d in dev_tree[drv].get(numa_val, {}).get(None, [])]
+                                matching = [d["name"] for d in dev_tree[tree_drv].get(numa_val, {}).get(None, [])]
                             if cap:
                                 cap_parts = [f"{v}" for _, v in sorted(cap.items())]
                                 cap_str = ", ".join(cap_parts)
