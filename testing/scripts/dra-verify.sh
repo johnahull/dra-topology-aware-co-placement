@@ -14,7 +14,42 @@
 #   dra-verify.sh metadata [pod] [-n ns]     Show KEP-5304 metadata in pod
 #   dra-verify.sh guest [vm] [-n ns]         Show guest NUMA topology in VM
 #   dra-verify.sh all [-n ns]                Run all checks
-#   eval "$(dra-verify.sh completions)"     Enable bash completions
+#   source dra-verify.sh                    Enable bash completions
+#   eval "$(dra-verify.sh completions)"     Enable bash completions (alternative)
+
+# ── Completion function ──────────────────────────────────────────────────────
+_dra_verify() {
+    local cur prev cmds opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    cmds="slices topology drivers attributes deviceclasses claims alignment cpupinning vfio metadata guest all help completions"
+    opts="-n --namespace -v --verbose -h --help"
+
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
+        return 0
+    fi
+
+    case "${prev}" in
+        -n|--namespace)
+            local namespaces
+            namespaces=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+            COMPREPLY=( $(compgen -W "${namespaces}" -- "${cur}") )
+            return 0
+            ;;
+    esac
+
+    COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+    return 0
+}
+
+# If sourced (not executed), register completions and stop
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    complete -F _dra_verify dra-verify.sh
+    complete -F _dra_verify dra-verify
+    return 0 2>/dev/null
+fi
 
 set -uo pipefail
 
@@ -1163,35 +1198,9 @@ cmd_help() {
 # ── Completions ───────────────────────────────────────────────────────────────
 
 cmd_completions() {
-    cat <<'COMP'
-_dra_verify() {
-    local cur prev cmds opts
-    COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cmds="slices topology drivers attributes deviceclasses claims alignment cpupinning vfio metadata guest all help"
-    opts="-n --namespace -v --verbose -h --help"
-
-    if [[ ${COMP_CWORD} -eq 1 ]]; then
-        COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
-        return 0
-    fi
-
-    case "${prev}" in
-        -n|--namespace)
-            local namespaces
-            namespaces=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
-            COMPREPLY=( $(compgen -W "${namespaces}" -- "${cur}") )
-            return 0
-            ;;
-    esac
-
-    COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-    return 0
-}
-complete -F _dra_verify dra-verify.sh
-complete -F _dra_verify dra-verify
-COMP
+    declare -f _dra_verify
+    echo 'complete -F _dra_verify dra-verify.sh'
+    echo 'complete -F _dra_verify dra-verify'
 }
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
