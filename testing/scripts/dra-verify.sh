@@ -958,10 +958,12 @@ for sock in sorted(sockets):
 cmd_deviceclasses() {
     section "Topology Coordinator Device Classes"
 
-    kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null | python3 -c '
-import json, sys
+    local verbose="$VERBOSE"
+    kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null | VERBOSE="$verbose" python3 -c '
+import json, sys, os
 from collections import defaultdict
 
+verbose = os.environ.get("VERBOSE", "") == "1"
 data = json.load(sys.stdin)
 items = data.get("items", [])
 if not items:
@@ -990,17 +992,14 @@ for profile in sorted(by_profile):
         numa = labels.get("nodepartition.dra.k8s.io/numa", "")
         coupling = labels.get("nodepartition.dra.k8s.io/coupling", "")
 
+        # Build header: "eighth · NUMA 0 → deviceclass-name"
         header = f"  \033[33m{pt}\033[0m"
-        tags = []
         if numa:
-            numa_display = numa.replace("_", ",")
-            tags.append(f"NUMA {numa_display}")
+            numa_display = numa.replace("_", ",").replace("numa", "")
+            header += f" \033[2m·\033[0m NUMA {numa_display}"
         if coupling:
-            tags.append(coupling)
-        if tags:
-            tag_str = ", ".join(tags)
-            header += f" ({tag_str})"
-        header += ":"
+            header += f" \033[2m·\033[0m {coupling}"
+        header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
         print(header)
 
         configs = dc.get("spec", {}).get("config", [])
@@ -1016,36 +1015,36 @@ for profile in sorted(by_profile):
                 continue
 
             subs = params.get("subResources", [])
+            parts = []
             for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
                 drv = sr.get("deviceClass", "?")
                 count = sr.get("count", 0)
                 cap = sr.get("capacity", {})
-                selectors = sr.get("selectors", [])
-
-                label = f"    \033[36m{drv:<22}\033[0m"
                 if cap:
-                    cap_parts = [f"{k}: {v}" for k, v in sorted(cap.items())]
+                    cap_parts = [f"{v}" for _, v in sorted(cap.items())]
                     cap_str = ", ".join(cap_parts)
-                    label += f"{count} (capacity: {cap_str})"
+                    parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
                 else:
-                    suffix = "s" if count != 1 else ""
-                    label += f"{count} device{suffix}"
-                print(label)
+                    parts.append(f"\033[36m{drv}\033[0m: {count}")
+            if parts:
+                line = ", ".join(parts)
+                print(f"    {line}")
 
-                if selectors:
-                    for sel in selectors:
-                        print(f"      \033[2m{sel}\033[0m")
+            if verbose:
+                for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
+                    selectors = sr.get("selectors", [])
+                    if selectors:
+                        drv = sr.get("deviceClass", "?")
+                        for sel in selectors:
+                            print(f"    \033[2m{drv}: {sel}\033[0m")
 
-            aligns = params.get("alignments", [])
-            if aligns:
+                aligns = params.get("alignments", [])
                 for a in aligns:
                     attr = a.get("attribute", "?")
                     enf = a.get("enforcement", "required")
                     reqs = a.get("requests", [])
                     req_str = f" across {len(reqs)} requests" if reqs else ""
                     print(f"    \033[32mAlignment: {attr} ({enf}{req_str})\033[0m")
-
-        print(f"    \033[2mDeviceClass: {name}\033[0m")
     print()
 
 total_suffix = "es" if len(items) != 1 else ""
