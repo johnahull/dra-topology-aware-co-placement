@@ -785,6 +785,15 @@ from collections import defaultdict
 
 data = json.load(sys.stdin)
 
+DRIVER_LABELS = {
+    'gpu.nvidia.com': 'gpu',
+    'compute-domain.nvidia.com': 'compute-domain',
+    'dra.cpu': 'cpu',
+    'dra.memory': 'memory',
+    'dra.net': 'nic',
+    'dra.nvme': 'nvme',
+}
+
 devices = []
 for rs in data.get('items', []):
     driver = rs['spec']['driver']
@@ -799,25 +808,38 @@ for rs in data.get('items', []):
                     return str(vals[0]) if vals else '?'
             return None
 
+        def get_bool(names):
+            for n in names:
+                if n in attrs:
+                    v = attrs[n]
+                    return v.get('bool', False)
+            return False
+
         numa = get_attr(['resource.kubernetes.io/numaNode', 'numaNode', 'numa',
                          'dra.cpu/numaNodeID', 'dra.net/numaNode', 'dra.memory/numaNode'])
         socket = get_attr(['resource.kubernetes.io/cpuSocketID', 'cpuSocketID',
                            'dra.cpu/socketID'])
         root = get_attr(['resource.kubernetes.io/pcieRoot'])
         pci = get_attr(['resource.kubernetes.io/pciBusID', 'dra.net/pciAddress'])
+        is_vf = get_bool(['dra.net/isSriovVf'])
+        has_sriov = get_bool(['dra.net/sriov'])
+        num_vfs = get_attr(['dra.net/sriovVfs'])
 
-        driver_short = driver.split('.')[-1] if '.' in driver else driver
+        drv_label = DRIVER_LABELS.get(driver, driver.split('.')[-1] if '.' in driver else driver)
         is_cpu = 'cpu' in driver.lower()
 
         devices.append({
             'name': dev['name'],
             'driver': driver,
-            'driver_short': driver_short,
+            'label': drv_label,
             'numa': numa or '?',
             'socket': socket or '?',
             'root': root or '-',
             'pci': pci or '',
             'is_cpu': is_cpu,
+            'is_vf': is_vf,
+            'has_sriov': has_sriov,
+            'num_vfs': num_vfs,
         })
 
 # ── Group by Socket → NUMA → pcieRoot ──
@@ -835,26 +857,34 @@ for sock in sorted(sockets):
             devs = roots[root]
             if root != '-':
                 print(f'\033[2m║   pcieRoot: {root}\033[0m')
-            # group by driver
             by_driver = defaultdict(list)
             for d in devs:
                 by_driver[d['driver']].append(d)
             for drv in sorted(by_driver):
                 dlist = by_driver[drv]
-                drv_short = dlist[0]['driver_short']
+                drv_label = dlist[0]['label']
                 if dlist[0]['is_cpu'] and len(dlist) > 8:
-                    print(f'║     {drv_short}: {len(dlist)} CPUs')
+                    print(f'║     {drv_label}: {len(dlist)} CPUs')
                 else:
                     names = []
                     for d in dlist:
                         label = d['name']
                         if d['pci']:
                             label += f' ({d[\"pci\"]})'
+                        tags = []
+                        if d['is_vf']:
+                            tags.append('VF')
+                        if d['has_sriov'] and d['num_vfs'] and d['num_vfs'] != '0':
+                            tags.append(f'PF:{d[\"num_vfs\"]}VFs')
+                        elif d['has_sriov']:
+                            tags.append('PF')
+                        if tags:
+                            label += f' \033[33m[{\",\".join(tags)}]\033[0m'
                         names.append(label)
                     label_str = ', '.join(names)
-                    if len(label_str) > 90:
+                    if len(label_str) > 120:
                         label_str = ', '.join(names[:3]) + f', ... +{len(names)-3} more'
-                    print(f'║     {drv_short}: {label_str}')
+                    print(f'║     {drv_label}: {label_str}')
         print('║')
     print(f'\033[36m╚{\"═\" * 20}╝\033[0m')
     print()
