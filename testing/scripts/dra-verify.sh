@@ -795,10 +795,7 @@ for driver in sorted(by_driver):
                     tag_str = ', '.join(tags)
                     label += f' \033[33m[{tag_str}]\033[0m'
                 parts.append(label)
-            if len(parts) > 4:
-                line = ', '.join(parts[:4]) + f', ... +{len(parts)-4} more'
-            else:
-                line = ', '.join(parts)
+            line = ', '.join(parts)
             print(f'  \033[2mNUMA {numa}:\033[0m {line}')
     print()
 " 2>/dev/null
@@ -917,10 +914,7 @@ for sock in sorted(sockets):
                         if tags:
                             label += f' \033[33m[{\", \".join(tags)}]\033[0m'
                         names.append(label)
-                    if len(names) > 3:
-                        label_str = ', '.join(names[:3]) + f', ... +{len(names)-3} more'
-                    else:
-                        label_str = ', '.join(names)
+                    label_str = ', '.join(names)
                     print(f'║     {drv_label}: {label_str}')
         print('║')
     print(f'\033[36m╚{\"═\" * 20}╝\033[0m')
