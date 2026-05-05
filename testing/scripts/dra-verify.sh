@@ -1130,26 +1130,37 @@ for profile in sorted(by_profile):
         # Reconstruct individual partition slots by grouping devices
         # by PCIe root within each target NUMA (only for sub-NUMA tiers)
         if pt in ("quarter", "eighth") and target_numas and any(sr.get("count", 0) > 0 for sr in subs):
-            # Find the GPU/accelerator driver in ResourceSlices that matches
-            # a sub-resource DeviceClass (handles vfio.gpu.nvidia.com → gpu.nvidia.com)
-            gpu_slice_driver = None
-            for sr in subs:
-                drv = sr.get("deviceClass", "")
-                if "gpu" in drv or "nvidia" in drv or "amd" in drv:
-                    if drv in dev_tree:
-                        gpu_slice_driver = drv
-                    else:
-                        for tree_drv in dev_tree:
-                            if tree_drv in drv or drv in tree_drv:
-                                gpu_slice_driver = tree_drv
-                                break
-                    break
+            # Find the best driver for PCIe root grouping per NUMA.
+            # Prefer GPU/accelerator, fall back to any driver with multiple PCIe roots.
+            def resolve_driver(dc_name):
+                if dc_name in dev_tree:
+                    return dc_name
+                for td in dev_tree:
+                    if td in dc_name or dc_name in td:
+                        return td
+                return None
+
+            def find_grouping_driver(numa_val):
+                # Prefer GPU driver
+                for sr in subs:
+                    drv = sr.get("deviceClass", "")
+                    if "gpu" in drv or "nvidia" in drv or "amd" in drv:
+                        td = resolve_driver(drv)
+                        if td and len(dev_tree[td].get(numa_val, {})) > 1:
+                            return td
+                # Fall back to any driver with multiple PCIe roots on this NUMA
+                for sr in subs:
+                    td = resolve_driver(sr.get("deviceClass", ""))
+                    if td and len(dev_tree[td].get(numa_val, {})) > 1:
+                        return td
+                return None
 
             # Collect PCIe root groups within target NUMAs
             pcie_groups = defaultdict(lambda: defaultdict(list))
             for numa_val in sorted(target_numas):
-                if gpu_slice_driver and gpu_slice_driver in dev_tree:
-                    for pcie, devs in dev_tree[gpu_slice_driver][numa_val].items():
+                grp_driver = find_grouping_driver(numa_val)
+                if grp_driver:
+                    for pcie, devs in dev_tree[grp_driver][numa_val].items():
                         if pcie is not None:
                             for d in devs:
                                 pcie_groups[numa_val][pcie].append(d)
