@@ -995,16 +995,17 @@ cmd_deviceclasses() {
     section "Topology Coordinator Device Classes"
 
     local verbose="$VERBOSE"
-    { kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; } | VERBOSE="$verbose" python3 -c '
+    { kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | VERBOSE="$verbose" python3 -c '
 import json, sys, os, re
 from collections import defaultdict
 
 verbose = os.environ.get("VERBOSE", "") == "1"
 
 raw = sys.stdin.read()
-dc_part, slice_part = raw.split("---SEP---", 1)
-dc_data = json.loads(dc_part)
-slice_data = json.loads(slice_part)
+parts = raw.split("---SEP---")
+dc_data = json.loads(parts[0])
+slice_data = json.loads(parts[1])
+claim_data = json.loads(parts[2])
 
 items = dc_data.get("items", [])
 if not items:
@@ -1022,33 +1023,63 @@ NUMA_ATTRS = [
     "numa",
 ]
 
-def get_numa(dev):
-    """Get NUMA node from device, checking all known attribute names."""
+PCIE_ATTRS = [
+    "resource.kubernetes.io/pcieRoot",
+    "nodepartition.dra.k8s.io/pcieRoot",
+    "pcieRoot",
+]
+
+def get_attr(dev, attr_list):
     attrs = dev.get("attributes", {})
-    for attr_name in NUMA_ATTRS:
+    for attr_name in attr_list:
         if attr_name in attrs:
             val = attrs[attr_name]
-            if isinstance(val, dict) and "int" in val:
-                return val["int"]
-            if isinstance(val, (int, float)):
-                return int(val)
+            if isinstance(val, dict):
+                return val.get("int", val.get("string"))
+            return val
     return None
 
+def get_numa(dev):
+    return get_attr(dev, NUMA_ATTRS)
+
+def get_pcie(dev):
+    return get_attr(dev, PCIE_ATTRS)
+
+# Build device index: driver -> {name, numa, pcie}
+all_devices = []
+for s in slice_data.get("items", []):
+    driver = s["spec"]["driver"]
+    for d in s["spec"].get("devices", []):
+        all_devices.append({
+            "name": d["name"],
+            "driver": driver,
+            "numa": get_numa(d),
+            "pcie": get_pcie(d),
+            "attrs": d.get("attributes", {}),
+        })
+
+# Build allocated device set: (driver, device_name) -> consumer name
+allocated = {}
+for c in claim_data.get("items", []):
+    consumers = c.get("status", {}).get("reservedFor", [])
+    consumer = consumers[0]["name"] if consumers else None
+    if not consumer:
+        continue
+    for r in c.get("status", {}).get("allocation", {}).get("devices", {}).get("results", []):
+        key = (r.get("driver", ""), r.get("device", ""))
+        allocated[key] = consumer
+
+# Group devices by driver -> numa -> pcie_root -> [devices]
+dev_tree = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+for d in all_devices:
+    dev_tree[d["driver"]][d["numa"]][d["pcie"]].append(d)
+
 def extract_numa_values(selectors):
-    """Extract NUMA node integers from CEL selector strings."""
     numas = set()
     for sel in (selectors or []):
         for m in re.findall(r"numaNode\w*\s*==\s*(\d+)", sel):
             numas.add(int(m))
     return numas
-
-# Build device index: driver -> numa -> [device names]
-dev_by_driver_numa = defaultdict(lambda: defaultdict(list))
-for s in slice_data.get("items", []):
-    driver = s["spec"]["driver"]
-    for d in s["spec"].get("devices", []):
-        numa = get_numa(d)
-        dev_by_driver_numa[driver][numa].append(d["name"])
 
 by_profile = defaultdict(list)
 for dc in items:
@@ -1069,19 +1100,11 @@ for profile in sorted(by_profile):
         labels = dc["metadata"]["labels"]
         name = dc["metadata"]["name"]
         pt = labels.get("nodepartition.dra.k8s.io/partitionType", "?")
-        numa = labels.get("nodepartition.dra.k8s.io/numa", "")
+        numa_label = labels.get("nodepartition.dra.k8s.io/numa", "")
         coupling = labels.get("nodepartition.dra.k8s.io/coupling", "")
 
-        header = f"  \033[33m{pt}\033[0m"
-        if numa:
-            numa_display = numa.replace("_", ",").replace("numa", "")
-            header += f" \033[2m\xb7\033[0m NUMA {numa_display}"
-        if coupling:
-            header += f" \033[2m\xb7\033[0m {coupling}"
-        header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
-        print(header)
-
         configs = dc.get("spec", {}).get("config", [])
+        config = None
         for cfg in configs:
             opaque = cfg.get("opaque", {})
             params = opaque.get("parameters", {})
@@ -1090,54 +1113,134 @@ for profile in sorted(by_profile):
                     params = json.loads(params)
                 except Exception:
                     continue
-            if params.get("kind") != "PartitionConfig":
+            if params.get("kind") == "PartitionConfig":
+                config = params
+                break
+
+        if not config:
+            continue
+
+        subs = config.get("subResources", [])
+
+        # Find target NUMA nodes from CEL selectors
+        target_numas = set()
+        for sr in subs:
+            target_numas |= extract_numa_values(sr.get("selectors", []))
+
+        # Reconstruct individual partition slots by grouping devices
+        # by PCIe root within each target NUMA (only for sub-NUMA tiers)
+        if pt in ("quarter", "eighth") and target_numas and any(sr.get("count", 0) > 0 for sr in subs):
+            # Find PCIe roots that have devices from drivers in this partition
+            gpu_driver = None
+            for sr in subs:
+                drv = sr.get("deviceClass", "")
+                if "gpu" in drv or "nvidia" in drv or "amd" in drv:
+                    gpu_driver = drv
+                    break
+
+            # Collect PCIe root groups within target NUMAs
+            pcie_groups = defaultdict(lambda: defaultdict(list))
+            for numa_val in sorted(target_numas):
+                if gpu_driver and gpu_driver in dev_tree:
+                    for pcie, devs in dev_tree[gpu_driver][numa_val].items():
+                        if pcie is not None:
+                            for d in devs:
+                                pcie_groups[numa_val][pcie].append(d)
+
+            # If we found PCIe groups, show individual slots
+            if pcie_groups:
+                slot_idx = 0
+                for numa_val in sorted(pcie_groups):
+                    for pcie in sorted(pcie_groups[numa_val]):
+                        slot_devs = pcie_groups[numa_val][pcie]
+                        # Build slot header
+                        header = f"  \033[33m{pt}\033[0m"
+                        header += f" \033[2m\xb7\033[0m NUMA {numa_val} \033[2m\xb7\033[0m {pcie}"
+
+                        # Check if any device in this slot is allocated
+                        slot_consumer = None
+                        for sd in slot_devs:
+                            c = allocated.get((sd["driver"], sd["name"]))
+                            if c:
+                                slot_consumer = c
+                                break
+
+                        if slot_consumer:
+                            header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
+                            header += f"  \033[33m⚡ {slot_consumer}\033[0m"
+                        else:
+                            header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
+                            header += f"  \033[32mfree\033[0m"
+                        print(header)
+
+                        # Show devices in this slot
+                        slot_parts = []
+                        for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
+                            drv = sr.get("deviceClass", "?")
+                            count = sr.get("count", 0)
+                            cap = sr.get("capacity", {})
+                            # Show matching devices for this PCIe root
+                            matching = [d["name"] for d in dev_tree[drv].get(numa_val, {}).get(pcie, [])]
+                            if not matching:
+                                matching = [d["name"] for d in dev_tree[drv].get(numa_val, {}).get(None, [])]
+                            if cap:
+                                cap_parts = [f"{v}" for _, v in sorted(cap.items())]
+                                cap_str = ", ".join(cap_parts)
+                                slot_parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
+                            elif matching and drv != "dra.cpu":
+                                dev_str = ", ".join(sorted(matching)[:count]) if len(matching) > count else ", ".join(sorted(matching))
+                                slot_parts.append(f"\033[36m{drv}\033[0m: {dev_str}")
+                            else:
+                                slot_parts.append(f"\033[36m{drv}\033[0m: {count}")
+                        if slot_parts:
+                            line = ", ".join(slot_parts)
+                            print(f"    {line}")
+                        slot_idx += 1
                 continue
 
-            subs = params.get("subResources", [])
-            parts = []
+        # Fallback: show as single entry (half, full, or no PCIe subdivision)
+        header = f"  \033[33m{pt}\033[0m"
+        if numa_label:
+            numa_display = numa_label.replace("_", ",").replace("numa", "")
+            header += f" \033[2m\xb7\033[0m NUMA {numa_display}"
+        if coupling:
+            header += f" \033[2m\xb7\033[0m {coupling}"
+        header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
+        print(header)
+
+        slot_parts = []
+        for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
+            drv = sr.get("deviceClass", "?")
+            count = sr.get("count", 0)
+            cap = sr.get("capacity", {})
+            if cap:
+                cap_parts = [f"{v}" for _, v in sorted(cap.items())]
+                cap_str = ", ".join(cap_parts)
+                slot_parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
+            else:
+                slot_parts.append(f"\033[36m{drv}\033[0m: {count}")
+        if slot_parts:
+            line = ", ".join(slot_parts)
+            print(f"    {line}")
+
+        if verbose:
             for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
                 drv = sr.get("deviceClass", "?")
-                count = sr.get("count", 0)
-                cap = sr.get("capacity", {})
-                if cap:
-                    cap_parts = [f"{v}" for _, v in sorted(cap.items())]
-                    cap_str = ", ".join(cap_parts)
-                    parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
-                else:
-                    parts.append(f"\033[36m{drv}\033[0m: {count}")
-            if parts:
-                line = ", ".join(parts)
-                print(f"    {line}")
-
-            if verbose:
-                for sr in sorted(subs, key=lambda s: s.get("deviceClass", "")):
-                    drv = sr.get("deviceClass", "?")
+                selectors = sr.get("selectors", [])
+                sel_numas = extract_numa_values(selectors)
+                matching = []
+                if sel_numas:
+                    for n in sorted(sel_numas):
+                        matching.extend([d["name"] for d in dev_tree[drv].get(n, {}).get(None, [])])
+                        for pcie_devs in dev_tree[drv].get(n, {}).values():
+                            matching.extend([d["name"] for d in pcie_devs])
+                    matching = sorted(set(matching))
+                if drv == "dra.cpu" and len(matching) > 8:
                     count = sr.get("count", 0)
-                    selectors = sr.get("selectors", [])
-                    target_numas = extract_numa_values(selectors)
-
-                    # Find matching devices from ResourceSlices
-                    matching = []
-                    if target_numas:
-                        for n in sorted(target_numas):
-                            matching.extend(dev_by_driver_numa[drv].get(n, []))
-                    else:
-                        for numa_devs in dev_by_driver_numa[drv].values():
-                            matching.extend(numa_devs)
-
-                    if drv == "dra.cpu" and len(matching) > 8:
-                        print(f"    \033[2m{drv}: {len(matching)} CPUs available (need {count})\033[0m")
-                    elif matching:
-                        dev_list = ", ".join(sorted(matching))
-                        print(f"    \033[2m{drv}: {dev_list}\033[0m")
-
-                aligns = params.get("alignments") or []
-                for a in aligns:
-                    attr = a.get("attribute", "?")
-                    enf = a.get("enforcement", "required")
-                    reqs = a.get("requests", [])
-                    req_str = f" across {len(reqs)} requests" if reqs else ""
-                    print(f"    \033[32mAlignment: {attr} ({enf}{req_str})\033[0m")
+                    print(f"    \033[2m{drv}: {len(matching)} CPUs available (need {count})\033[0m")
+                elif matching:
+                    dev_str = ", ".join(matching)
+                    print(f"    \033[2m{drv}: {dev_str}\033[0m")
     print()
 
 total_suffix = "es" if len(items) != 1 else ""
