@@ -14,6 +14,7 @@
 #   dra-verify.sh metadata [pod] [-n ns]     Show KEP-5304 metadata in pod
 #   dra-verify.sh guest [vm] [-n ns]         Show guest NUMA topology in VM
 #   dra-verify.sh all [-n ns]                Run all checks
+#   eval "$(dra-verify.sh completions)"     Enable bash completions
 
 set -uo pipefail
 
@@ -1144,6 +1145,7 @@ cmd_help() {
     echo "  metadata [pod] [-n ns]     Show KEP-5304 metadata files in pod"
     echo "  guest [vm] [-n ns]         Show guest NUMA topology in KubeVirt VM"
     echo "  all [-n ns]                Run all checks"
+    echo "  completions                Output bash completion script"
     echo ""
     echo "Options:"
     echo "  -n, --namespace NS         Kubernetes namespace"
@@ -1156,6 +1158,40 @@ cmd_help() {
     echo "  $(basename "$0") metadata my-gpu-pod -n test"
     echo "  $(basename "$0") guest vm0 -n default"
     echo "  $(basename "$0") all -n test"
+}
+
+# ── Completions ───────────────────────────────────────────────────────────────
+
+cmd_completions() {
+    cat <<'COMP'
+_dra_verify() {
+    local cur prev cmds opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    cmds="slices topology drivers attributes deviceclasses claims alignment cpupinning vfio metadata guest all help"
+    opts="-n --namespace -v --verbose -h --help"
+
+    if [[ ${COMP_CWORD} -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
+        return 0
+    fi
+
+    case "${prev}" in
+        -n|--namespace)
+            local namespaces
+            namespaces=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+            COMPREPLY=( $(compgen -W "${namespaces}" -- "${cur}") )
+            return 0
+            ;;
+    esac
+
+    COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+    return 0
+}
+complete -F _dra_verify dra-verify.sh
+complete -F _dra_verify dra-verify
+COMP
 }
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
@@ -1174,5 +1210,6 @@ case "$CMD" in
     guest)      cmd_guest ;;
     all)        cmd_all ;;
     help|-h|--help) cmd_help ;;
+    completions|--completions) cmd_completions ;;
     *) echo "Unknown command: $CMD"; cmd_help; exit 1 ;;
 esac
