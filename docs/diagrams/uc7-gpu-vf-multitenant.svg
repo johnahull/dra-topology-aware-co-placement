@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="10 -20 748.8 630" width="748" height="630">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1e1e1e" />
+    </marker>
+  </defs>
+  <rect x="10" y="-20" width="748.8" height="630" fill="#ffffff" />
+  <g opacity="1.0">
+    <text x="80" y="18.0" font-size="18" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF Multi-Tenant — Developer Partitioning (XE9680, NUMA 0)</text>
+  </g>
+  <rect x="30" y="40" width="680" height="550" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="55.0" ry="55.0" />
+  <g opacity="1.0">
+    <text x="278.2" y="66.5" font-size="18" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">NUMA 0 / Socket 0</text>
+  </g>
+  <rect x="50" y="85" width="200" height="32" fill="#d0ebff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.2" ry="3.2" />
+  <g opacity="1.0">
+    <text x="99.0" y="106.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">Switch pci0000:15</text>
+  </g>
+  <rect x="290" y="85" width="100" height="32" fill="#e9ecef" stroke="#868e96" stroke-width="2" opacity="1.0" rx="3.2" ry="3.2" />
+  <g opacity="1.0">
+    <text x="310.0" y="106.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">pci0000:37</text>
+  </g>
+  <g opacity="1.0">
+    <text x="410" y="102.0" font-size="10" font-family="Cascadia, monospace" fill="#868e96" text-anchor="start">+ GPUs 4e, 5f on own roots</text>
+  </g>
+  <rect x="55" y="140" width="90" height="45" fill="#e9ecef" stroke="#495057" stroke-width="2" opacity="1.0" rx="4.5" ry="4.5" />
+  <g opacity="1.0">
+    <text x="70.3" y="158.75" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU 1b PF</text>
+  </g>
+  <g opacity="1.0">
+    <text x="82.0" y="174.75" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">MI300X</text>
+  </g>
+  <path d="M100,117 L100,140" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <rect x="155" y="140" width="90" height="45" fill="#e9ecef" stroke="#495057" stroke-width="2" opacity="1.0" rx="4.5" ry="4.5" />
+  <g opacity="1.0">
+    <text x="180.2" y="158.75" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">NIC PF</text>
+  </g>
+  <g opacity="1.0">
+    <text x="170.0" y="174.75" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">CX-6 Dx 1d</text>
+  </g>
+  <path d="M205,117 L205,140" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <rect x="295" y="140" width="90" height="45" fill="#e9ecef" stroke="#495057" stroke-width="2" opacity="1.0" rx="4.5" ry="4.5" />
+  <g opacity="1.0">
+    <text x="310.3" y="158.75" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU 3d PF</text>
+  </g>
+  <g opacity="1.0">
+    <text x="322.0" y="174.75" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">MI300X</text>
+  </g>
+  <path d="M340,117 L340,140" fill="none" stroke="#495057" stroke-width="1" opacity="1.0" />
+  <g opacity="1.0">
+    <text x="60" y="211.0" font-size="11" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">GPU SR-IOV Virtual Functions:</text>
+  </g>
+  <rect x="55" y="220" width="68" height="36" fill="#a5d8ff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="62.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 0</text>
+  </g>
+  <g opacity="1.0">
+    <text x="71.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1b:2.0</text>
+  </g>
+  <path d="M100,185 L89,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="129" y="220" width="68" height="36" fill="#b2f2bb" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="136.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 1</text>
+  </g>
+  <g opacity="1.0">
+    <text x="145.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1b:3.0</text>
+  </g>
+  <path d="M100,185 L163,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="203" y="220" width="68" height="36" fill="#fff3bf" stroke="#e8590c" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="210.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 2</text>
+  </g>
+  <g opacity="1.0">
+    <text x="219.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1b:4.0</text>
+  </g>
+  <path d="M100,185 L237,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="277" y="220" width="68" height="36" fill="#d0bfff" stroke="#7048e8" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="284.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 3</text>
+  </g>
+  <g opacity="1.0">
+    <text x="293.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1b:5.0</text>
+  </g>
+  <path d="M100,185 L311,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="370" y="220" width="68" height="36" fill="#a5d8ff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="377.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 0</text>
+  </g>
+  <g opacity="1.0">
+    <text x="386.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">3d:2.0</text>
+  </g>
+  <path d="M340,185 L404,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="444" y="220" width="68" height="36" fill="#b2f2bb" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="451.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 1</text>
+  </g>
+  <g opacity="1.0">
+    <text x="460.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">3d:3.0</text>
+  </g>
+  <path d="M340,185 L478,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="518" y="220" width="68" height="36" fill="#fff3bf" stroke="#e8590c" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="525.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 2</text>
+  </g>
+  <g opacity="1.0">
+    <text x="534.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">3d:4.0</text>
+  </g>
+  <path d="M340,185 L552,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="592" y="220" width="68" height="36" fill="#d0bfff" stroke="#7048e8" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="599.6" y="236.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 3</text>
+  </g>
+  <g opacity="1.0">
+    <text x="608.0" y="248.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">3d:5.0</text>
+  </g>
+  <path d="M340,185 L626,220" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <g opacity="1.0">
+    <text x="60" y="301.0" font-size="11" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">NIC SR-IOV Virtual Functions:</text>
+  </g>
+  <rect x="110" y="310" width="68" height="36" fill="#a5d8ff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="117.6" y="326.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">NIC VF 0</text>
+  </g>
+  <g opacity="1.0">
+    <text x="123.0" y="338.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1d:00.2</text>
+  </g>
+  <path d="M205,185 L144,310" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="208" y="310" width="68" height="36" fill="#b2f2bb" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="215.6" y="326.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">NIC VF 1</text>
+  </g>
+  <g opacity="1.0">
+    <text x="221.0" y="338.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1d:00.3</text>
+  </g>
+  <path d="M205,185 L242,310" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="306" y="310" width="68" height="36" fill="#fff3bf" stroke="#e8590c" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="313.6" y="326.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">NIC VF 2</text>
+  </g>
+  <g opacity="1.0">
+    <text x="319.0" y="338.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1d:00.4</text>
+  </g>
+  <path d="M205,185 L340,310" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <rect x="404" y="310" width="68" height="36" fill="#d0bfff" stroke="#7048e8" stroke-width="2" opacity="1.0" rx="3.6" ry="3.6" />
+  <g opacity="1.0">
+    <text x="411.6" y="326.5" font-size="11" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">NIC VF 3</text>
+  </g>
+  <g opacity="1.0">
+    <text x="417.0" y="338.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">1d:00.5</text>
+  </g>
+  <path d="M205,185 L438,310" fill="none" stroke="#868e96" stroke-width="1" opacity="1.0" stroke-dasharray="4,3" />
+  <g opacity="1.0">
+    <text x="60" y="382.0" font-size="12" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">Developer pod assignments (each gets 1 GPU VF + 1 NIC VF):</text>
+  </g>
+  <rect x="50" y="400" width="140" height="70" fill="#a5d8ff" stroke="#1971c2" stroke-width="2" opacity="1.0" rx="7.0" ry="7.0" />
+  <g opacity="1.0">
+    <text x="84.9" y="417.5" font-size="13" font-family="Cascadia, monospace" fill="#1971c2" text-anchor="start">Dev Pod 1</text>
+  </g>
+  <g opacity="1.0">
+    <text x="81.0" y="432.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 0 (1b)</text>
+  </g>
+  <g opacity="1.0">
+    <text x="90.0" y="446.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">+ NIC VF 0</text>
+  </g>
+  <g opacity="1.0">
+    <text x="87.6" y="459.5" font-size="9" font-family="Cascadia, monospace" fill="#868e96" text-anchor="start">+ CPUs + mem</text>
+  </g>
+  <rect x="205" y="400" width="140" height="70" fill="#b2f2bb" stroke="#2f9e44" stroke-width="2" opacity="1.0" rx="7.0" ry="7.0" />
+  <g opacity="1.0">
+    <text x="239.9" y="417.5" font-size="13" font-family="Cascadia, monospace" fill="#2f9e44" text-anchor="start">Dev Pod 2</text>
+  </g>
+  <g opacity="1.0">
+    <text x="236.0" y="432.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 1 (1b)</text>
+  </g>
+  <g opacity="1.0">
+    <text x="245.0" y="446.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">+ NIC VF 1</text>
+  </g>
+  <g opacity="1.0">
+    <text x="242.6" y="459.5" font-size="9" font-family="Cascadia, monospace" fill="#868e96" text-anchor="start">+ CPUs + mem</text>
+  </g>
+  <rect x="360" y="400" width="140" height="70" fill="#fff3bf" stroke="#e8590c" stroke-width="2" opacity="1.0" rx="7.0" ry="7.0" />
+  <g opacity="1.0">
+    <text x="394.9" y="417.5" font-size="13" font-family="Cascadia, monospace" fill="#e8590c" text-anchor="start">Dev Pod 3</text>
+  </g>
+  <g opacity="1.0">
+    <text x="391.0" y="432.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 0 (3d)</text>
+  </g>
+  <g opacity="1.0">
+    <text x="400.0" y="446.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">+ NIC VF 2</text>
+  </g>
+  <g opacity="1.0">
+    <text x="397.6" y="459.5" font-size="9" font-family="Cascadia, monospace" fill="#868e96" text-anchor="start">+ CPUs + mem</text>
+  </g>
+  <rect x="515" y="400" width="140" height="70" fill="#d0bfff" stroke="#7048e8" stroke-width="2" opacity="1.0" rx="7.0" ry="7.0" />
+  <g opacity="1.0">
+    <text x="549.9" y="417.5" font-size="13" font-family="Cascadia, monospace" fill="#7048e8" text-anchor="start">Dev Pod 4</text>
+  </g>
+  <g opacity="1.0">
+    <text x="546.0" y="432.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">GPU VF 1 (3d)</text>
+  </g>
+  <g opacity="1.0">
+    <text x="555.0" y="446.0" font-size="10" font-family="Cascadia, monospace" fill="#1e1e1e" text-anchor="start">+ NIC VF 3</text>
+  </g>
+  <g opacity="1.0">
+    <text x="552.6" y="459.5" font-size="9" font-family="Cascadia, monospace" fill="#868e96" text-anchor="start">+ CPUs + mem</text>
+  </g>
+  <g opacity="1.0">
+    <text x="30" y="513.0" font-size="13" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">Each color = 1 dev pod getting 1 GPU VF + 1 NIC VF on the same NUMA node</text>
+  </g>
+  <g opacity="1.0">
+    <text x="30" y="533.0" font-size="13" font-family="Cascadia, monospace" fill="#495057" text-anchor="start">4 GPU VFs per MI300X = 16 GPU slices per NUMA, 32 per node</text>
+  </g>
+  <g opacity="1.0">
+    <text x="30" y="553.0" font-size="13" font-family="Cascadia, monospace" fill="#2f9e44" text-anchor="start">matchAttribute: numaNode groups GPU VFs and NIC VFs regardless of pcieRoot</text>
+  </g>
+  <g opacity="1.0">
+    <text x="30" y="573.0" font-size="13" font-family="Cascadia, monospace" fill="#e03131" text-anchor="start">matchAttribute: pcieRoot only groups GPU 1b VFs with NIC VFs (same switch)</text>
+  </g>
+</svg>
