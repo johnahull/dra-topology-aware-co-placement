@@ -1233,8 +1233,8 @@ for profile in sorted(by_profile):
             header += f" \033[2m\xb7\033[0m {coupling}"
         header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
 
-        # Check allocation status for this partition
-        partition_consumer = None
+        # Check allocation status for this partition — collect all consumers
+        partition_consumers = set()
         for sr in subs:
             drv = sr.get("deviceClass", "")
             tree_drv = drv
@@ -1248,17 +1248,11 @@ for profile in sorted(by_profile):
                     for d in dev_tree[tree_drv][numa_val][pcie_key]:
                         c = allocated.get((d["driver"], d["name"]))
                         if c:
-                            partition_consumer = c
-                            break
-                    if partition_consumer:
-                        break
-                if partition_consumer:
-                    break
-            if partition_consumer:
-                break
+                            partition_consumers.add(c)
 
-        if partition_consumer:
-            header += f"  \033[33m⚡ {partition_consumer}\033[0m"
+        if partition_consumers:
+            consumers_str = ", ".join(sorted(partition_consumers))
+            header += f"  \033[33m⚡ {consumers_str}\033[0m"
         else:
             header += f"  \033[32mfree\033[0m"
         print(header)
