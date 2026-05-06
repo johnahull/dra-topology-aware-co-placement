@@ -50,12 +50,22 @@ Type "sh dra-verify.sh deviceclasses"
 Enter
 Sleep 10s
 
-# 5. DRA claims
+# 5. Show running VM
+Type "kubectl get vm"
+Enter
+Sleep 5s
+
+# 6. Show VMI
+Type "kubectl get vmi"
+Enter
+Sleep 5s
+
+# 7. DRA claims — what the VM got
 Type "sh dra-verify.sh claims"
 Enter
 Sleep 10s
 
-# 5. Show the VM manifest
+# 8. Show the VM manifest — how it was defined
 Type "more ../../demos/kubevirt-dra-topology-gpu/demo-vm-2numa.yaml"
 Enter
 Sleep 3s
@@ -66,17 +76,7 @@ Sleep 3s
 Type " "
 Sleep 3s
 
-# 6. Show running VM
-Type "kubectl get vm"
-Enter
-Sleep 5s
-
-# 7. Show VMI
-Type "kubectl get vmi"
-Enter
-Sleep 5s
-
-# 8. SSH into VM and run numa-topology
+# 9. SSH into VM and run numa-topology
 Type "sshpass -p fedora ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null fedora@192.168.29.181"
 Enter
 Sleep 5s
@@ -84,7 +84,7 @@ Type "cd /home/fedora/dra-topology-aware-co-placement/testing/scripts && bash nu
 Enter
 Sleep 30s
 
-# 9. Exit VM
+# 10. Exit VM
 Type "exit"
 Enter
 Sleep 1s
