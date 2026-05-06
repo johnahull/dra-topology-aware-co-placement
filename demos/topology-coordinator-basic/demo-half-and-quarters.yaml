@@ -1,0 +1,83 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: demo-h1
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: dra-cpu-dra-memory-gpu-nvidia-com-half-numa0
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: demo-q1
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: dra-cpu-dra-memory-gpu-nvidia-com-quarter-numa1
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: demo-q2
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: dra-cpu-dra-memory-gpu-nvidia-com-quarter-numa1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-half-1
+spec:
+  containers:
+  - name: test
+    image: registry.k8s.io/pause:3.9
+    resources:
+      claims:
+      - name: partition
+  resourceClaims:
+  - name: partition
+    resourceClaimName: demo-h1
+  tolerations:
+  - operator: Exists
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-quarter-1
+spec:
+  containers:
+  - name: test
+    image: registry.k8s.io/pause:3.9
+    resources:
+      claims:
+      - name: partition
+  resourceClaims:
+  - name: partition
+    resourceClaimName: demo-q1
+  tolerations:
+  - operator: Exists
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-quarter-2
+spec:
+  containers:
+  - name: test
+    image: registry.k8s.io/pause:3.9
+    resources:
+      claims:
+      - name: partition
+  resourceClaims:
+  - name: partition
+    resourceClaimName: demo-q2
+  tolerations:
+  - operator: Exists
