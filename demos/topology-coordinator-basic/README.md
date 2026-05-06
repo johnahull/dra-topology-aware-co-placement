@@ -41,6 +41,12 @@ quarter · NUMA 1 · pci0000:d7 → ...-quarter-numa1  free
   dra.cpu: 1 (32), dra.memory: 1, vfio.gpu.nvidia.com: gpu-vfio-3
 ```
 
+## Recording
+
+![XE8640 DRA Verification](xe8640-dra-verify.gif)
+
+Re-record with `vhs xe8640-dra-verify.tape`.
+
 ## Cleanup
 
 ```bash
