@@ -329,8 +329,8 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         print()
         continue
 
-    print(f'  {\"Request\":<28}{\"Driver\":<25}{\"Device\":<20}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
-    print(f'  {\"─\"*28}{\"─\"*25}{\"─\"*20}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
+    print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
+    print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
 
     numas = set()
     roots = set()
@@ -346,9 +346,9 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         pci = topo.get('pciBusID', '-')
         product = str(topo.get('productName', '-'))[:28]
 
-        request_short = request if len(request) <= 26 else request[:24] + '..'
-        driver_short = driver if len(driver) <= 23 else driver[:21] + '..'
-        print(f'  {request_short:<28}{driver_short:<25}{device:<20}{str(numa):<6}{str(root):<16}{str(pci):<18}{product:<30}')
+        request_short = request if len(request) <= 30 else request[:28] + '..'
+        driver_short = driver if len(driver) <= 20 else driver[:18] + '..'
+        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{str(root):<16}{str(pci):<18}{product:<30}')
 
         if root != '-':
             roots.add(str(root))
