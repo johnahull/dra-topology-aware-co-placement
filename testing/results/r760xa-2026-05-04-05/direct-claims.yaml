@@ -1,0 +1,65 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-1
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.nvidia.com
+    - name: nic
+      exactly:
+        deviceClassName: dra.net-sriov-vf
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        capacity:
+          requests:
+            dra.cpu/cpu: "8"
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [gpu, nic, cpu]
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-2
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.nvidia.com
+    - name: nic
+      exactly:
+        deviceClassName: dra.net-sriov-vf
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        capacity:
+          requests:
+            dra.cpu/cpu: "8"
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [gpu, nic, cpu]
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-3
+spec:
+  devices:
+    requests:
+    - name: nic
+      exactly:
+        deviceClassName: dra.net-sriov-vf
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        capacity:
+          requests:
+            dra.cpu/cpu: "8"
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [nic, cpu]

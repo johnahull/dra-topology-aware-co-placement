@@ -235,6 +235,68 @@ spec:
 
 All devices NUMA-aligned. Both GPUs correctly assigned to NUMA 0 pods. NUMA 1 pod has no GPU (both GPUs are on NUMA 0).
 
+### 5. dranet Broadcom management NIC filter
+
+Broadcom BCM5720 embedded NICs at `0000:02:00.0` and `0000:02:00.1` have no netlink interface but dranet advertises them as PCI network devices. `Prepare` fails with `device has no interface name in local store`.
+
+Workaround — CEL filter on dranet `--filter` flag to exclude Broadcom NICs:
+```
+--filter=(!(\"dra.net/type\" in attributes) || attributes[\"dra.net/type\"].StringValue != \"veth\") && (!(\"dra.net/pciVendor\" in attributes) || !attributes[\"dra.net/pciVendor\"].StringValue.startsWith(\"Broadcom\"))
+```
+
+### 6. Direct claims with matchAttribute (no coordinator)
+
+Simple claims with `matchAttribute: resource.kubernetes.io/numaNode` work without the topology coordinator:
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: quarter-1
+spec:
+  devices:
+    requests:
+    - name: gpu
+      exactly:
+        deviceClassName: gpu.nvidia.com
+    - name: nic
+      exactly:
+        deviceClassName: dra.net-sriov-vf
+    - name: cpu
+      exactly:
+        deviceClassName: dra.cpu
+        capacity:
+          requests:
+            dra.cpu/cpu: "8"
+    constraints:
+    - matchAttribute: resource.kubernetes.io/numaNode
+      requests: [gpu, nic, cpu]
+```
+
+dra.net-sriov-vf DeviceClass (fixed CEL):
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: dra.net-sriov-vf
+spec:
+  selectors:
+  - cel:
+      expression: "device.driver == 'dra.net' && has(device.attributes['dra.net'].isSriovVf) && device.attributes['dra.net'].isSriovVf == true"
+```
+
+Results — all 3 pods running, all NUMA-aligned:
+
+| Claim | Pod | NUMA | GPU | NIC VF | CPUs |
+|---|---|---|---|---|---|
+| quarter-1 | quarter-pod-1 | 0 | gpu-0 | pci-0000-37-00-1 | cpudevnuma000 |
+| quarter-2 | quarter-pod-2 | 0 | gpu-1 | pci-0000-37-00-2 | cpudevnuma000 |
+| quarter-3 | quarter-pod-3 | 1 | (none) | pci-0000-b5-00-2 | cpudevnuma001 |
+
+### 7. Coordinator GPU count bug
+
+The topology coordinator webhook expands GPU sub-requests without setting `count` or `allocationMode: ExactCount`. The partition config has `count: 1` but the expanded claim has no count field, so the scheduler allocates all matching GPUs to the first claim.
+
 ## Issues Found This Session
 
 | Issue | Component | Status |
@@ -247,6 +309,8 @@ All devices NUMA-aligned. Both GPUs correctly assigned to NUMA 0 pods. NUMA 1 po
 | GPU driver stale ResourceSlice after restart | NVIDIA DRA driver | Fixed by restarting pod |
 | Coordinator uses dra.net (all NICs) instead of dra.net-sriov-vf | Topology coordinator | Workaround: patch device class after generation, scale down coordinator |
 | dra.net-sriov-vf CEL expression wrong (.BoolValue) | dranet DeviceClass | Fixed: `has(device.attributes['dra.net'].isSriovVf) && ...` |
-| dranet advertises PCI NICs without interfaces (Broadcom BCM5720) | dranet | Investigating — PCI devices at 0000:02:00.0/1 have no /net dir but dranet still advertises them. Filter code added but not effective — `discoverNetworkInterfaces` may be associating an interface via alternate sysfs path |
-| Direct claims with matchAttribute work (GPU+VF+CPU) | Test success | All 3 pods NUMA-aligned without coordinator |
+| dranet advertises PCI NICs without interfaces (Broadcom BCM5720) | dranet | Workaround: `--filter` CEL excludes `pciVendor.startsWith("Broadcom")`. Code fix attempted but Go build caching prevented testing. |
+| Coordinator webhook doesn't set count on GPU sub-requests | Topology coordinator | Bug: expanded claim has no `count`/`allocationMode` for GPUs, scheduler gives all matching. Need to file. |
+| Direct claims with matchAttribute work (GPU+VF+CPU) | Test success | All 3 pods NUMA-aligned via `matchAttribute: resource.kubernetes.io/numaNode` without coordinator |
 | Coordinator claims with patched device class work | Test success | 3 quarter pods: 2 on NUMA 0 (1 GPU each), 1 on NUMA 1 |
+| Coordinator claims with Broadcom filter work | Test success | 2 of 3 pods running (3rd blocked by GPU count bug above) |
