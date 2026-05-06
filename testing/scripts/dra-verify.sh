@@ -1232,6 +1232,35 @@ for profile in sorted(by_profile):
         if coupling:
             header += f" \033[2m\xb7\033[0m {coupling}"
         header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
+
+        # Check allocation status for this partition
+        partition_consumer = None
+        for sr in subs:
+            drv = sr.get("deviceClass", "")
+            tree_drv = drv
+            if drv not in dev_tree:
+                for td in dev_tree:
+                    if td in drv or drv in td:
+                        tree_drv = td
+                        break
+            for numa_val in (sorted(target_numas) if target_numas else [None]):
+                for pcie_key in dev_tree[tree_drv].get(numa_val, {}):
+                    for d in dev_tree[tree_drv][numa_val][pcie_key]:
+                        c = allocated.get((d["driver"], d["name"]))
+                        if c:
+                            partition_consumer = c
+                            break
+                    if partition_consumer:
+                        break
+                if partition_consumer:
+                    break
+            if partition_consumer:
+                break
+
+        if partition_consumer:
+            header += f"  \033[33m⚡ {partition_consumer}\033[0m"
+        else:
+            header += f"  \033[32mfree\033[0m"
         print(header)
 
         slot_parts = []
