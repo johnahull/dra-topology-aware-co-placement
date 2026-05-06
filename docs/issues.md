@@ -801,6 +801,66 @@ The topology coordinator runs a mutating admission webhook that expands simple "
 
 ---
 
+#### TC-3: Topology coordinator double-counts GPU devices when driver publishes multiple types
+
+**Repo:** `johnahull/k8s-dra-topology-coordinator`
+**Fix:** `johnahull/k8s-dra-topology-coordinator` — `deviceFilter` field + qualified attribute name matching
+**Status:** Fixed.
+
+The NVIDIA DRA driver publishes both compute (`gpu-0`, type=gpu) and VFIO (`gpu-vfio-0`, type=vfio) devices under the same driver `gpu.nvidia.com`. The topology coordinator's `driverCounts` counted all devices from the driver without distinguishing types, so on the XE8640 with 2 physical GPUs per NUMA node, it counted 4 devices (2 compute + 2 VFIO) and allocated 2 GPUs per quarter partition instead of 1.
+
+**Three fixes applied:**
+
+1. **`deviceFilter` field on topology rules** — New optional field in the ConfigMap that filters devices by attribute value. When `deviceFilter=vfio` is set on the `gpu-vfio-deviceclass` rule, only VFIO-type devices are counted for partition computation.
+
+2. **Qualified attribute name matching** — DRA attributes stored without a domain prefix (e.g., `type`) weren't matching topology rules that used the fully qualified form (e.g., `gpu.nvidia.com/type`). Added logic to try both the raw name and `driverName/name` when matching rules.
+
+3. **Removed unconditional `divided=1` fallback** — When `count < subdivisions` for exclusive devices (GPUs), the fallback `if divided == 0 { divided = 1 }` incorrectly allocated 1 device per partition even when the device couldn't be subdivided. Removed — only capacity-mode (shared) devices get the fallback.
+
+**Files changed:**
+- `internal/controller/partition_builder.go` — `deviceMatchesFilter()` helper, filter in `driverCounts`, removed fallback
+- `internal/controller/topology_model.go` — qualified attribute name matching in `extractTopologyDevice()`
+- `internal/controller/topology_rules.go` — `DeviceFilter` field in `TopologyRule`, parsed from ConfigMap
+
+**ConfigMap change required:**
+```yaml
+# Add deviceFilter to gpu-vfio-deviceclass ConfigMap
+data:
+  deviceFilter: "vfio"
+```
+
+Observed on XE8640 with 4x H100 SXM5, NVIDIA DRA driver `vfio-discovery-fix` build.
+
+---
+
+#### TC-4: Topology coordinator doesn't match unqualified DRA attribute names
+
+**Repo:** `johnahull/k8s-dra-topology-coordinator`
+**Fix:** `johnahull/k8s-dra-topology-coordinator` — qualified name matching (same commit as TC-3)
+**Status:** Fixed.
+
+DRA ResourceSlice attributes can be stored as unqualified names (e.g., `type`, `numa`) which belong to the publishing driver's domain. The topology coordinator's `extractTopologyDevice()` compared attribute names literally against topology rule attribute names, so a rule with `attribute: gpu.nvidia.com/type` wouldn't match a ResourceSlice attribute named just `type`.
+
+The fix constructs a qualified name (`driverName + "/" + name`) for unqualified attributes and tries both forms when matching rules. Extended attributes are stored under the rule's attribute name for consistent lookup by `deviceFilter`.
+
+**File:** `internal/controller/topology_model.go` — `extractTopologyDevice()`
+
+---
+
+#### KV-11: KubeVirt `resolveDevice` rejects multi-device requests from partition claims
+
+**Repo:** `johnahull/kubevirt` `feature/dra-all-patches`
+**Fix:** Resolved by TC-3 (topology coordinator fix).
+**Status:** Fixed (root cause was TC-3).
+
+KubeVirt's `resolveDevice()` in `pkg/dra/utils.go` enforces exactly 1 device per request for GPU passthrough. When the topology coordinator incorrectly allocated 2 GPUs per quarter partition (TC-3), the KEP-5304 metadata contained 2 devices under the `partition-vfio-gpu-nvidia-com` request. `resolveDevice()` returned an error, which was swallowed by `createHostDeviceForGPU()` (it checks `err == nil`), falling through to the generic error: `GPU gpu0 has no mdevUUID or pciBusID in metadata for claim`.
+
+The misleading error message made it appear that the metadata was missing or couldn't be parsed, when the actual issue was the device count. With TC-3 fixed, each partition correctly allocates 1 GPU, and `resolveDevice()` succeeds.
+
+**Note:** The error masking in `createHostDeviceForGPU()` (lines 92, 118 in `gpu_hostdev.go`) should be improved to log the underlying error from `resolveDevice()` for better diagnostics.
+
+---
+
 ## Closed
 
 | # | Issue | Closed By | Notes |

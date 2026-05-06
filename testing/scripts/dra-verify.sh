@@ -733,12 +733,29 @@ cmd_guest() {
     echo -e "${BOLD}Checking guest topology for VM $target_vm:${NC}"
     echo ""
 
+    # Resolve SSH target: try virtctl ssh first, fall back to direct SSH via VMI IP
+    local ssh_cmd=""
+    if virtctl ssh $ns_arg --command="true" "$target_vm" &>/dev/null; then
+        ssh_cmd="virtctl ssh $ns_arg $target_vm --"
+    else
+        local vmi_ip
+        vmi_ip=$(kubectl get vmi $ns_arg "$target_vm" -o jsonpath='{.status.interfaces[0].ipAddress}' 2>/dev/null)
+        if [[ -n "$vmi_ip" ]]; then
+            ssh_cmd="sshpass -p fedora ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 fedora@$vmi_ip"
+        fi
+    fi
+
+    if [[ -z "$ssh_cmd" ]]; then
+        echo -e "  ${DIM}(Cannot reach VM — virtctl ssh failed and no VMI IP found)${NC}"
+        return
+    fi
+
     echo -e "${BOLD}NUMA nodes:${NC}"
-    virtctl ssh $ns_arg "$target_vm" -- "ls -d /sys/devices/system/node/node* 2>/dev/null | while read n; do echo \"  \$(basename \$n): \$(cat \$n/cpulist 2>/dev/null) CPUs, \$(awk '/MemTotal/{printf \"%.0f MB\", \$4/1024}' \$n/meminfo 2>/dev/null)\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed — is virtctl available?)${NC}"
+    $ssh_cmd "ls -d /sys/devices/system/node/node* 2>/dev/null | while read n; do echo \"  \$(basename \$n): \$(cat \$n/cpulist 2>/dev/null) CPUs, \$(awk '/MemTotal/{printf \"%.0f MB\", \$4/1024}' \$n/meminfo 2>/dev/null)\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed)${NC}"
     echo ""
 
     echo -e "${BOLD}PCI devices with NUMA affinity:${NC}"
-    virtctl ssh $ns_arg "$target_vm" -- "for d in /sys/bus/pci/devices/*/numa_node; do dev=\$(basename \$(dirname \$d)); node=\$(cat \$d); class=\$(cat /sys/bus/pci/devices/\$dev/class 2>/dev/null); [ \"\$node\" != \"-1\" ] && echo \"  \$dev: numa=\$node class=\$class\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed)${NC}"
+    $ssh_cmd "for d in /sys/bus/pci/devices/*/numa_node; do dev=\$(basename \$(dirname \$d)); node=\$(cat \$d); class=\$(cat /sys/bus/pci/devices/\$dev/class 2>/dev/null); [ \"\$node\" != \"-1\" ] && echo \"  \$dev: numa=\$node class=\$class\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed)${NC}"
 }
 
 # ── slices ────────────────────────────────────────────────────────────────────

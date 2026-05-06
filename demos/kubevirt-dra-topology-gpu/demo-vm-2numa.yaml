@@ -1,0 +1,86 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: vm-numa0
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: dra-cpu-dra-memory-gpu-nvidia-com-quarter-numa0
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: vm-numa1
+spec:
+  devices:
+    requests:
+    - name: partition
+      exactly:
+        deviceClassName: dra-cpu-dra-memory-gpu-nvidia-com-quarter-numa1
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: demo-vm
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 4
+          sockets: 2
+          threads: 1
+          numa:
+            guestMappingPassthrough: {}
+        memory:
+          guest: 8Gi
+          hugepages:
+            pageSize: 2Mi
+          reservedOverhead:
+            addedOverhead: 4Gi
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          gpus:
+          - name: gpu0
+            claimName: vm-numa0
+            requestName: partition-vfio-gpu-nvidia-com
+          - name: gpu1
+            claimName: vm-numa1
+            requestName: partition-vfio-gpu-nvidia-com
+          interfaces:
+          - bridge: {}
+            name: default
+        machine:
+          type: q35
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: vm-numa0
+        resourceClaimName: vm-numa0
+      - name: vm-numa1
+        resourceClaimName: vm-numa1
+      tolerations:
+      - operator: Exists
+      volumes:
+      - containerDisk:
+          image: quay.io/containerdisks/fedora:41
+          imagePullPolicy: IfNotPresent
+        name: containerdisk
+      - cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            password: fedora
+            chpasswd:
+              expire: false
+            ssh_pwauth: true
+        name: cloudinitdisk

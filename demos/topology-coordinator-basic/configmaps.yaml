@@ -10,6 +10,7 @@ data:
   type: "string"
   driver: "gpu.nvidia.com"
   deviceClass: "vfio.gpu.nvidia.com"
+  deviceFilter: "vfio"
   partitioning: "info"
   constraint: "none"
   description: "Map gpu.nvidia.com VFIO devices to vfio.gpu.nvidia.com DeviceClass"
