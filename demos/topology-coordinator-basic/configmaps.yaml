@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-vfio-deviceclass
+  namespace: kube-system
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: "gpu.nvidia.com/type"
+  type: "string"
+  driver: "gpu.nvidia.com"
+  deviceClass: "vfio.gpu.nvidia.com"
+  partitioning: "info"
+  constraint: "none"
+  description: "Map gpu.nvidia.com VFIO devices to vfio.gpu.nvidia.com DeviceClass"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-numa-mapping
+  namespace: kube-system
+  labels:
+    nodepartition.dra.k8s.io/topology-rule: "true"
+data:
+  attribute: "numa"
+  type: "int"
+  driver: "gpu.nvidia.com"
+  mapsTo: "numaNode"
+  partitioning: "info"
+  constraint: "none"
+  description: "Map gpu.nvidia.com native numa attribute to standard numaNode"
