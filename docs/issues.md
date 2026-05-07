@@ -322,7 +322,8 @@ Verified on XE8640: 5-driver claim (GPU + NIC + NVMe + CPU + memory) produces me
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `fix/dra-claim-dedup` commit `cac899b`
 **File:** `pkg/virt-controller/services/renderresources.go`
-**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673) (on hold — dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) which is lgtmed)
+**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672) (dupe of [#16769](https://github.com/kubevirt/kubevirt/issues/16769)), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673) (closed — dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) which is lgtmed, not yet merged)
+**Status:** Needs verification — confirm #17490 fixes our multi-request claim scenario before closing #17672
 
 When the virt-controller creates the virt-launcher pod spec, it copies resource claim references from the VMI spec to the pod's container resources. The `copyResourceClaims` function deduplicates these references to avoid Kubernetes API validation errors on duplicate claim names.
 
