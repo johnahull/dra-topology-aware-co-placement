@@ -323,7 +323,7 @@ Verified on XE8640: 5-driver claim (GPU + NIC + NVMe + CPU + memory) produces me
 **Fix:** `johnahull/kubevirt` `fix/dra-claim-dedup` commit `cac899b`
 **File:** `pkg/virt-controller/services/renderresources.go`
 **Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672) (dupe of [#16769](https://github.com/kubevirt/kubevirt/issues/16769)), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673) (closed — dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) which is lgtmed, not yet merged)
-**Status:** Needs verification — confirm #17490 fixes our multi-request claim scenario before closing #17672
+**Status:** Verified — upstream #17490 removes `copyResourceClaims` entirely and appends claims directly with both Name and Request fields. Includes test for same-ClaimName/different-RequestName. Also fixes KV-3. Close #17672 and #17673 once #17490 merges.
 
 When the virt-controller creates the virt-launcher pod spec, it copies resource claim references from the VMI spec to the pod's container resources. The `copyResourceClaims` function deduplicates these references to avoid Kubernetes API validation errors on duplicate claim names.
 
@@ -352,6 +352,7 @@ The fix removes the `referenced` filter entirely. `WithExtraResourceClaims` now 
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1` commit `595bdfb`
 **File:** `pkg/virt-controller/services/renderresources.go`
+**Upstream:** Also fixed by [#17490](https://github.com/kubevirt/kubevirt/pull/17490) — removes `copyResourceClaims` and `requestResourceClaims`, appends directly to `r.resourceClaims`
 
 `WithGPUsDRA` and `WithHostDevicesDRA` each add per-request claim references (e.g., `{Name: "numa0", Request: "gpu"}`). `WithExtraResourceClaims` adds blanket references (e.g., `{Name: "numa0"}`). When both run, the pod spec ends up with two entries for the same claim Name. The Kubernetes API rejects this with a `Duplicate value` validation error.
 
