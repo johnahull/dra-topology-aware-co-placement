@@ -336,9 +336,6 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         print()
         continue
 
-    print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
-    print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
-
     # Constraint color map: assign a color per matchAttribute
     COLORS = {
         'pcieRoot': '\033[32m',   # green
@@ -346,14 +343,6 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     }
     DEFAULT_MATCH_COLOR = '\033[33m'  # yellow for others
     RST = '\033[0m'
-
-    # Print constraint lines with matching colors
-    for short_ma, line in constraint_lines:
-        color = COLORS.get(short_ma, '')
-        if color:
-            print(f'  {color}{line}{RST}')
-        else:
-            print(f'  \033[2m{line}\033[0m')
 
     # Collect rows with topology data
     rows = []
@@ -413,6 +402,17 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
             if common:
                 color = COLORS.get(attr_key, DEFAULT_MATCH_COLOR)
                 matched_constraints[attr_key] = (common, color)
+
+    # Print constraint lines colored by match result
+    for short_ma, line in constraint_lines:
+        if short_ma in matched_constraints:
+            color = matched_constraints[short_ma][1]
+            print(f'  {color}{line}{RST}')
+        else:
+            print(f'  \033[2m{line}\033[0m')
+
+    print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
+    print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
 
     # Print rows with constraint-aware coloring
     for row in rows:
