@@ -127,7 +127,7 @@ Every DRA driver that calls `GetPCIeRootAttributeByPCIBusID()` today would add o
 
 ## Composing Independent Constraints
 
-`pcieRoot` and `numaNode` measure different physical properties (bus topology and memory topology). They are genuinely orthogonal — a GPU and NIC can be on different PCIe switches but the same memory controller. Users compose independent constraints from both based on what their workload requires:
+`pcieRoot` and `numaNode` measure different physical properties (bus topology and memory topology). They are genuinely orthogonal — a GPU and NIC can be connected to different PCIe switches but the same memory controller. Users compose independent constraints from both based on what their workload requires:
 
 **Standard hardware (SNC/NPS off — majority of GPU deployments):**
 

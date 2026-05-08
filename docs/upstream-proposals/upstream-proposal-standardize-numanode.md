@@ -1,12 +1,12 @@
 # Upstream Proposal: Standardize `resource.kubernetes.io/numaNode`
 
-> **TL;DR:** Standardize `resource.kubernetes.io/numaNode` (int) alongside the existing `pcieRoot`. They measure different physical properties: `pcieRoot` identifies which devices share a PCIe switch (bus topology), `numaNode` identifies which devices share a memory controller (memory topology). These are orthogonal signals — a GPU and NIC can be on different PCIe switches but the same memory controller. `numaNode` is also the missing topology anchor that KEPs 5491, 5075, and 5941 need to work across driver boundaries. One new attribute, one sysfs read, restores the cross-driver NUMA coordination that was lost when devices moved from device plugins to DRA.
+> **TL;DR:** Standardize `resource.kubernetes.io/numaNode` (int) alongside the existing `pcieRoot`. They measure different physical properties: `pcieRoot` identifies which devices share a PCIe switch (bus topology), `numaNode` identifies which devices share a memory controller (memory topology). These are orthogonal signals — a GPU and NIC can be connected to different PCIe switches but the same memory controller. `numaNode` is also the missing topology anchor that KEPs 5491, 5075, and 5941 need to work across driver boundaries. One new attribute, one sysfs read, restores the cross-driver NUMA coordination that was lost when devices moved from device plugins to DRA.
 
 ---
 
 ## Why Standardize `numaNode`
 
-- **pcieRoot measures bus topology, not memory topology.** A GPU and NIC can be on different PCIe switches but the same memory controller. pcieRoot can't express this. numaNode is the orthogonal signal for memory controller proximity.
+- **pcieRoot measures bus topology, not memory topology.** A GPU and NIC can be connected to different PCIe switches but the same memory controller. pcieRoot can't express this. numaNode is the orthogonal signal for memory controller proximity.
 - **Five drivers, five names, same sysfs value.** Most DRA drivers already publish NUMA — they just can't agree on a name. `matchAttribute` requires a common name for cross-driver co-placement. Standardization is a naming fix, not new functionality.
 - **pcieRoot excludes many GPU/NIC combinations** Not all GPUs share a switch with a NIC. Some servers have 1 root per PCIe slot.
 - **KEP-5491 list types don't close the gap.** CPU-as-pivot matching works for GPU↔CPU and NIC↔CPU, but GPU↔NIC on different roots have zero intersection. You can't derive memory proximity from bus addresses.

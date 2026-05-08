@@ -22,7 +22,7 @@ DRA moved device allocation from kubelet to scheduler, breaking the topology man
 
 ### 2. Completes the standard attribute vocabulary
 
-`pcieRoot` is already standardized as a bus topology signal. `numaNode` adds the memory topology signal. These are genuinely orthogonal — they measure different physical properties of different hardware subsystems. A GPU and NIC can be on different PCIe switches but the same memory controller. Users compose independent constraints from both attributes based on what their workload requires:
+`pcieRoot` is already standardized as a bus topology signal. `numaNode` adds the memory topology signal. These are genuinely orthogonal — they measure different physical properties of different hardware subsystems. A GPU and NIC can be connected to different PCIe switches but the same memory controller. Users compose independent constraints from both attributes based on what their workload requires:
 
 | Attribute | Physical signal | What it answers |
 |---|---|---|

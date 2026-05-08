@@ -1,6 +1,6 @@
 # Proposal: Standardize `numaNode` as a DRA Device Attribute
 
-> **TL;DR:** Standardize `resource.kubernetes.io/numaNode` alongside the existing `pcieRoot`. They measure different physical properties: `pcieRoot` identifies which devices share a PCIe switch (bus topology), `numaNode` identifies which devices share a memory controller (memory topology). These are orthogonal signals — a GPU and NIC can be on different PCIe switches but the same memory controller. `numaNode` is also the missing topology anchor that KEPs 5491, 5075, and 5941 need to work across driver boundaries. Users compose independent constraints from both attributes based on what their workload requires.
+> **TL;DR:** Standardize `resource.kubernetes.io/numaNode` alongside the existing `pcieRoot`. They measure different physical properties: `pcieRoot` identifies which devices share a PCIe switch (bus topology), `numaNode` identifies which devices share a memory controller (memory topology). These are orthogonal signals — a GPU and NIC can be connected to different PCIe switches but the same memory controller. `numaNode` is also the missing topology anchor that KEPs 5491, 5075, and 5941 need to work across driver boundaries. Users compose independent constraints from both attributes based on what their workload requires.
 
 ## Overview
 
