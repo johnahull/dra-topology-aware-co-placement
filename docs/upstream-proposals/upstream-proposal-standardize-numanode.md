@@ -6,8 +6,8 @@
 
 ## Why Standardize `numaNode`
 
-- **Five drivers, five names, same sysfs value.** Most DRA drivers already publish NUMA — they just can't agree on a name. `matchAttribute` requires a common name for cross-driver co-placement. Standardization is a naming fix, not new functionality.
 - **pcieRoot measures bus topology, not memory topology.** A GPU and NIC can be on different PCIe switches but the same memory controller. pcieRoot can't express this. numaNode is the orthogonal signal for memory controller proximity.
+- **Five drivers, five names, same sysfs value.** Most DRA drivers already publish NUMA — they just can't agree on a name. `matchAttribute` requires a common name for cross-driver co-placement. Standardization is a naming fix, not new functionality.
 - **pcieRoot excludes many GPU/NIC combinations** Not all GPUs share a switch with a NIC. Some servers have 1 root per PCIe slot.
 - **KEP-5491 list types don't close the gap.** CPU-as-pivot matching works for GPU↔CPU and NIC↔CPU, but GPU↔NIC on different roots have zero intersection. You can't derive memory proximity from bus addresses.
 - **KEPs 5075 and 5941 need a topology anchor.** Consumable capacity tracks how much is available. Shared capacity tracks aggregate consumption. Neither can scope to a topology domain without numaNode. The scheduler can track what's available but not where to consume it.
@@ -18,6 +18,17 @@
 ---
 
 ## Problem
+
+### pcieRoot and numaNode measure different things
+
+`resource.kubernetes.io/pcieRoot` measures bus topology — which PCIe switch tree a device sits behind. This is a different physical property from memory topology — which memory controller services a device. They are orthogonal:
+
+| Attribute | Physical signal | What it answers |
+|---|---|---|
+| `pcieRoot` (standardized) | Bus topology | Which PCIe switch tree? |
+| `numaNode` (proposed) | Memory topology | Which memory controller? |
+
+As [kad noted at KubeCon NA 2024](https://sched.co/1i7ke): "There is no CPU in NUMA, there is no PCI in NUMA. Those two things are separate entities." `pcieRoot` is the bus topology signal. `numaNode` is the memory topology signal. Neither replaces the other.
 
 ### Cross-driver NUMA alignment is impossible
 
@@ -39,24 +50,13 @@ constraints:
   requests: [gpu, nic, cpu, mem]
 ```
 
-There is no standard name to use. Cross-driver NUMA co-placement is impossible without middleware (topology coordinator, CEL selectors with hardcoded vendor names, or per-driver ConfigMap rules).
+There is no standard name to use. Cross-driver NUMA co-placement is impossible without middleware (topology coordinator, CEL selectors with hardcoded vendor names, or per-driver ConfigMap rules). Most drivers already read NUMA from sysfs and publish it. The data exists. The problem is purely naming — each driver chose a different name for the same value.
 
 ### Regression from device plugins
 
 With device plugins, the kubelet's topology manager coordinated CPU, memory, and device NUMA placement — when configured with a topology-aware policy (`single-numa-node`, `restricted`, or `best-effort`) and for Guaranteed QoS pods. A pod requesting a GPU and CPU cores got them on the same NUMA node without any topology constraint in the pod spec. The coordination happened at the kubelet level through topology hints from each resource manager.
 
 DRA moved device allocation from the kubelet to the scheduler. The topology manager has no awareness of DRA devices and cannot collect topology hints from them. Regardless of topology manager policy or QoS class, there is no mechanism to co-place devices from different DRA drivers on the same NUMA node unless all drivers publish the same attribute name.
-
-Most drivers already read NUMA from sysfs and publish it. The data exists. The problem is purely naming — each driver chose a different name for the same value.
-
-### pcieRoot is the only standard topology attribute
-
-`resource.kubernetes.io/pcieRoot` measures bus topology — which PCIe switch tree a device sits behind. This is a different physical property from memory topology — which memory controller services a device. They are orthogonal:
-
-| Attribute | Physical signal | What it answers |
-|---|---|---|
-| `pcieRoot` (standardized) | Bus topology | Which PCIe switch tree? |
-| `numaNode` (proposed) | Memory topology | Which memory controller? |
 
 ---
 
