@@ -94,9 +94,31 @@ The core issue: on AMD servers with NPS4 mode, a single socket has **4 NUMA node
 **The case against `cpuSocketNumber`** ([fromani](https://github.com/kubernetes/enhancements/pull/5316#discussion_r2095270564)):
 > "numaNode as aligning attribute has surely its share of issues, but using cpuSocket also has its share of issues, so we are swapping a problem set with another problem set. Doesn't seem a clear improvement, rather a different tradeoff."
 
-Even within a socket, PCIe roots may have different distances to particular CPU cores depending on the vendor and generation of hardware ([kad's KubeCon presentation](https://sched.co/1i7ke)). Socket-level alignment is coarser than what some workloads need.
+Even within a socket, PCIe roots may have different distances to particular CPU cores depending on the vendor and generation of hardware ([kad's KubeCon NA 2024](https://sched.co/1i7ke)). Socket-level alignment is coarser than what some workloads need.
+
+However, kad also noted in the same talk that on modern processors (Intel 5th/6th gen Xeon, AMD EPYC), the inter-tile bus speed is "good enough" that you don't see latency differences between cores communicating with different PCI controllers on the same socket. He also explicitly stated: "NUMA is only about memory... There is no CPU in NUMA, there is no PCI in NUMA. Those two things are separate entities." This confirms that `pcieRoot` and `numaNode` measure different physical properties — and that the performance-critical boundary is the memory controller (numaNode), not the PCI switch (pcieRoot), for most workloads.
+
+**Edge case: AMD NPS4 with unpopulated memory channels.** kad noted that NPS4 with partial memory population can create NUMA nodes with CPUs but zero memory, which "breaks like everything in kubelet." This is a hardware configuration concern (fully populate memory channels on GPU servers) rather than a numaNode semantics issue.
+
+**Forward-looking: CXL memory.** CXL Type 3 memory expanders create additional NUMA nodes not tied to any CPU socket. Devices attached to CXL memory report the CXL controller's NUMA node. `numaNode` as defined ("which memory controller services this device") handles this correctly — the attribute is agnostic to memory technology (DRAM, HBM, CXL).
 
 **The emerging alternative: CPUs publish `pcieRoot` as a list.** Rather than introducing a new standard attribute, the community is exploring whether the CPU DRA driver can publish which PCIe root complexes each CPU core is local to, using KEP-5491 list types. everpeace has a [WIP PR](https://github.com/kubernetes/kubernetes/pull/138297) for a `GetPCIeRootAttributeMapFromCPUId` helper function. This would let `matchAttribute: resource.kubernetes.io/pcieRoot` work across GPU + NIC + CPU using the existing standard attribute — no new attribute needed.
+
+### Full PR #5316 Participant Positions
+
+The PR discussion involved several key participants with distinct positions on what topology attributes to standardize:
+
+| Person | Handle | Position |
+|--------|--------|----------|
+| Alexander Kanevskiy | kad | Against NUMA and skeptical of cpuSocketNumber. Argues hardware topology is too vendor/generation-specific for broad standardization beyond pcieRoot. DRA for CPUs is questionable. |
+| Kevin Klues | klueska | Pragmatic mediator. Only pcieRoot for now to unblock GA. Defer other attributes to separate PRs. |
+| Gaurav Kumar Ghildiyal | gauravkghildiyal | PR author. Originally wanted NUMA + pcieRoot + cpuSocketNumber. Accepted pcieRoot-only to unblock GA. |
+| John Belamaric | johnbelamaric | Wants CPU alignment attribute but agrees to defer. Drove the resource.kubernetes.io/ naming prefix. |
+| Byoungyun Chun | bg-chun | Needs cpuSocketNumber for multi-root GPU topologies. Uses vendor-specific cpuDomain in the meantime. |
+| Francesco Romani | ffromani | Cautious about cpuSocketNumber — sees it as a tradeoff, not a clear improvement over numaNode. |
+| everpeace | everpeace | Driving follow-up work. Proposed KEP-5491 for list-valued attributes to solve CPU-to-multiple-PCIe-roots problem. |
+
+The PR merged with only pcieRoot to unblock DRA GA. The numaNode discussion was explicitly deferred, not rejected.
 
 ### Current status: no consensus
 
@@ -261,6 +283,62 @@ One constraint. All four resource types. The allocator finds a NUMA node where a
 | NPS4 or Intel SNC enabled | pcieRoot-as-list for PCI devices, with driver-specific NUMA handling |
 | Simple PCIe topology (GPU+NIC share roots) | `resource.kubernetes.io/pcieRoot` scalar — works directly ([Ojea 2025](https://arxiv.org/abs/2506.23628)) |
 | Mixed or unknown hardware | Topology coordinator — abstracts over attribute differences via ConfigMap rules |
+| pcieRoot + KEP-5491 (CPU pivot) | For GPU+NIC+CPU alignment on switched hardware — but memory has no pcieRoot, and GPU-NIC direct matching fails when they're on different roots |
+
+---
+
+## Worked Example: pcieRoot + KEP-5491 on Dell XE8640
+
+KEP-5491 (alpha in K8s 1.36) changes matchAttribute semantics from exact equality to non-empty set intersection when list-typed attributes are involved. This is the community's proposed alternative to numaNode. Here's how it works — and where it fails — on the XE8640 (4x H100 SXM5, 2 NUMA nodes).
+
+XE8640 PCIe topology (NUMA 0):
+```
+pci0000:00 → BCM5720 management NICs
+pci0000:26 → ConnectX-6 Dx NICs (27:00.0, 27:00.1)
+pci0000:48 → H100 GPU (4e:00.0) + 2x NVMe
+pci0000:59 → H100 GPU (5f:00.0) + E810 NICs + 2x NVMe
+```
+
+**Step 1:** CPU driver publishes pcieRoot as a list for NUMA 0 CPUs:
+```yaml
+resource.kubernetes.io/pcieRoot:
+  stringList: ["pci0000:00", "pci0000:26", "pci0000:48", "pci0000:59"]
+```
+
+**Step 2:** GPU and NIC publish scalar pcieRoot:
+```yaml
+# GPU 4e:00.0
+resource.kubernetes.io/pcieRoot: "pci0000:48"
+
+# CX6 NIC 27:00.0
+resource.kubernetes.io/pcieRoot: "pci0000:26"
+```
+
+**Step 3:** matchAttribute with intersection semantics:
+
+For GPU+CPU co-placement:
+```
+GPU {pci0000:48} ∩ CPU {pci0000:00, pci0000:26, pci0000:48, pci0000:59} = {pci0000:48} ✓
+```
+
+For NIC+CPU co-placement:
+```
+NIC {pci0000:26} ∩ CPU {pci0000:00, pci0000:26, pci0000:48, pci0000:59} = {pci0000:26} ✓
+```
+
+Both work — CPU acts as pivot. But for GPU+NIC direct co-placement:
+```
+GPU {pci0000:48} ∩ NIC {pci0000:26} = {} ✗ — empty intersection, no match
+```
+
+The GPU and NIC are on different PCIe root complexes. They share a NUMA node and memory controller, but pcieRoot cannot express this relationship. To make it work, you'd need the GPU to list pci0000:26 in its pcieRoot — but the GPU is NOT on pci0000:26. Publishing false hardware information to make a constraint work defeats the purpose of standardized attributes.
+
+The CPU-as-pivot workaround (two separate constraints: GPU-CPU and NIC-CPU) achieves transitive co-location but:
+- Requires 2+ constraints where numaNode needs 1
+- Cannot include memory (no pcieRoot)
+- Relies on the CPU device representing a NUMA boundary — an implicit assumption that breaks if CPU grouping changes
+
+This is why pcieRoot and numaNode are complementary, not competing. pcieRoot identifies which devices share a PCIe switch. numaNode identifies which devices share a memory controller. On the XE8640, NUMA 0 has four independent PCIe trees — pcieRoot cannot reconstruct the NUMA boundary.
 
 ---
 
@@ -396,6 +474,7 @@ See [Topology Coordinator Design](topology-coordinator.md) for how the coordinat
 ### KEPs
 - [KEP-5491: DRA List Types for Attributes](https://github.com/kubernetes/enhancements/issues/5491) — alpha in v1.36
 - [KEP-5517: DRA for Native Resources](https://github.com/kubernetes/enhancements/pull/5755)
+- [DRA KEP Ecosystem Overview](upstream-proposals/kep-ecosystem-overview.md) — comprehensive mapping of DRA KEPs to this project
 
 ### Performance
 - [The Kubernetes Network Driver Model (arXiv:2506.23628)](https://arxiv.org/abs/2506.23628) — 58% throughput improvement with GPU+NIC alignment

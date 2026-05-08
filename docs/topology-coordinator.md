@@ -871,6 +871,36 @@ graph LR
 
 ---
 
+## Relationship to Upstream KEPs
+
+Several DRA KEPs are building toward native scheduler support for pieces of what the topology coordinator does today. As they mature, some coordinator components can be retired while others remain uniquely valuable.
+
+| Coordinator Component | Related KEP | Status | Impact |
+|---|---|---|---|
+| DRAConsumableCapacity for CPU/memory sharing | KEP-5075 (Consumable Capacity) | Beta in K8s 1.36 | Already used — coordinator depends on this feature gate for proportional CPU/memory division |
+| GPU partitioning (eighth/quarter GPU allocation) | KEP-4815 (Partitionable Devices) | Alpha | Could replace static GPU counts with dynamic MIG/CPX partition selection per-GPU |
+| Cross-device capacity tracking | KEP-5941 (Shared Consumable Capacity) | Proposed for 1.37 | Could track aggregate NUMA resource consumption (PCIe bandwidth, memory bandwidth) — currently untracked |
+| `matchAttribute: dra.net/numaNode` | Standardized `resource.kubernetes.io/numaNode` | Proposed | Would replace the informal `dra.net/numaNode` convention and per-driver attribute aliasing |
+| Per-driver CEL selectors with vendor attr names | Standardized `resource.kubernetes.io/numaNode` | Proposed | One `matchAttribute` constraint replaces per-driver CEL expressions |
+| pcieRoot-pivot mode | KEP-5491 (List Types) | Alpha in 1.36 | Enables CPU-as-pivot matching with list intersection semantics |
+| Separate CPU and memory drivers | KEP-5517 (Native Resources) | Proposed | If CPU/memory become native DRA resources, 2 of the 4 driver integrations become unnecessary |
+
+**What the coordinator uniquely provides (no KEP equivalent):**
+
+The coordinator's core value is **cross-driver resource bundling with topology constraints** — turning "give me a quarter-machine" into 4 coordinated sub-requests across GPU + NIC + CPU + memory drivers, all NUMA-aligned. No single KEP addresses this:
+
+- KEP-4815 partitions within a single device (not across drivers)
+- KEP-5075 shares a single device (not bundling multiple devices)
+- KEP-5941 tracks shared capacity across siblings (but doesn't bundle requests)
+
+The coordinator also provides the **partition abstraction** — users request a machine slice size rather than writing multi-driver claims with explicit counts and constraints. This UX simplification has no upstream equivalent.
+
+As KEPs mature, the coordinator evolves from a mechanical YAML translator into a thin policy layer: "on this hardware platform, a quarter-machine means these specific resource proportions with these constraints." The underlying mechanisms (capacity tracking, attribute matching, constraint evaluation) move into the scheduler.
+
+For the full KEP landscape analysis, see [DRA KEP Ecosystem Overview](upstream-proposals/kep-ecosystem-overview.md).
+
+---
+
 ## Issues
 
 | Issue | Impact | Status |

@@ -298,6 +298,23 @@ VFIO passthrough gives near-native GPU performance in the VM, but adds complexit
 
 ---
 
+## pcieRoot-Only Coverage by Use Case
+
+The only standardized topology attribute today is `resource.kubernetes.io/pcieRoot` ([PR #5316](https://github.com/kubernetes/enhancements/pull/5316)). KEP-5491 (alpha in K8s 1.36) adds list-typed attributes with set-intersection matching, allowing CPUs to publish pcieRoot lists. Here is how pcieRoot-only coverage maps to each use case level:
+
+| Use Case Level | pcieRoot (scalar) | pcieRoot + KEP-5491 (lists) | numaNode | Gap |
+|---|---|---|---|---|
+| Level 1: NCCL proxy | Works — GPU+NIC on same switch | Works | Works | None |
+| Level 2: Training/inference | 25% GPU yield (XE8640), 0% (R760xa) | CPU pivot works for GPU+CPU and NIC+CPU, but GPU+NIC direct match fails when on different roots | 50-100% yield | pcieRoot cannot express "different PCIe trees, same memory controller" |
+| Level 3: Batch | Trivially works (no constraint) | Works | Works | None |
+| Level 4: KubeVirt guest NUMA | Cannot group devices into NUMA cells | Same problem — 4 different pcieRoot values on NUMA 0 with no way to reconstruct NUMA boundary | Required | Only numaNode can reconstruct which devices share a memory controller |
+
+The critical failures are at Levels 2 and 4. On the XE8640, GPU `4e:00.0` (pcieRoot `pci0000:48`) and CX6 NIC `27:00.0` (pcieRoot `pci0000:26`) are on the same NUMA node but different PCIe roots — their pcieRoot sets never intersect. For KubeVirt, virt-launcher must group devices by memory controller to build guest NUMA cells, which pcieRoot cannot express.
+
+See [Topology Attribute Debate](topology-attribute-debate.md) for the full analysis including the XE8640 worked example.
+
+---
+
 ## Summary
 
 | Level | Constraint | AI Use Case | NIC pattern | Yield (SNC off) |
@@ -309,6 +326,12 @@ VFIO passthrough gives near-native GPU performance in the VM, but adds complexit
 | VM (multi-NUMA) | numaNode + VEP 115 | Full-node training, multi-socket VM | All GPUs, spans sockets | All GPUs |
 
 The recommended constraint for most workloads: `pcieRoot` as `enforcement: preferred`, `numaNode` as `enforcement: required`. The scheduler gets the tightest coupling available, and never places devices cross-NUMA.
+
+**Related KEPs:**
+- [KEP-5491: List Types for Attributes](https://github.com/kubernetes/enhancements/issues/5491) — enables pcieRoot-as-list for CPU pivot matching (alpha in K8s 1.36)
+- [KEP-5075: Consumable Capacity](https://github.com/kubernetes/enhancements/issues/5075) — enables NIC bandwidth sharing across pods in Level 2 multi-tenant inference (beta in K8s 1.36)
+- [KEP-4815: Partitionable Devices](https://github.com/kubernetes/enhancements/issues/4815) — enables dynamic GPU partitioning (MIG, CPX) as an alternative to whole-GPU allocation
+- [DRA KEP Ecosystem Overview](upstream-proposals/kep-ecosystem-overview.md) — comprehensive mapping of DRA KEPs to this project
 
 ### Note on cpuSocketID
 

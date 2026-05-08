@@ -1,6 +1,6 @@
 # Proposal: User-Facing Topology Constraints for DRA
 
-> **TL;DR:** Users moving from device plugins to DRA lose the topology manager's automatic NUMA coordination. Three common personas need to express device proximity, but DRA only offers `pcieRoot`, which fails on most server hardware. Standardize `resource.kubernetes.io/numaNode` and `resource.kubernetes.io/cpuSocketID` as a two-level hierarchy — preferred tightest coupling, required floor — to restore what users had and cover the hardware configurations where `pcieRoot` can't.
+> **TL;DR:** Users moving from device plugins to DRA lose the topology manager's automatic NUMA coordination. `numaNode` isn't just restoring what device plugins had — it's the topology anchor that KEPs 5491 (list types), 5075 (consumable capacity), and 5941 (shared capacity) need to work across driver boundaries. These KEPs give the scheduler capacity awareness; `numaNode` gives it topology awareness. Standardize `resource.kubernetes.io/numaNode` to enable cross-driver topology alignment on the hardware configurations where `pcieRoot` can't reach.
 
 ---
 
@@ -80,6 +80,8 @@ Single-CPU servers — all devices are local. No topology constraint needed.
 
 On switched hardware, `pcieRoot` groups 2 of N devices per CPU. On direct-attached hardware, it groups 0. `numaNode` and `cpuSocketID` group all devices on the same CPU in both cases.
 
+**Note on KEP-5491 (list types):** KEP-5491 (alpha in K8s 1.36) partially addresses the CPU alignment gap — CPUs can publish a list of local PCIe roots, enabling CPU-as-pivot matching via set intersection. However, this cannot bridge GPU-NIC pairs on different PCIe roots within the same NUMA (their pcieRoot sets have zero intersection), and memory devices have no pcieRoot to publish. See [Topology Attribute Debate](../topology-attribute-debate.md) for the full XE8640 worked example.
+
 ---
 
 ## The Regression: What Device Plugins Had
@@ -123,9 +125,9 @@ Every DRA driver that calls `GetPCIeRootAttributeByPCIBusID()` today would add o
 
 ---
 
-## The Two-Level Hierarchy
+## Composing Independent Constraints
 
-Users compose the hierarchy in their claims based on their hardware and performance requirements:
+`pcieRoot` and `numaNode` measure different physical properties (bus topology and memory topology). They are genuinely orthogonal — a GPU and NIC can be on different PCIe switches but the same memory controller. Users compose independent constraints from both based on what their workload requires:
 
 **Standard hardware (SNC/NPS off — majority of GPU deployments):**
 
@@ -149,24 +151,24 @@ constraints:
   enforcement: required         # must be same physical socket
 ```
 
-On SNC-2 hardware, some sub-NUMA nodes have GPUs but no NICs. `numaNode` as preferred tries the tightest grouping; if unsatisfiable, `cpuSocketID` ensures everything stays on the same physical socket. The workload always gets at least same-socket locality.
+On SNC-2 hardware, some sub-NUMA nodes have GPUs but no NICs. `numaNode` as preferred means the scheduler tries memory controller alignment but doesn't fail if unsatisfiable. `cpuSocketID` as required ensures everything stays on the same physical package. These are independent constraints about different physical properties — `cpuSocketID` isn't a fallback from `numaNode`, it's a separate assertion about package topology.
 
-**With `pcieRoot` for maximum alignment:**
+**Combining bus and memory topology constraints:**
 
 ```yaml
 constraints:
 - matchAttribute: resource.kubernetes.io/pcieRoot
   requests: [gpu, nic]
-  enforcement: preferred        # try same PCIe switch
+  enforcement: preferred        # bus topology: same PCIe switch
 - matchAttribute: resource.kubernetes.io/numaNode
   requests: [gpu, nic, cpu]
-  enforcement: preferred        # try same memory controller
+  enforcement: preferred        # memory topology: same memory controller
 - matchAttribute: resource.kubernetes.io/cpuSocketID
   requests: [gpu, nic, cpu]
-  enforcement: required         # must be same physical socket
+  enforcement: required         # package topology: same physical CPU
 ```
 
-The scheduler evaluates top to bottom. On switched hardware (XE8640), it picks the GPU sharing a switch with the NIC. On direct-attached hardware (R760xa), pcieRoot relaxes, numaNode matches. On SNC hardware, numaNode may also relax, cpuSocketID catches it.
+Each constraint is an independent check on a different physical property. The scheduler evaluates all of them. On switched hardware (XE8640), the pcieRoot constraint finds GPU+NIC pairs sharing a switch. On direct-attached hardware (R760xa), no GPU+NIC pair shares a pcieRoot, so that preferred constraint has no effect. The numaNode and cpuSocketID constraints operate independently regardless.
 
 ### Comparison with pcieRoot-as-list
 
@@ -183,7 +185,7 @@ constraints:
 
 This works for GPU+NIC+CPU but requires the `DRAListTypeAttributes` feature gate (alpha in v1.36), transitive reasoning through a CPU pivot device, and multiple constraints where one would suffice. See [topology-attribute-debate.md](../topology-attribute-debate.md) for detailed comparison.
 
-Both approaches are complementary, not competing. `pcieRoot` identifies the tightest physical coupling (same switch). `numaNode` and `cpuSocketID` provide the NUMA and socket levels that `pcieRoot` structurally cannot cover for non-PCI resources.
+Both approaches are complementary, not competing. `pcieRoot` identifies bus-level coupling (same switch). `numaNode` provides memory-topology alignment that `pcieRoot` structurally cannot cover — they measure different physical properties. `cpuSocketID` is a separate follow-up for SNC edge cases (see note at end).
 
 ---
 
@@ -199,14 +201,16 @@ The 58% throughput loss measured by [Ojea 2025](https://arxiv.org/abs/2506.23628
 
 The sysfs value is always correct — it reports which memory controller actually services the device. SNC-2 splits a socket into 2 sub-NUMA nodes, changing the NUMA ID assignment. This doesn't make `numaNode` wrong — it makes it more specific than the user may need. A device on sub-NUMA 0 correctly reports `numaNode=0`.
 
-### The hierarchy resolves this
+### Independent constraints resolve this
 
-With `cpuSocketID` as the required floor, the SNC objection loses its force:
+Unlike `pcieRoot` and `numaNode`, which are genuinely orthogonal, `cpuSocketID` is correlated with `numaNode` — it's a coarser grouping of the same underlying physical proximity. On non-SNC hardware, they're equivalent. On SNC hardware, `cpuSocketID` groups multiple NUMA nodes. You'd use `cpuSocketID` because `numaNode` is too restrictive — making it a coarser variant, not an independent signal.
 
-- On SNC-off hardware: `numaNode` matches everything on the same socket. `cpuSocketID` is redundant.
-- On SNC-on hardware: `numaNode` as preferred tries the tightest grouping. If a sub-NUMA node has GPUs but no NICs, the scheduler relaxes to `cpuSocketID` — same physical socket, all sub-NUMA nodes included.
+On SNC hardware, a user can combine them:
 
-The user chooses their floor. The driver reports facts from sysfs. Policy is the user's decision, not the attribute's.
+- `numaNode` as preferred: the scheduler tries memory controller alignment but doesn't fail if a sub-NUMA node lacks certain device types.
+- `cpuSocketID` as required: everything must be on the same physical package — a coarser grouping for when `numaNode` is too restrictive.
+
+The user chooses which physical properties matter. The driver reports facts from sysfs. Policy is the user's decision, not the attribute's.
 
 ### pcieRoot has the same problem
 
@@ -215,6 +219,33 @@ The user chooses their floor. The driver reports facts from sysfs. Policy is the
 - On the Dell XE9680: **25%** of GPU+NIC pairs share a root — `pcieRoot` excludes 75% of usable GPUs
 
 Nobody objected to standardizing `pcieRoot` because it's understood as a specific-coupling attribute, not a universal one. The same tolerance applies to `numaNode` — it's the right level for most workloads, and `cpuSocketID` covers the edge cases.
+
+---
+
+## Relationship to DRA KEP Ecosystem
+
+The DRA KEP ecosystem is building toward native scheduler support for the topology patterns this proposal describes. `numaNode` is the enabling infrastructure these KEPs need to work across driver boundaries.
+
+**`numaNode` as the topology anchor for capacity KEPs:**
+- **KEP-5491 (List Types, alpha in 1.36):** Enables CPU-as-pivot pcieRoot matching via set intersection. But GPU and NIC on different PCIe roots within the same NUMA have zero pcieRoot intersection — KEP-5491 can't bridge bus topology to memory topology. `numaNode` is the orthogonal signal that pcieRoot, even with list types, structurally cannot express.
+- **KEP-5075 (Consumable Capacity, beta in 1.36):** Tracks how much capacity remains on shared devices (NIC bandwidth, CPU cores). Without `numaNode`, the scheduler can't scope consumption to a topology domain — it might allocate bandwidth from a NIC on the wrong NUMA. `numaNode` tells the scheduler not just how much is available, but where to consume from.
+- **KEP-5941 (Shared Consumable Capacity, proposed for 1.37):** Lets parent devices declare capacity consumed by children across device boundaries. For cross-driver shared capacity (NUMA node's memory bandwidth consumed by GPUs and NICs), the parent-child grouping needs a common topology anchor. `numaNode` is that anchor.
+
+These KEPs give the scheduler **capacity awareness**. `numaNode` gives it **topology awareness**. Without both, the scheduler can track what's available but not where it should be consumed.
+
+**Simplifying the topology coordinator:**
+- **KEP-4815 (Partitionable Devices, alpha):** Enables dynamic GPU partitioning (MIG profiles, AMD CPX mode) with shared counter sets. Within-driver partitioning becomes scheduler-native, though cross-driver bundling remains the coordinator's role.
+
+**Enabling cross-pod topology:**
+- **KEP-5729 (ResourceClaim for Workloads, alpha in 1.37):** Per-PodGroup ResourceClaimTemplates enable cross-pod topology constraints for distributed training scenarios.
+
+**Reducing the driver footprint:**
+- **KEP-5517 (Native Resource Requests):** If CPU and memory become native DRA resources, the separate dra-driver-cpu and dra-driver-memory forks become unnecessary.
+- **KEP-5004 (Extended Resources via DRA, P0):** Users write `nvidia.com/gpu: 1` without knowing whether device-plugin or DRA is behind it, easing adoption.
+
+**Critical gap:** No single KEP addresses cross-driver resource bundling with topology constraints — "take 1 GPU + 2 NICs + 16 CPUs + 8 GiB memory from the same NUMA node." Standardized `resource.kubernetes.io/numaNode` with `matchAttribute` handles the co-placement, but over-subscription prevention across drivers still requires the topology coordinator or a future KEP.
+
+For the full KEP landscape analysis, see [DRA KEP Ecosystem Overview](kep-ecosystem-overview.md).
 
 ---
 
@@ -240,7 +271,7 @@ Several participants in the [PR #5316 discussion](https://github.com/kubernetes/
 - **johnbelamaric** (reviewer): *"If we don't standardize a CPU socket attribute, we may need to have a way for the DRANET and CPU drivers to be configured to publish one under a private name (e.g., gke.google.com)"*
 - **gauravkghildiyal** (PR author): *"I still believe we need cpuSocketNumber as one of the initial standard attributes"*
 - **bg-chun**: Demonstrated with [dual-root and direct-attached diagrams](https://github.com/kubernetes/enhancements/pull/5316#discussion_r2095270564) that `pcieRoot` can't group devices on the same socket
-- **ffromani** (CPU driver maintainer): *"numaNode as aligning attribute has surely its share of issues, but using cpuSocket also has its share of issues, so we are swapping a problem set with another problem set"* — the two-level hierarchy gives users both levels and lets them choose
+- **ffromani** (CPU driver maintainer): *"numaNode as aligning attribute has surely its share of issues, but using cpuSocket also has its share of issues, so we are swapping a problem set with another problem set"* — this is why `cpuSocketID` is not part of the core proposal; `numaNode` and `pcieRoot` are genuinely orthogonal, while `cpuSocketID` is correlated with `numaNode`
 
 The PR merged with only `pcieRoot` to unblock DRA GA — not as a technical rejection of other attributes. The conversation was explicitly deferred.
 
@@ -249,11 +280,10 @@ The PR merged with only `pcieRoot` to unblock DRA GA — not as a technical reje
 ## What's Needed
 
 1. **Standardize `resource.kubernetes.io/numaNode` (int)** — add to the `deviceattribute` library with a `GetNUMANodeByPCIBusID()` helper
-2. **Standardize `resource.kubernetes.io/cpuSocketID` (int)** — add with a `GetCPUSocketIDByNUMANode()` helper
-3. **Add `enforcement: preferred` to `matchAttribute`** — allows the scheduler to try a constraint and relax if unsatisfiable (separable from items 1-2; `numaNode` is valuable even without `preferred`)
-4. **Drivers publish both attributes** — one or two function calls alongside existing `pcieRoot`
+2. **Add `enforcement: preferred` to `matchAttribute`** — allows the scheduler to try a constraint and relax if unsatisfiable (separable from item 1; `numaNode` is valuable even without `preferred`)
+3. **Drivers publish the attribute** — one function call alongside existing `pcieRoot`
 
-Items 1-2 are the critical change. Item 3 is an optimization that enables the hierarchy pattern. Item 4 is mechanical — every driver already reads the same sysfs values.
+Item 1 is the critical change. Item 2 is an independent optimization that makes `pcieRoot` composable with `numaNode` via `enforcement: preferred`. Item 3 is mechanical — every driver already reads the same sysfs values.
 
 ---
 
@@ -266,3 +296,14 @@ Items 1-2 are the critical change. Item 3 is an optimization that enables the hi
 - [Topology Attribute Debate](../topology-attribute-debate.md) — full pcieRoot vs numaNode analysis
 - [Topology Use Cases](../topology-use-cases.md) — AI workload scenarios mapped to topology levels
 - [Standardize numaNode (technical reference)](standardize-numanode.md) — detailed technical proposal
+
+---
+
+**Note on `cpuSocketID`:**
+`cpuSocketID` could serve as an independent package-topology constraint on SNC/NPS hardware where sub-NUMA clustering creates NUMA nodes without NICs. However:
+
+- GPU servers typically run SNC/NPS off — the recommended approach is to disable SNC for GPU workloads.
+- Leading with both `numaNode` and `cpuSocketID` increases scope and re-engages the debate that caused `numaNode` to be removed from KEP-4381 in the first place.
+- The [PR #5316 discussion](https://github.com/kubernetes/enhancements/pull/5316) showed that `cpuSocketID` faces similar objections to `numaNode` — ffromani noted it is "swapping a problem set with another problem set."
+
+`cpuSocketID` is not part of the initial proposal. It should be proposed separately if a strong use case emerges where SNC is required and cannot be disabled. Drivers can publish it independently as a vendor-specific attribute for specific deployments. The recommended strategy is to establish `numaNode` first, then build on that foundation.
