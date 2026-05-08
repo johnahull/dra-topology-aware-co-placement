@@ -128,7 +128,7 @@ constraints:
 - **Dell R760xa** (2x NVIDIA A40, ConnectX-7, K8s 1.37-alpha): Every slot has its own root port — `pcieRoot` unsatisfiable, `numaNode` works. Demonstrates why Part 2 adds value on some hardware.
 - **Dell XE8640** (4x H100 SXM5, E810 + ConnectX-6 Dx): PCIe switches group GPU+NIC+NVMe — `pcieRoot` works for NCCL proxy GPU selection.
 
-Details: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/upstream-proposals/standardize-numanode.md
+Details: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/upstream-proposals/upstream-proposal-standardize-numanode.md
 Diagrams: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/diagrams/topology-xe9680.md
 Use cases: https://github.com/johnahull/dra-topology-aware-co-placement/blob/main/docs/topology-use-cases.md
 

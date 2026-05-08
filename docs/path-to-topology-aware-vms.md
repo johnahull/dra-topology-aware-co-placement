@@ -128,7 +128,7 @@ Test: `testing/scripts/demo-standardized-attrs.sh --test 3` (see [NVIDIA A40 tes
 
 ### What's Still Needed
 
-- **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` in the `deviceattribute` library ([proposal](upstream-proposals/standardize-numanode.md))
+- **Kubernetes upstream** — agree to standardize `resource.kubernetes.io/numaNode` in the `deviceattribute` library ([proposal](upstream-proposals/upstream-proposal-standardize-numanode.md))
 - **NVIDIA GPU DRA driver** — expose NUMA for standard GPU devices (currently only published for VFIO type)
 - **AMD GPU DRA driver** — publish the standard `resource.kubernetes.io/pciBusID` (currently uses vendor-specific `pciAddr`)
 - **All 4 drivers** — publish standardized attributes alongside vendor-specific ones
@@ -180,7 +180,7 @@ Branch: `johnahull/kubernetes` `feature/enforcement-preferred` (see [implementat
 
 ### What's Still Needed
 
-- **Kubernetes upstream** — add `enforcement: Preferred` field to `DeviceConstraint` API; covered by the same [proposal](upstream-proposals/standardize-numanode.md)
+- **Kubernetes upstream** — add `enforcement: Preferred` field to `DeviceConstraint` API; covered by the same [proposal](upstream-proposals/upstream-proposal-standardize-numanode.md)
 - **kube-apiserver** — accept, validate, and store the new field
 - **kube-scheduler** — skip preferred constraints when unsatisfiable
 - **kube-controller-manager, kubelet, kubectl** — preserve the field through the claim lifecycle

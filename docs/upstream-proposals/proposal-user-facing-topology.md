@@ -295,7 +295,7 @@ Item 1 is the critical change. Item 2 is an independent optimization that makes 
 - [WIP: pcieRoot helper for CPUs](https://github.com/kubernetes/kubernetes/pull/138297) — pcieRoot-as-list implementation
 - [Topology Attribute Debate](../topology-attribute-debate.md) — full pcieRoot vs numaNode analysis
 - [Topology Use Cases](../topology-use-cases.md) — AI workload scenarios mapped to topology levels
-- [Standardize numaNode (technical reference)](standardize-numanode.md) — detailed technical proposal
+- [Standardize numaNode (technical reference)](upstream-proposal-standardize-numanode.md) — detailed technical proposal
 
 ---
 
