@@ -339,8 +339,8 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
 
     numas = set()
-    roots = set()
     root_sets = []
+    rows = []
     for r in results:
         driver = r['driver']
         device = r['device']
@@ -353,28 +353,46 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         pci = topo.get('pciBusID', '-')
         product = str(topo.get('productName', '-'))[:28]
 
-        # Display pcieRoot: scalar as-is, list stacked vertically
         if isinstance(raw_root, list):
             root_lines = raw_root
-        else:
-            root_lines = [str(raw_root)]
-
-        request_short = request if len(request) <= 30 else request[:28] + '..'
-        driver_short = driver if len(driver) <= 20 else driver[:18] + '..'
-        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{root_lines[0]:<16}{str(pci):<18}{product:<30}')
-        pad = ' ' * (32 + 22 + 24 + 6)
-        for extra_root in root_lines[1:]:
-            print(f'  {pad}{extra_root}')
-
-        # Collect pcieRoot values with request name for diagnostics
-        if isinstance(raw_root, list):
             root_sets.append((request, set(raw_root)))
         elif raw_root != '-':
-            roots.add(str(raw_root))
+            root_lines = [str(raw_root)]
             root_sets.append((request, {str(raw_root)}))
+        else:
+            root_lines = ['-']
 
         if numa != '-':
             numas.add(str(numa))
+
+        rows.append((request, driver, device, numa, root_lines, pci, product))
+
+    # Compute pcieRoot intersection before printing
+    common_root = set()
+    if root_sets:
+        common_root = root_sets[0][1]
+        for _, s in root_sets[1:]:
+            common_root = common_root & s
+
+    GREEN = '\033[32m'
+    RST = '\033[0m'
+    for request, driver, device, numa, root_lines, pci, product in rows:
+        request_short = request if len(request) <= 30 else request[:28] + '..'
+        driver_short = driver if len(driver) <= 20 else driver[:18] + '..'
+
+        first_root = root_lines[0]
+        if first_root in common_root and len(common_root) >= 1:
+            root_col = f'{GREEN}{first_root}{RST}' + ' ' * max(0, 16 - len(first_root))
+        else:
+            root_col = f'{first_root:<16}'
+        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{root_col}{str(pci):<18}{product:<30}')
+
+        pad = ' ' * (32 + 22 + 24 + 6)
+        for extra_root in root_lines[1:]:
+            if extra_root in common_root and len(common_root) >= 1:
+                print(f'  {pad}{GREEN}{extra_root}{RST}')
+            else:
+                print(f'  {pad}{extra_root}')
 
     print()
     if len(numas) == 1:
