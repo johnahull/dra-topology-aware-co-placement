@@ -4,6 +4,21 @@
 
 ---
 
+## Why Standardize `numaNode`
+
+- **Five drivers, five names, same sysfs value.** Every DRA driver already publishes NUMA — they just can't agree on a name. `matchAttribute` requires a common name for cross-driver co-placement. Standardization is a naming fix, not new functionality.
+- **pcieRoot measures bus topology, not memory topology.** A GPU and NIC can be on different PCIe switches but the same memory controller. pcieRoot can't express this. numaNode is the orthogonal signal for memory controller proximity.
+- **pcieRoot excludes 75-100% of GPUs.** On the XE9680, only 25% of GPUs share a switch with a NIC. On the R760xa, 0%. numaNode covers 100% on both.
+- **CPUs and memory have no pcieRoot.** They're not PCI devices. Any pcieRoot constraint including CPU or memory is unsatisfiable.
+- **KEP-5491 list types don't close the gap.** CPU-as-pivot matching works for GPU↔CPU and NIC↔CPU, but GPU↔NIC on different roots have zero intersection. You can't derive memory proximity from bus addresses.
+- **KEPs 5075 and 5941 need a topology anchor.** Consumable capacity tracks how much is available. Shared capacity tracks aggregate consumption. Neither can scope to a topology domain without numaNode. The scheduler can track what's available but not where to consume it.
+- **KubeVirt guest NUMA topology requires it.** virt-launcher must group devices by memory controller for VEP 115 pxb-pcie placement. Four different pcieRoot values on one NUMA cannot be reconstructed into a NUMA boundary.
+- **Regression from device plugins.** The topology manager coordinated NUMA placement for Guaranteed QoS pods. DRA broke this. numaNode restores it — one constraint replaces the topology manager's coordination.
+- **58% throughput improvement.** The performance cliff is at the NUMA boundary (same memory controller vs cross-NUMA), not at the PCIe switch boundary. Measured on NVIDIA B200 + Mellanox RoCE ([Ojea 2025](https://arxiv.org/abs/2506.23628)).
+- **One attribute, one sysfs read, ~10 lines per driver.** The implementation is a shared helper function reading `/sys/bus/pci/devices/<BDF>/numa_node`. Every driver already reads this path for vendor-specific attributes.
+
+---
+
 ## Problem
 
 ### Cross-driver NUMA alignment is impossible
