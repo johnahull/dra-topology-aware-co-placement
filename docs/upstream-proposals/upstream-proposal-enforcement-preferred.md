@@ -60,12 +60,21 @@ const (
 )
 ```
 
-### Scheduler behavior
+### Scheduler behavior: two-pass allocation
 
-- **Required (default):** Current behavior. If no allocation satisfies the constraint, the claim is unsatisfiable on this node.
-- **Preferred:** The scheduler evaluates the constraint. If a satisfying allocation exists, it is preferred. If not, the constraint is ignored and the scheduler proceeds with remaining required constraints.
+The implementation (in our fork, branch `feature/enforcement-preferred` on `johnahull/kubernetes`) uses a two-pass allocation strategy:
 
-When multiple preferred constraints exist, the scheduler tries to satisfy as many as possible. The order of evaluation is implementation-defined — preferred constraints are best-effort optimizations, not priority-ordered.
+**Pass 1 (strict):** All constraints — including preferred — are treated as required. The allocator searches for a solution that satisfies everything. If found, optimal placement is guaranteed.
+
+**Pass 2 (relaxed):** If pass 1 finds no solution and preferred constraints exist, the allocator resets all constraint state and re-runs with preferred constraints relaxed. In this pass, devices that fail a preferred constraint are skipped rather than rejected — the allocator proceeds with remaining required constraints.
+
+This two-pass approach ensures the scheduler prefers the tightest placement when possible, and only relaxes when necessary. The `constraint` interface gains a `reset()` method to clear tracked state between passes.
+
+**Default value:** `nil` pointer (interpreted as Required). Existing claims are unaffected.
+
+**Scope:** Only `matchAttribute` constraints support `enforcement: preferred`. `distinctAttribute` is always required.
+
+**Feature gate:** The implementation is in the experimental allocator, gated behind `DRAListTypeAttributes` (enabled by default in the fork).
 
 ---
 
@@ -129,6 +138,28 @@ Tested on three server platforms:
 | Dell XE9680 (8x MI300X) | Yes (2 of 8 GPUs share switch with NIC) | Yes — without preferred, 6 of 8 GPUs excluded |
 
 The topology coordinator's `fix/distance-based-fallback` branch implements this pattern at the controller level, proving the concept works on real hardware.
+
+---
+
+## Implementation Status
+
+A working implementation exists in the fork `johnahull/kubernetes`, branch `feature/enforcement-preferred` (based on v1.37-alpha):
+
+| Commit | Change |
+|--------|--------|
+| `de14cbe` | Add `Enforcement` field to `DeviceConstraint`, single-pass allocator support |
+| `5f6efee` | Protobuf serialization, OpenAPI schema, enable `DRAListTypeAttributes` by default |
+| `8708a85` | Pass `ListTypeAttributes` flag to `AllocatorFeatures` |
+| `fde1979` | Two-pass allocation: strict search first, then preferred relaxation with `reset()` |
+
+**Files modified:**
+- `pkg/apis/resource/types.go` — internal API type
+- `staging/src/k8s.io/api/resource/v1/types.go` — external API type
+- `staging/src/k8s.io/dynamic-resource-allocation/structured/internal/experimental/allocator_experimental.go` — two-pass allocation logic
+- `staging/src/k8s.io/dynamic-resource-allocation/structured/internal/experimental/constraint.go` — `reset()` interface method
+- Generated deepcopy, conversion, protobuf, and OpenAPI files
+
+**Deployed on:** Dell R760xa (K8s 1.37-alpha custom build) and Dell XE8640 (K8s 1.36.0 custom build).
 
 ---
 
