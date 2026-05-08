@@ -304,6 +304,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     print(header)
 
     constraints = c.get('spec', {}).get('devices', {}).get('constraints', [])
+    constraint_lines = []
     if constraints:
         for con in constraints:
             ma = con.get('matchAttribute', '')
@@ -313,7 +314,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
                 req_str = ', '.join(reqs) if reqs else 'all'
                 enf = con.get('enforcement', '')
                 enf_str = f' ({enf.lower()})' if enf else ''
-                print(f'  \033[2mconstraint: matchAttribute={short_ma} requests=[{req_str}]{enf_str}\033[0m')
+                constraint_lines.append((short_ma, f'constraint: matchAttribute={short_ma} requests=[{req_str}]{enf_str}'))
 
     spec_requests = c.get('spec', {}).get('devices', {}).get('requests', [])
     req_summaries = []
@@ -345,6 +346,14 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     }
     DEFAULT_MATCH_COLOR = '\033[33m'  # yellow for others
     RST = '\033[0m'
+
+    # Print constraint lines with matching colors
+    for short_ma, line in constraint_lines:
+        color = COLORS.get(short_ma, '')
+        if color:
+            print(f'  {color}{line}{RST}')
+        else:
+            print(f'  \033[2m{line}\033[0m')
 
     # Collect rows with topology data
     rows = []
