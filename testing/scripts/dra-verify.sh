@@ -258,8 +258,12 @@ for rs in slices_data.get('items', []):
         topo = {}
         for key, val in attrs.items():
             short = key.split('/')[-1] if '/' in key else key
-            if short in ('numaNode', 'numa', 'numaNodeID', 'pciBusID', 'pcieRoot', 'cpuSocketID', 'productName'):
-                topo[short] = list(val.values())[0]
+            if short in ('numaNode', 'numa', 'numaNodeID', 'pciBusID', 'pcieRoot', 'cpuSocketID', 'productName', 'pciDevice'):
+                v = list(val.values())[0]
+                if short == 'pciDevice' and 'productName' not in topo:
+                    topo['productName'] = v
+                else:
+                    topo[short] = v
         device_attrs[f'{driver}/{dev[\"name\"]}'] = topo
 
 # Build VMI name lookup from pod names
@@ -349,15 +353,18 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         pci = topo.get('pciBusID', '-')
         product = str(topo.get('productName', '-'))[:28]
 
-        # Display pcieRoot: scalar as-is, list as comma-separated
+        # Display pcieRoot: scalar as-is, list stacked vertically
         if isinstance(raw_root, list):
-            root_display = ','.join(raw_root)
+            root_lines = raw_root
         else:
-            root_display = str(raw_root)
+            root_lines = [str(raw_root)]
 
         request_short = request if len(request) <= 30 else request[:28] + '..'
         driver_short = driver if len(driver) <= 20 else driver[:18] + '..'
-        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{root_display:<16}{str(pci):<18}{product:<30}')
+        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{root_lines[0]:<16}{str(pci):<18}{product:<30}')
+        pad = ' ' * (32 + 22 + 24 + 6)
+        for extra_root in root_lines[1:]:
+            print(f'  {pad}{extra_root}')
 
         # Collect pcieRoot values: scalars go into roots directly,
         # lists are tracked separately for intersection check
