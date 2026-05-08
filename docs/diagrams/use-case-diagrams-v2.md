@@ -132,81 +132,7 @@ numaNode GPU+NIC match: 8 of 8 (100%) — all GPUs share a column with NICs
 
 ---
 
-### B. Same Hardware, Two Colorings — XE8640
-
-Two views of the same NUMA 0 devices. Left: grouped by pcieRoot (4 groups, CPU/memory ungroupable). Right: grouped by numaNode (1 group, everything included).
-
-```
-    Grouped by pcieRoot (bus topology)         Grouped by numaNode (memory topology)
-  ┌──────────────────────────────────┐       ┌──────────────────────────────────┐
-  │                                  │       │                                  │
-  │  ┌─ pci0000:48 ──────────────┐   │       │  ┌─ numaNode = 0 ─────────────┐  │
-  │  │  H100 gpu-4e              │   │       │  │  H100 gpu-4e               │  │
-  │  └───────────────────────────┘   │       │  │  H100 gpu-5f               │  │
-  │  ┌─ pci0000:59 ──────────────┐   │       │  │  E810 nic                  │  │
-  │  │  H100 gpu-5f              │   │       │  │  CX6 nic                   │  │
-  │  │  E810 nic                 │   │       │  │  CPU cores (×64)           │  │
-  │  └───────────────────────────┘   │       │  │  Memory (~512 GiB)         │  │
-  │  ┌─ pci0000:26 ──────────────┐   │       │  └────────────────────────────┘  │
-  │  │  CX6 nic                  │   │       │                                  │
-  │  └───────────────────────────┘   │       │  4 pcieRoot groups → 1 numaNode  │
-  │  ┌─ (no pcieRoot) ──────────┐   │       │  group. Different physical       │
-  │  │  CPU cores (×64)    ⚠     │   │       │  properties, different           │
-  │  │  Memory (~512 GiB)  ⚠     │   │       │  groupings of the same devices.  │
-  │  └───────────────────────────┘   │       │                                  │
-  │  ⚠ = cannot participate in       │       │                                  │
-  │    matchAttribute: pcieRoot      │       │                                  │
-  └──────────────────────────────────┘       └──────────────────────────────────┘
-```
-
-### B. Same Hardware, Two Colorings — XE9680
-
-```
-    Grouped by pcieRoot (bus topology)         Grouped by numaNode (memory topology)
-  ┌──────────────────────────────────┐       ┌──────────────────────────────────┐
-  │ NUMA 0:                          │       │ NUMA 0:                          │
-  │  ┌─ pci0000:15 ──────────────┐   │       │  ┌─ numaNode = 0 ─────────────┐  │
-  │  │  MI300X gpu-1b            │   │       │  │  MI300X gpu-1b             │  │
-  │  │  CX6 nic (×2)            │   │       │  │  MI300X gpu-3d             │  │
-  │  └───────────────────────────┘   │       │  │  MI300X gpu-4e             │  │
-  │  ┌─ pci0000:37 ──────────────┐   │       │  │  MI300X gpu-5f             │  │
-  │  │  MI300X gpu-3d            │   │       │  │  CX6 nic (×2)             │  │
-  │  └───────────────────────────┘   │       │  │  CPU cores (×64)           │  │
-  │  ┌─ pci0000:48 ──────────────┐   │       │  │  Memory (~1 TiB)           │  │
-  │  │  MI300X gpu-4e            │   │       │  └────────────────────────────┘  │
-  │  └───────────────────────────┘   │       │                                  │
-  │  ┌─ pci0000:59 ──────────────┐   │       │ NUMA 1:                          │
-  │  │  MI300X gpu-5f            │   │       │  ┌─ numaNode = 1 ─────────────┐  │
-  │  └───────────────────────────┘   │       │  │  MI300X gpu-9d             │  │
-  │  ┌─ (no pcieRoot) ──────────┐   │       │  │  MI300X gpu-bd             │  │
-  │  │  CPU cores (×64)    ⚠     │   │       │  │  MI300X gpu-cd             │  │
-  │  │  Memory (~1 TiB)   ⚠     │   │       │  │  MI300X gpu-dd             │  │
-  │  └───────────────────────────┘   │       │  │  CX6 nic (×2)             │  │
-  │                                  │       │  │  CPU cores (×64)           │  │
-  │ NUMA 1:                          │       │  │  Memory (~1 TiB)           │  │
-  │  ┌─ pci0000:97 ──────────────┐   │       │  └────────────────────────────┘  │
-  │  │  MI300X gpu-9d            │   │       │                                  │
-  │  │  CX6 nic (×2)            │   │       │  8 pcieRoot groups → 2 numaNode  │
-  │  └───────────────────────────┘   │       │  groups. pcieRoot fragments what  │
-  │  ┌─ pci0000:b7 ──────────────┐   │       │  numaNode unifies.              │
-  │  │  MI300X gpu-bd            │   │       │                                  │
-  │  └───────────────────────────┘   │       │                                  │
-  │  ┌─ pci0000:c7 ──────────────┐   │       │                                  │
-  │  │  MI300X gpu-cd            │   │       │                                  │
-  │  └───────────────────────────┘   │       │                                  │
-  │  ┌─ pci0000:d7 ──────────────┐   │       │                                  │
-  │  │  MI300X gpu-dd            │   │       │                                  │
-  │  └───────────────────────────┘   │       │                                  │
-  │  ┌─ (no pcieRoot) ──────────┐   │       │                                  │
-  │  │  CPU cores (×64)    ⚠     │   │       │                                  │
-  │  │  Memory (~1 TiB)   ⚠     │   │       │                                  │
-  │  └───────────────────────────┘   │       │                                  │
-  └──────────────────────────────────┘       └──────────────────────────────────┘
-```
-
----
-
-### C. Boundary Overlay — XE8640 NUMA 0
+### B. Boundary Overlay — XE8640 NUMA 0
 
 One view with two sets of boundaries. Dashed borders show pcieRoot groups (many small groups). Solid border shows numaNode group (one large group). pcieRoot boundaries are nested within the numaNode boundary — they partition the same space differently.
 
@@ -240,7 +166,7 @@ One view with two sets of boundaries. Dashed borders show pcieRoot groups (many 
   CPU and memory exist inside the numaNode boundary but outside all pcieRoot boundaries.
 ```
 
-### C. Boundary Overlay — XE9680 NUMA 0
+### B. Boundary Overlay — XE9680 NUMA 0
 
 ```
   ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -271,7 +197,7 @@ One view with two sets of boundaries. Dashed borders show pcieRoot groups (many 
 
 ---
 
-### D. Constraint Result — XE8640
+### C. Constraint Result — XE8640
 
 What the scheduler sees for a 4-device claim: 1 GPU + 1 NIC + CPU + memory, all from NUMA 0.
 
@@ -303,7 +229,7 @@ What the scheduler sees for a 4-device claim: 1 GPU + 1 NIC + CPU + memory, all 
   numaNode answers: "same memory controller?" — all 4 device types qualify.
 ```
 
-### D. Constraint Result — XE9680
+### C. Constraint Result — XE9680
 
 ```
   Claim: requests: [gpu, nic, cpu, mem] — allocate from NUMA 0
