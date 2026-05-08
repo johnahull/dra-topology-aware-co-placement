@@ -307,7 +307,9 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
             if ma:
                 short_ma = ma.split('/')[-1] if '/' in ma else ma
                 req_str = ', '.join(reqs) if reqs else 'all'
-                print(f'  \033[2mconstraint: matchAttribute={short_ma} requests=[{req_str}]\033[0m')
+                enf = con.get('enforcement', '')
+                enf_str = f' ({enf.lower()})' if enf else ''
+                print(f'  \033[2mconstraint: matchAttribute={short_ma} requests=[{req_str}]{enf_str}\033[0m')
 
     spec_requests = c.get('spec', {}).get('devices', {}).get('requests', [])
     req_summaries = []
@@ -334,6 +336,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
 
     numas = set()
     roots = set()
+    root_sets = []
     for r in results:
         driver = r['driver']
         device = r['device']
@@ -342,16 +345,27 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         topo = device_attrs.get(dev_key, {})
 
         numa = topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '-')))
-        root = topo.get('pcieRoot', '-')
+        raw_root = topo.get('pcieRoot', '-')
         pci = topo.get('pciBusID', '-')
         product = str(topo.get('productName', '-'))[:28]
 
+        # Display pcieRoot: scalar as-is, list as comma-separated
+        if isinstance(raw_root, list):
+            root_display = ','.join(raw_root)
+        else:
+            root_display = str(raw_root)
+
         request_short = request if len(request) <= 30 else request[:28] + '..'
         driver_short = driver if len(driver) <= 20 else driver[:18] + '..'
-        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{str(root):<16}{str(pci):<18}{product:<30}')
+        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{root_display:<16}{str(pci):<18}{product:<30}')
 
-        if root != '-':
-            roots.add(str(root))
+        # Collect pcieRoot values: scalars go into roots directly,
+        # lists are tracked separately for intersection check
+        if isinstance(raw_root, list):
+            root_sets.append(set(raw_root))
+        elif raw_root != '-':
+            roots.add(str(raw_root))
+            root_sets.append({str(raw_root)})
 
         if numa != '-':
             numas.add(str(numa))
@@ -363,11 +377,17 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         numa_list = ', '.join(sorted(numas))
         print(f'  \033[33m! Multi-NUMA: devices on NUMA {numa_list}\033[0m')
 
-    if len(roots) == 1:
-        print(f'  \033[32m✓ All PCI devices on pcieRoot {roots.pop()}\033[0m')
-    elif len(roots) > 1:
-        root_list = ', '.join(sorted(roots))
-        print(f'  \033[33m! Multiple pcieRoots: {root_list}\033[0m')
+    # pcieRoot alignment: compute intersection of all root sets
+    if root_sets:
+        common = root_sets[0]
+        for s in root_sets[1:]:
+            common = common & s
+        if len(common) >= 1:
+            print(f'  \033[32m✓ All PCI devices on pcieRoot {sorted(common)[0]}\033[0m')
+        else:
+            all_roots = sorted(set().union(*root_sets))
+            root_list = ', '.join(all_roots)
+            print(f'  \033[33m! No common pcieRoot: {root_list}\033[0m')
     print()
 " 2>/dev/null
 }
