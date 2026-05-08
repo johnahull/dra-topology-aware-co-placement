@@ -339,7 +339,7 @@ Based on the PR #5316 debate, the recommended approach for proposing `numaNode` 
 
 4. **Acknowledge the SNC caveat upfront.** "numaNode tracks memory controller affinity, which may differ from PCIe topology under SNC/NPS modes. On SNC hardware, it's finer-grained but still correct."
 
-5. **Point to the regression from device plugins.** The topology manager automatically coordinated NUMA placement. DRA broke this. numaNode restores it.
+5. **Point to the regression from device plugins.** The topology manager coordinated NUMA placement for Guaranteed QoS pods when configured with a topology-aware policy. DRA broke this. numaNode restores it.
 
 6. **Show evidence.** 5 drivers, 3 hardware platforms, end-to-end including KubeVirt VMs with correct guest topology.
 

@@ -30,9 +30,9 @@ There is no standard name to use. Cross-driver NUMA co-placement is impossible w
 
 ### Regression from device plugins
 
-With device plugins, the kubelet's topology manager automatically coordinated CPU, memory, and device NUMA placement. A pod requesting a GPU and CPU cores got them on the same NUMA node without any user-facing constraint.
+With device plugins, the kubelet's topology manager coordinated CPU, memory, and device NUMA placement — when configured with a topology-aware policy (`single-numa-node`, `restricted`, or `best-effort`) and for Guaranteed QoS pods. A pod requesting a GPU and CPU cores got them on the same NUMA node without any topology constraint in the pod spec. The coordination happened at the kubelet level through topology hints from each resource manager.
 
-DRA moved device allocation from the kubelet to the scheduler. The topology manager has no awareness of DRA devices. There is no mechanism to co-place devices from different DRA drivers on the same NUMA node unless all drivers publish the same attribute name.
+DRA moved device allocation from the kubelet to the scheduler. The topology manager has no awareness of DRA devices and cannot collect topology hints from them. Regardless of topology manager policy or QoS class, there is no mechanism to co-place devices from different DRA drivers on the same NUMA node unless all drivers publish the same attribute name.
 
 Every driver already reads NUMA from sysfs and publishes it. The data exists. The problem is purely naming — 5 drivers chose 5 different names for the same value.
 
@@ -45,13 +45,11 @@ Every driver already reads NUMA from sysfs and publishes it. The data exists. Th
 | `pcieRoot` (standardized) | Bus topology | Which PCIe switch tree? |
 | `numaNode` (proposed) | Memory topology | Which memory controller? |
 
-As [kad noted at KubeCon NA 2024](https://sched.co/1i7ke): "There is no CPU in NUMA, there is no PCI in NUMA. Those two things are separate entities." This is precisely why `numaNode` and `pcieRoot` are proposed as separate attributes — they measure different physical properties of different hardware subsystems.
-
 ---
 
 ## Why pcieRoot Alone Is Insufficient
 
-### Most GPUs don't share a PCIe root with any NIC
+### Many GPUs don't share a PCIe root with any NIC
 
 On high-end GPU servers, each GPU typically gets its own dedicated PCIe root complex for maximum bandwidth. Only GPUs that share a PCIe switch with a NIC can be matched by `pcieRoot`:
 
@@ -84,7 +82,6 @@ The GPU and NIC are on different PCIe roots. They share a memory controller, but
 Additionally:
 - **Memory has no pcieRoot** — the workaround requires merging the memory driver into the CPU driver, an unplanned dependency.
 - **The CPU pcieRoot list is numaNode in disguise** — the list boundary between NUMA 0's roots and NUMA 1's roots IS the NUMA boundary, encoded as a more complex data structure.
-- **Requires an alpha feature gate** — `DRAListTypeAttributes` can be removed or changed between releases.
 
 ### KubeVirt guest NUMA topology cannot be built from pcieRoot
 
@@ -118,11 +115,6 @@ The DRA roadmap includes three KEPs that build sophisticated capacity and sharin
 These KEPs give the scheduler **capacity awareness**. `numaNode` gives it **topology awareness**. Without both, the scheduler can track what's available but not where it should be consumed.
 
 ---
-
-## Addressing the SNC/NPS Objection
-
-The community [removed numaNode from KEP-4381](https://github.com/kubernetes/enhancements/pull/5316#discussion_r2095270564) because SNC (Intel) and NPS (AMD) change what NUMA IDs mean. As kad stated: "NUMA represents only memory zone/mode of operation of Memory controller."
-
 ### The sysfs value is always correct
 
 SNC-2 splits each socket into 2 sub-NUMA nodes. This makes `numaNode` finer-grained, not incorrect. A device on sub-NUMA 0 correctly reports `numaNode=0` — it's on the memory controller that services that zone. The attribute reports a fact about which memory controller services the device, regardless of how many memory controllers the socket has.
@@ -270,21 +262,6 @@ Key results:
 - Multi-NUMA VMs with pxb-pcie expander bridges on correct guest NUMA cells
 - 3 concurrent claims per NUMA node with per-CPU individual mode
 - 58% throughput improvement from NUMA-aligned placement ([Ojea 2025](https://arxiv.org/abs/2506.23628))
-
----
-
-## The PR #5316 Discussion: numaNode Was Deferred, Not Rejected
-
-When [PR #5316](https://github.com/kubernetes/enhancements/pull/5316) originally proposed standardizing both `pcieRoot` and `numaNode`, `numaNode` was removed after debate. Key positions:
-
-- **kad:** NUMA doesn't represent real hardware topology under SNC/NPS. Supports pcieRoot only.
-- **klueska:** Only pcieRoot for now to unblock GA. Defer other attributes to separate PRs.
-- **johnbelamaric:** "Yes, I would like to see some attribute upon which we can align CPU as well."
-- **bg-chun:** Needs cpuSocketNumber for multi-root GPU topologies where pcieRoot can't group devices under one CPU socket.
-- **ffromani:** Cautious about cpuSocketNumber — tradeoffs either way.
-- **everpeace:** Proposed KEP-5491 list-typed attributes as an alternative.
-
-The PR merged with only `pcieRoot` to unblock DRA GA — not as a technical rejection of other attributes. The conversation was explicitly deferred for separate proposals.
 
 ---
 

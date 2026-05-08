@@ -86,7 +86,7 @@ On switched hardware, `pcieRoot` groups 2 of N devices per CPU. On direct-attach
 
 ## The Regression: What Device Plugins Had
 
-With device plugins, the kubelet's topology manager automatically coordinated CPU, memory, and device NUMA placement. A pod requesting a GPU and CPU cores got them on the same NUMA node without any user-facing constraint — the topology manager handled it.
+With device plugins, the kubelet's topology manager coordinated CPU, memory, and device NUMA placement — when configured with a topology-aware policy (`single-numa-node`, `restricted`, or `best-effort`) and for Guaranteed QoS pods. A pod requesting a GPU and CPU cores got them on the same NUMA node without any topology constraint in the pod spec — the topology manager handled it through topology hints from each resource manager.
 
 DRA moved device allocation from the kubelet to the scheduler. The topology manager has no awareness of DRA devices. **There is no mechanism to co-place devices from different DRA drivers on the same NUMA node** unless all drivers publish the same attribute name.
 
