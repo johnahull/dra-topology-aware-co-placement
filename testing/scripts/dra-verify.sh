@@ -366,13 +366,12 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         for extra_root in root_lines[1:]:
             print(f'  {pad}{extra_root}')
 
-        # Collect pcieRoot values: scalars go into roots directly,
-        # lists are tracked separately for intersection check
+        # Collect pcieRoot values with request name for diagnostics
         if isinstance(raw_root, list):
-            root_sets.append(set(raw_root))
+            root_sets.append((request, set(raw_root)))
         elif raw_root != '-':
             roots.add(str(raw_root))
-            root_sets.append({str(raw_root)})
+            root_sets.append((request, {str(raw_root)}))
 
         if numa != '-':
             numas.add(str(numa))
@@ -386,15 +385,22 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
 
     # pcieRoot alignment: compute intersection of all root sets
     if root_sets:
-        common = root_sets[0]
-        for s in root_sets[1:]:
+        common = root_sets[0][1]
+        for _, s in root_sets[1:]:
             common = common & s
         if len(common) >= 1:
             print(f'  \033[32m✓ All PCI devices on pcieRoot {sorted(common)[0]}\033[0m')
         else:
-            all_roots = sorted(set().union(*root_sets))
-            root_list = ', '.join(all_roots)
-            print(f'  \033[33m! No common pcieRoot: {root_list}\033[0m')
+            # Show per-device roots for scalar (PCI) devices only
+            pci_mismatches = []
+            for req, rset in root_sets:
+                if len(rset) == 1:
+                    pci_mismatches.append(f'{req}={sorted(rset)[0]}')
+            if pci_mismatches:
+                mismatch_str = ', '.join(pci_mismatches)
+                print(f'  \033[33m! pcieRoot mismatch: {mismatch_str}\033[0m')
+            else:
+                print(f'  \033[33m! No common pcieRoot\033[0m')
     print()
 " 2>/dev/null
 }
