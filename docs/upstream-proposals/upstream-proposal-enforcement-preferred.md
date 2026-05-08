@@ -74,7 +74,7 @@ This two-pass approach ensures the scheduler prefers the tightest placement when
 
 **Scope:** Only `matchAttribute` constraints support `enforcement: preferred`. `distinctAttribute` is always required.
 
-**Feature gate:** The implementation is in the experimental allocator, gated behind `DRAListTypeAttributes` (enabled by default in the fork).
+**Feature gate:** The fork implementation piggybacks on `DRAListTypeAttributes` because the code lives in the experimental allocator. An upstream implementation should have its own feature gate (e.g., `DRAPreferredConstraints`) — enforcement:preferred is unrelated to list-typed attributes.
 
 ---
 
