@@ -338,8 +338,15 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
     print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
 
-    numas = set()
-    root_sets = []
+    # Constraint color map: assign a color per matchAttribute
+    COLORS = {
+        'pcieRoot': '\033[32m',   # green
+        'numaNode': '\033[36m',   # cyan
+    }
+    DEFAULT_MATCH_COLOR = '\033[33m'  # yellow for others
+    RST = '\033[0m'
+
+    # Collect rows with topology data
     rows = []
     for r in results:
         driver = r['driver']
@@ -355,70 +362,121 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
 
         if isinstance(raw_root, list):
             root_lines = raw_root
-            root_sets.append((request, set(raw_root)))
         elif raw_root != '-':
             root_lines = [str(raw_root)]
-            root_sets.append((request, {str(raw_root)}))
         else:
             root_lines = ['-']
 
-        if numa != '-':
-            numas.add(str(numa))
+        rows.append({'request': request, 'driver': driver, 'device': device,
+                     'numa': numa, 'raw_root': raw_root, 'root_lines': root_lines,
+                     'pci': pci, 'product': product})
 
-        rows.append((request, driver, device, numa, root_lines, pci, product))
+    # Compute intersection per constraint attribute
+    matched_constraints = {}
+    for con in constraints:
+        ma = con.get('matchAttribute', '')
+        if not ma:
+            continue
+        short = ma.split('/')[-1] if '/' in ma else ma
+        con_reqs = set(con.get('requests', []))
 
-    # Compute pcieRoot intersection before printing
-    common_root = set()
-    if root_sets:
-        common_root = root_sets[0][1]
-        for _, s in root_sets[1:]:
-            common_root = common_root & s
+        # Map short attr name to the topo key used in device_attrs
+        attr_key = short
+        value_sets = []
+        for row in rows:
+            if con_reqs and row['request'] not in con_reqs:
+                continue
+            if attr_key == 'pcieRoot':
+                raw = row['raw_root']
+            elif attr_key in ('numaNode',):
+                raw = row['numa']
+            else:
+                continue
+            if isinstance(raw, list):
+                value_sets.append(set(str(v) for v in raw))
+            elif raw != '-':
+                value_sets.append({str(raw)})
 
-    GREEN = '\033[32m'
-    RST = '\033[0m'
-    for request, driver, device, numa, root_lines, pci, product in rows:
+        if value_sets:
+            common = value_sets[0]
+            for s in value_sets[1:]:
+                common = common & s
+            if common:
+                color = COLORS.get(attr_key, DEFAULT_MATCH_COLOR)
+                matched_constraints[attr_key] = (common, color)
+
+    # Print rows with constraint-aware coloring
+    for row in rows:
+        request = row['request']
         request_short = request if len(request) <= 30 else request[:28] + '..'
-        driver_short = driver if len(driver) <= 20 else driver[:18] + '..'
+        driver_short = row['driver'] if len(row['driver']) <= 20 else row['driver'][:18] + '..'
 
-        first_root = root_lines[0]
-        if first_root in common_root and len(common_root) >= 1:
-            root_col = f'{GREEN}{first_root}{RST}' + ' ' * max(0, 16 - len(first_root))
+        # Color NUMA if numaNode constraint matched
+        numa_str = str(row['numa'])
+        if 'numaNode' in matched_constraints and numa_str in matched_constraints['numaNode'][0]:
+            color = matched_constraints['numaNode'][1]
+            numa_col = f'{color}{numa_str}{RST}' + ' ' * max(0, 6 - len(numa_str))
+        else:
+            numa_col = f'{numa_str:<6}'
+
+        # Color pcieRoot if constraint matched
+        first_root = row['root_lines'][0]
+        if 'pcieRoot' in matched_constraints and first_root in matched_constraints['pcieRoot'][0]:
+            color = matched_constraints['pcieRoot'][1]
+            root_col = f'{color}{first_root}{RST}' + ' ' * max(0, 16 - len(first_root))
         else:
             root_col = f'{first_root:<16}'
-        print(f'  {request_short:<32}{driver_short:<22}{device:<24}{str(numa):<6}{root_col}{str(pci):<18}{product:<30}')
+
+        dev = row['device']
+        pci_val = str(row['pci'])
+        prod = row['product']
+        print(f'  {request_short:<32}{driver_short:<22}{dev:<24}{numa_col}{root_col}{pci_val:<18}{prod:<30}')
 
         pad = ' ' * (32 + 22 + 24 + 6)
-        for extra_root in root_lines[1:]:
-            if extra_root in common_root and len(common_root) >= 1:
-                print(f'  {pad}{GREEN}{extra_root}{RST}')
+        for extra_root in row['root_lines'][1:]:
+            if 'pcieRoot' in matched_constraints and extra_root in matched_constraints['pcieRoot'][0]:
+                color = matched_constraints['pcieRoot'][1]
+                print(f'  {pad}{color}{extra_root}{RST}')
             else:
                 print(f'  {pad}{extra_root}')
 
     print()
-    if len(numas) == 1:
-        print(f'  \033[32m✓ All devices on NUMA {numas.pop()}\033[0m')
-    elif len(numas) > 1:
-        numa_list = ', '.join(sorted(numas))
-        print(f'  \033[33m! Multi-NUMA: devices on NUMA {numa_list}\033[0m')
+    # Summary per constraint
+    for attr_key, (common, color) in matched_constraints.items():
+        val = sorted(common)[0]
+        print(f'  {color}✓ {attr_key} aligned: {val}{RST}')
 
-    # pcieRoot alignment: compute intersection of all root sets
-    if root_sets:
-        common = root_sets[0][1]
-        for _, s in root_sets[1:]:
-            common = common & s
-        if len(common) >= 1:
-            print(f'  \033[32m✓ All PCI devices on pcieRoot {sorted(common)[0]}\033[0m')
-        else:
-            # Show per-device roots for scalar (PCI) devices only
-            pci_mismatches = []
-            for req, rset in root_sets:
-                if len(rset) == 1:
-                    pci_mismatches.append(f'{req}={sorted(rset)[0]}')
-            if pci_mismatches:
-                mismatch_str = ', '.join(pci_mismatches)
-                print(f'  \033[33m! pcieRoot mismatch: {mismatch_str}\033[0m')
-            else:
-                print(f'  \033[33m! No common pcieRoot\033[0m')
+    # Report mismatches for constraints that didn't match
+    for con in constraints:
+        ma = con.get('matchAttribute', '')
+        if not ma:
+            continue
+        short = ma.split('/')[-1] if '/' in ma else ma
+        if short in matched_constraints:
+            continue
+        con_reqs = set(con.get('requests', []))
+        if short == 'pcieRoot':
+            pci_vals = []
+            for row in rows:
+                if con_reqs and row['request'] not in con_reqs:
+                    continue
+                raw = row['raw_root']
+                req = row['request']
+                if isinstance(raw, str) and raw != '-':
+                    pci_vals.append(f'{req}={raw}')
+            if pci_vals:
+                mismatch_str = ', '.join(pci_vals)
+                print(f'  \033[33m! pcieRoot mismatch: {mismatch_str}{RST}')
+        elif short == 'numaNode':
+            numas = set()
+            for row in rows:
+                if con_reqs and row['request'] not in con_reqs:
+                    continue
+                if row['numa'] != '-':
+                    numas.add(str(row['numa']))
+            if len(numas) > 1:
+                numa_list = ', '.join(sorted(numas))
+                print(f'  \033[33m! Multi-NUMA: devices on NUMA {numa_list}{RST}')
     print()
 " 2>/dev/null
 }
