@@ -74,6 +74,8 @@ On high-end GPU servers, each GPU typically gets its own dedicated PCIe root com
 
 On the R760xa, every PCIe slot has its own root port — `matchAttribute: pcieRoot` is unsatisfiable for any GPU+NIC pair.
 
+Hardware topology diagrams for each use case: [Use Case Diagrams](../diagrams/use-case-diagrams-v2.md). UC1 shows where pcieRoot is the right signal (bus proximity for NCCL proxy). UC2 and UC4 show where numaNode is needed (memory proximity across different PCIe roots). UC5-UC6 show why numaNode is required for KubeVirt guest topology.
+
 ### CPUs and memory have no pcieRoot
 
 CPUs and memory are not PCI devices. They have no `pcieRoot`. A `matchAttribute: pcieRoot` constraint that includes CPU or memory requests is unsatisfiable.
