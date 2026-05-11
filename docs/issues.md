@@ -423,6 +423,8 @@ virt-handler's external `prlimit64` on virtqemud works correctly — `IsVFIOVMI`
 
 Non-VFIO VMs remain non-root with minimal capabilities.
 
+**Resolution:** Enable the `Root` feature gate globally. This is the standard approach for all production VFIO deployments — `permittedHostDevices` (device-plugin) does not trigger root mode either, so every VFIO deployment requires `Root` enabled. The upstream PR #17696 was put on hold by maintainers (`0xFelix`: "We don't want to elevate the privileges of virt-launcher"). `mhenriks` pointed to the plugin mechanism slated for KubeVirt 1.9 and the [kubevirt-rawio-addon](https://github.com/openshift-cnv/kubevirt-rawio-addon) as an interim pattern. Since no production users have reported this as a blocker (everyone enables `Root` for VFIO), a per-VMI addon is not worth building at this time. Revisit if KubeVirt deprecates the `Root` feature gate or if the 1.9 plugin mechanism provides a cleaner path.
+
 ---
 
 #### KV-8: `dedicatedCpuPlacement` blocks scheduling when `cpuManagerPolicy: none` (option A)
