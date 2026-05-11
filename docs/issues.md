@@ -2,16 +2,16 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-05-04)
+## Upstream PR Status (as of 2026-05-11)
 
 ### KubeVirt
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Draft | KV-8 | New — awaiting review |
-| [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Draft | KV-7 | New — awaiting review |
-| [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Open | KV-7 | Superseded by #17696. Vladikr reviewed, responded with root cause. Waiting for response before closing. |
-| [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). Closed. |
+| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (draft) | KV-8 | Awaiting review |
+| [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Open (hold) | KV-7 | 0xFelix: /hold "don't want to elevate virt-launcher". mhenriks pointed to 1.9 plugin mechanism and [rawio-addon](https://github.com/openshift-cnv/kubevirt-rawio-addon). Resolution: enable `Root` feature gate globally instead. |
+| [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Closed | KV-7 | Superseded by #17696. |
+| [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). |
 
 ### Kubernetes
 
