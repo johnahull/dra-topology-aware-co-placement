@@ -42,7 +42,7 @@ Most DRA drivers publish NUMA node information — but under six different attri
 | CPU | `dra.cpu/numaNodeID` | `dra.net/numaNode` | `/sys/devices/system/node/` | Publishes dranet alias for cross-driver matching. |
 | Memory | `dra.memory/numaNode` | `dra.cpu/numaNodeID`, `dra.net/numaNode` | NUMA zone | Publishes **three** attributes — aliases for both CPU and dranet drivers. |
 
-Six different primary attribute names (`numa`, `numaNode`, `dra.net/numaNode`, `dra.cpu/numaNodeID`, `dra.memory/numaNode`, `dra.nvme/numaNode`), plus compatibility aliases. The CPU and Memory drivers already maintain manual alias tables to enable `matchAttribute` across a subset of drivers — but NVIDIA (`numa`) and AMD (`numaNode`) don't participate in any convention.
+Five different primary attribute names (`numa`, `numaNode`, `dra.net/numaNode`, `dra.cpu/numaNodeID`, `dra.memory/numaNode`), plus compatibility aliases. The CPU and Memory drivers already maintain manual alias tables to enable `matchAttribute` across a subset of drivers — but NVIDIA (`numa`) and AMD (`numaNode`) don't participate in any convention.
 
 `matchAttribute` requires a common name across all devices in a constraint. Users cannot write:
 
