@@ -31,16 +31,18 @@
 
 ### Cross-driver NUMA alignment is impossible
 
-Most DRA drivers publish NUMA node information, each under a different vendor-specific name:
+Most DRA drivers publish NUMA node information — but under six different attribute names for the same sysfs value. Some drivers publish multiple aliases to enable cross-driver matching, creating even more duplication:
 
-| Driver | Attribute name | Source |
-|--------|---------------|--------|
-| NVIDIA GPU | `gpu.nvidia.com/numa` | `/sys/bus/pci/devices/<BDF>/numa_node` |
-| AMD GPU | `gpu.amd.com/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` |
-| SR-IOV NIC | `dra.net/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` |
-| dranet (NIC) | `dra.net/numaNode` | `/sys/class/net/<iface>/device/numa_node` |
-| CPU | `dra.cpu/numaNodeID` | `/sys/devices/system/node/` |
-| Memory | `dra.memory/numaNode` | NUMA zone |
+| Driver | Primary attribute | Compatibility aliases | Source | Notes |
+|--------|------------------|----------------------|--------|-------|
+| NVIDIA GPU | `numa` | — | `/sys/bus/pci/devices/<BDF>/numa_node` | Unqualified. VFIO devices only — standard GPUs and MIG do not publish NUMA. |
+| AMD GPU | `numaNode` | — | `/sys/bus/pci/devices/<BDF>/numa_node` | Unqualified. All GPUs and partitions. |
+| dranet | `dra.net/numaNode` | — | pcidb Node.ID | The de facto cross-driver convention. |
+| SR-IOV NIC | `dra.net/numaNode` | — | `/sys/bus/pci/devices/<BDF>/numa_node` | Uses dranet prefix intentionally for compatibility. |
+| CPU | `dra.cpu/numaNodeID` | `dra.net/numaNode` | `/sys/devices/system/node/` | Publishes dranet alias for cross-driver matching. |
+| Memory | `dra.memory/numaNode` | `dra.cpu/numaNodeID`, `dra.net/numaNode` | NUMA zone | Publishes **three** attributes — aliases for both CPU and dranet drivers. |
+
+Six different primary attribute names (`numa`, `numaNode`, `dra.net/numaNode`, `dra.cpu/numaNodeID`, `dra.memory/numaNode`, `dra.nvme/numaNode`), plus compatibility aliases. The CPU and Memory drivers already maintain manual alias tables to enable `matchAttribute` across a subset of drivers — but NVIDIA (`numa`) and AMD (`numaNode`) don't participate in any convention.
 
 `matchAttribute` requires a common name across all devices in a constraint. Users cannot write:
 
@@ -50,7 +52,7 @@ constraints:
   requests: [gpu, nic, cpu, mem]
 ```
 
-There is no standard name to use. Cross-driver NUMA co-placement is impossible without middleware (topology coordinator, CEL selectors with hardcoded vendor names, or per-driver ConfigMap rules). Most drivers already read NUMA from sysfs and publish it. The data exists. The problem is purely naming — each driver chose a different name for the same value.
+The closest cross-driver convention is `dra.net/numaNode` — published by dranet, SR-IOV, CPU (as alias), and Memory (as alias). But GPU drivers don't publish it. There is no name that works across all drivers without middleware. Standardizing `resource.kubernetes.io/numaNode` replaces the alias tables and covers every driver with one name.
 
 ### Regression from device plugins
 
