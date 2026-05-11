@@ -11,7 +11,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Draft | KV-8 | New — awaiting review |
 | [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Draft | KV-7 | New — awaiting review |
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Open | KV-7 | Superseded by #17696. Vladikr reviewed, responded with root cause. Waiting for response before closing. |
-| [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Open (hold) | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (lgtmed). oshoval put on hold. |
+| [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). Closed. |
 
 ### Kubernetes
 
@@ -322,8 +322,8 @@ Verified on XE8640: 5-driver claim (GPU + NIC + NVMe + CPU + memory) produces me
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `fix/dra-claim-dedup` commit `cac899b`
 **File:** `pkg/virt-controller/services/renderresources.go`
-**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672) (dupe of [#16769](https://github.com/kubevirt/kubevirt/issues/16769)), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673) (closed — dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) which is lgtmed, not yet merged)
-**Status:** Verified — upstream #17490 removes `copyResourceClaims` entirely and appends claims directly with both Name and Request fields. Includes test for same-ClaimName/different-RequestName. Also fixes KV-3. Close #17672 and #17673 once #17490 merges.
+**Upstream:** [Issue #17672](https://github.com/kubevirt/kubevirt/issues/17672) (dupe of [#16769](https://github.com/kubevirt/kubevirt/issues/16769)), [PR #17673](https://github.com/kubevirt/kubevirt/pull/17673) (closed), fix merged via [#17490](https://github.com/kubevirt/kubevirt/pull/17490)
+**Status:** Fixed upstream. #17490 merged — removes `copyResourceClaims` entirely, appends claims directly with Name+Request. Also fixes KV-3.
 
 When the virt-controller creates the virt-launcher pod spec, it copies resource claim references from the VMI spec to the pod's container resources. The `copyResourceClaims` function deduplicates these references to avoid Kubernetes API validation errors on duplicate claim names.
 
