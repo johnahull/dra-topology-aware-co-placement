@@ -7,7 +7,7 @@
 ## Why Standardize `numaNode`
 
 - **pcieRoot measures bus topology, not memory topology.** A GPU and NIC can be connected to different PCIe switches but the same memory controller. pcieRoot can't express this. numaNode is the orthogonal signal for memory controller proximity.
-- **Five drivers, five names, same sysfs value.** Most DRA drivers already publish NUMA — they just can't agree on a name. `matchAttribute` requires a common name for cross-driver co-placement. Standardization is a naming fix, not new functionality.
+- **Six drivers, four names, same sysfs value.** Most DRA drivers already publish NUMA — they just can't agree on a name. `matchAttribute` requires a common name for cross-driver co-placement. Standardization is a naming fix, not new functionality.
 - **pcieRoot excludes many GPU/NIC combinations** Not all GPUs share a switch with a NIC. Some servers have 1 root per PCIe slot.
 - **KEP-5491 list types don't close the gap.** CPU-as-pivot matching works for GPU↔CPU and NIC↔CPU, but GPU↔NIC on different roots have zero intersection. You can't derive memory proximity from bus addresses.
 - **KEPs 5075 and 5941 need a topology anchor.** Consumable capacity tracks how much is available. Shared capacity tracks aggregate consumption. Neither can scope to a topology domain without numaNode. The scheduler can track what's available but not where to consume it.
@@ -28,7 +28,6 @@
 | `pcieRoot` (standardized) | Bus topology | Which PCIe switch tree? |
 | `numaNode` (proposed) | Memory topology | Which memory controller? |
 
-As [kad noted at KubeCon NA 2024](https://sched.co/1i7ke): "There is no CPU in NUMA, there is no PCI in NUMA. Those two things are separate entities." `pcieRoot` is the bus topology signal. `numaNode` is the memory topology signal. Neither replaces the other.
 
 ### Cross-driver NUMA alignment is impossible
 
@@ -38,9 +37,10 @@ Most DRA drivers publish NUMA node information, each under a different vendor-sp
 |--------|---------------|--------|
 | NVIDIA GPU | `gpu.nvidia.com/numa` | `/sys/bus/pci/devices/<BDF>/numa_node` |
 | AMD GPU | `gpu.amd.com/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` |
+| SR-IOV NIC | `dra.net/numaNode` | `/sys/bus/pci/devices/<BDF>/numa_node` |
+| dranet (NIC) | `dra.net/numaNode` | `/sys/class/net/<iface>/device/numa_node` |
 | CPU | `dra.cpu/numaNodeID` | `/sys/devices/system/node/` |
 | Memory | `dra.memory/numaNode` | NUMA zone |
-| dranet (NIC) | `dra.net/numaNode` | `/sys/class/net/<iface>/device/numa_node` |
 
 `matchAttribute` requires a common name across all devices in a constraint. Users cannot write:
 
