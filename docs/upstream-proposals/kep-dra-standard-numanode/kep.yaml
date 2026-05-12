@@ -2,9 +2,10 @@ title: "DRA: Standard numaNode Device Attribute"
 kep-number: NNNN
 authors:
   - "@johnahull"
-owning-sig: sig-scheduling
+owning-sig: sig-node
 participating-sigs:
-  - sig-node
+  - sig-scheduling
+  - wg-device-management
 status: provisional
 creation-date: 2026-05-12
 reviewers:
