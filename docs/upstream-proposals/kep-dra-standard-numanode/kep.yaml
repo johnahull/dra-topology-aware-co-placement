@@ -1,5 +1,5 @@
 title: "DRA: Standard numaNode Device Attribute"
-kep-number: NNNN
+kep-number: 6072
 authors:
   - "@johnahull"
 owning-sig: sig-node

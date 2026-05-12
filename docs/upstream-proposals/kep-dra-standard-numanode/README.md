@@ -1,4 +1,4 @@
-# KEP-NNNN: DRA: Standard `numaNode` Device Attribute
+# KEP-6072: DRA: Standard `numaNode` Device Attribute
 
 <!-- toc -->
 <!-- /toc -->
