@@ -94,6 +94,8 @@ DRA scheduling co-places GPUs, NICs, and other devices on the same NUMA node, bu
 
 The DRA CPU driver ([kubernetes-sigs/dra-driver-cpu](https://github.com/kubernetes-sigs/dra-driver-cpu)) allocates CPUs as DRA devices in the same ResourceClaim as GPUs and NICs. A single `matchAttribute: numaNode` constraint aligns all resource types at scheduling time. The CPU driver pins via NRI `CreateContainer` hook. The kubelet CPU manager is disabled (`cpuManagerPolicy: none`, which is the default).
 
+The CPU driver uses KEP-5075 (DRA Consumable Capacity) to share CPU cores across multiple claims. In grouped mode, it publishes one device per NUMA node with `allowMultipleAllocations: true` and a capacity of the total cores on that NUMA (e.g., 64). Each claim specifies `capacity.requests.dra.cpu/cpu: "8"` to consume 8 cores from that device. The scheduler tracks aggregate consumption — 4 pods each consuming 8 cores uses 32 of 64 available. The actual core selection (which specific CPUs) happens at runtime via the NRI `CreateContainer` hook, which picks available cores from the NUMA node and sets `cpuset.cpus` on the container's cgroup.
+
 Example — one claim co-locates GPU + NIC + CPU on the same NUMA:
 
 ```yaml
