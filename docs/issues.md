@@ -13,6 +13,13 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Closed | KV-7 | Superseded by #17696. |
 | [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). |
 
+### Kubernetes Enhancements
+
+| PR/Issue | Title | State | Comments |
+|---|---|---|---|
+| [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Enhancement tracking issue. sig/node, wg/device-management. |
+| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | KEP PR. CLA ✅, tests ✅. ffromani, aojea, alaypatel07 cc'd. Awaiting review + lgtm + approve. |
+
 ### Kubernetes
 
 | PR | Title | State | Issue | Comments |
