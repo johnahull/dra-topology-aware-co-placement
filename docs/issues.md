@@ -36,6 +36,12 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Open | — | No reviewer comments yet |
 | [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Open | — | No reviewer comments yet |
 
+### SR-IOV DRA Driver
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) | Add downward API Metadata support (KEP-5304) | Open | D-1 | By oshoval. Cherry-picks #98. Feature-gated `enable-device-metadata`, targets K8s 1.36+. Coordinating with oshoval. |
+
 ### DRA CPU Driver
 
 | PR | Title | State | Issue | Comments |
@@ -47,6 +53,25 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
 | [#187](https://github.com/kubernetes-sigs/dranet/pull/187) | Mark NICs with shared IOMMU groups as vfio-unsafe | Closed | — | Self-closed — only relevant with VFIO passthrough mode |
+
+---
+
+## Upstream Sequencing
+
+The following work is sequenced behind [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) (standardize `resource.kubernetes.io/numaNode`). Hold until the KEP merges.
+
+| Step | What | Repo | Blocked on |
+|------|------|------|------------|
+| 1 | **KEP-6072 merges** | kubernetes/enhancements | PR [#6073](https://github.com/kubernetes/enhancements/pull/6073) — waiting for review |
+| 2 | Helper functions (`GetNUMANodeByPCIBusID`, `GetNUMANodeForCPU`) | kubernetes/kubernetes | KEP-6072 |
+| 3 | NVIDIA GPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-nvidia-gpu | Step 2 (helper) |
+| 3 | AMD GPU driver publishes `resource.kubernetes.io/numaNode` | ROCm/k8s-gpu-dra-driver | Step 2 (helper) |
+| 3 | dranet publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dranet | Step 2 (helper) |
+| 3 | SR-IOV NIC publishes `resource.kubernetes.io/numaNode` | k8snetworkplumbingwg/dra-driver-sriov | Step 2 (helper) |
+| 3 | CPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-cpu | Step 2 (helper) |
+| 3 | Memory driver publishes `resource.kubernetes.io/numaNode` | ffromani/dra-driver-memory | Step 2 (helper) |
+| 4 | KubeVirt reads `resource.kubernetes.io/numaNode` from KEP-5304 metadata for guest NUMA topology | kubevirt/kubevirt | Step 3 (drivers publish standard name) |
+| 5 | `enforcement: preferred` on `matchAttribute` (separate KEP) | kubernetes/kubernetes | Step 1 (numaNode established first) |
 
 ---
 
@@ -491,13 +516,16 @@ The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` 
 #### D-1: SR-IOV DRA driver has no KEP-5304 `pciBusID` metadata
 
 **Repo:** `k8snetworkplumbingwg/dra-driver-sriov`
-**Fix:** Not started. Workaround: use dranet.
+**Fix:** Upstream [PR #92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) by oshoval (open, last updated 2026-05-06). Local branch: `fix/kep5304-metadata`.
+**Coordination:** Coordinating with oshoval on PR #92 to avoid duplicate work. Upstream approach uses feature-gated `enable-device-metadata` CLI flag and targets K8s 1.36+. Local branch bakes it in without a feature gate and stays on current K8s version.
 
 The SR-IOV DRA driver (`sriovnetwork.k8snetworkplumbingwg.io`) publishes device attributes in ResourceSlices but doesn't set `Device.Metadata` in `PrepareResult` with KEP-5304 device metadata. KubeVirt's virt-launcher needs `resource.kubernetes.io/pciBusID` in the metadata to create VFIO passthrough entries in the VM's domain XML.
 
 Without this metadata, KubeVirt fails with: `HostDevice nic0 has no mdevUUID or pciBusID in metadata for claim numa0 request nic`.
 
 The workaround is to use dranet instead, which publishes KEP-5304 metadata with `pciBusID`. The SR-IOV driver would need to opt into KEP-5304 by calling `kubeletplugin.EnableDeviceMetadata(true)` and populating `DeviceMetadata.Attributes` in `PrepareResult`.
+
+**Upstream PR #92 scope:** Bumps to K8s 1.36, Go 1.26, adds feature gate wiring (`enable-device-metadata`), keeps metadata in prepared devices, refreshes request metadata after network attachment. Cherry-picks PR #98. 13 commits total (10 dep/CI alignment + 3 DRA metadata).
 
 ---
 
