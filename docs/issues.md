@@ -770,6 +770,26 @@ Key detail: the first version read `/proc/mounts` which inside a container only 
 
 ---
 
+#### D-18: AMD GPU DRA driver: IOMMUFD support for VFIO passthrough
+
+**Repo:** `ROCm/k8s-gpu-dra-driver`
+**Fix:** Not started.
+**Reference:** [KubeVirt VEP 266](https://github.com/kubevirt/enhancements/tree/main/veps/sig-compute/266-hostdev-iommufd)
+
+The AMD GPU DRA driver has no IOMMUFD awareness. When IOMMUFD is available (Linux 6.2+, `/dev/iommu` present), the driver should use VFIO cdev devices (`/dev/vfio/devices/vfioX`) instead of legacy IOMMU group devices (`/dev/vfio/N`), and include `/dev/iommu` in the CDI spec.
+
+IOMMUFD enables per-device IOMMU isolation (vs per-group), which is required for confidential VMs (AMD SEV-SNP, Intel TDX) and improves security for multi-device passthrough.
+
+**What's needed:**
+1. Detect IOMMUFD at startup: check if `/dev/iommu` exists
+2. Publish `iommuFDEnabled: bool` attribute on VFIO devices in ResourceSlice
+3. CDI spec generation: when IOMMUFD preferred, include `/dev/iommu` + `/dev/vfio/devices/vfioX` instead of `/dev/vfio/vfio` + `/dev/vfio/N`
+4. Support IOMMU policy in device config (prefer IOMMUFD vs legacy-only)
+
+**Reference implementation:** NVIDIA DRA driver `cmd/gpu-kubelet-plugin/vfio-cdi.go` — `GetCommonEdits()` and `GetDeviceSpecsByPCIBusID()` with `preferIommuFD` parameter.
+
+---
+
 ### Kubernetes Upstream
 
 #### U-1: `enforcement: Preferred` not in upstream API
