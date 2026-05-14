@@ -499,7 +499,7 @@ The fix skips the `kubevirt.io/cpumanager=true` node selector when the VMI has b
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `bfbc78a`
 **Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`, `pkg/dra/utils.go`
-**Status:** Fixed.
+**Status:** Fixed in fork. No upstream PR.
 
 The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` branch that only executed when `IsCPUDedicated()` returned false. But KubeVirt requires `dedicatedCpuPlacement: true` for `guestMappingPassthrough`, so the DRA NUMA path was never reached. The first branch always ran, using the kubelet's cpuset to build NUMA topology — which produced a single NUMA cell when `cpuManagerPolicy: none` (all CPUs in the default cpuset).
 
@@ -512,7 +512,7 @@ The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` 
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `e246337`
 **Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`
-**Status:** Fixed.
+**Status:** Fixed in fork. No upstream PR.
 
 `buildDRANUMAOverrides()` iterated only `vmi.Spec.Domain.Devices.HostDevices` to build PCI-to-NUMA override maps for `PlacePCIDevicesWithNUMAAlignment`. GPUs specified via `vmi.Spec.Domain.Devices.GPUs` were missed, so `PlacePCIDevicesWithNUMAAlignment` was never called for GPU devices. GPUs remained on the default PCI root bus and reported NUMA -1 inside the guest.
 
@@ -679,7 +679,7 @@ Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not obser
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `cb087a2`
 **Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-cdi.go`
-**Status:** Fixed.
+**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
 
 When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind needed), the CDI spec may reference the wrong IOMMU group or miss `/dev/vfio/vfio`. Libvirt inside the virt-launcher then reports "VFIO PCI device assignment is not supported by the host."
 
@@ -694,7 +694,7 @@ When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind 
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `e589e5a`
 **Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/nvlib.go`
-**Status:** Fixed.
+**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
 
 `enumerateGpuVfioDevices()` treated any NVIDIA GPU not on the nvidia driver as a VFIO candidate. This caused driverless GPUs (stuck after a failed unbind on H100 SXM5) and nvidia-bound GPUs to be advertised in the ResourceSlice as allocatable VFIO devices. When the scheduler picked one, the prepare would fail or hang trying to unbind from nvidia (D-11).
 
@@ -709,7 +709,7 @@ When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind 
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `ccdec5c`
 **Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`, `cmd/gpu-kubelet-plugin/deviceinfo.go`
-**Status:** Fixed.
+**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
 
 When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvidia. On H100 SXM5 systems with NVLink, this hangs indefinitely (D-11). Worse, the `preConfigureDriver` field that tracks whether Configure performed an unbind is stored in memory and lost on pod restart — so after a plugin restart, Unconfigure always attempts the rebind.
 
@@ -724,7 +724,7 @@ When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvid
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `7f4760d`
 **Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`
-**Status:** Fixed.
+**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
 
 `checkVfioPCIModuleLoaded()` and `checkIommuEnabled()` check sysfs paths under `/host-root/sys/` (e.g., `/host-root/sys/module/vfio_pci`). In containers where `/host-root` is a bind-mount of the host's `/`, the container's own `/sys` mount doesn't expose host sysfs at `/host-root/sys`. The VfioPciManager fails to initialize with "failed to load vfio_pci module" or "IOMMU is not enabled" even though both are working on the host.
 
@@ -738,8 +738,8 @@ When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvid
 **Repo:** `kubernetes-sigs/dranet`
 **Fix:** `johnahull/dranet` `fix/vfio-safety-filter` commit `f8ee4aa`
 **Files:** `pkg/filter/vfio_safety.go`, `pkg/driver/dra_hooks.go`
-**Upstream:** [Issue #186](https://github.com/kubernetes-sigs/dranet/issues/186), [PR #187](https://github.com/kubernetes-sigs/dranet/pull/187) (draft)
-**Status:** Fixed.
+**Upstream:** [Issue #186](https://github.com/kubernetes-sigs/dranet/issues/186), [PR #187](https://github.com/kubernetes-sigs/dranet/pull/187) (closed — VFIO mode not being proposed upstream)
+**Status:** Fixed in fork. Not submitting upstream.
 
 dranet publishes all discovered NICs in the ResourceSlice, including NICs that cannot be used for VFIO passthrough. The scheduler allocates them, the driver binds to vfio-pci, and QEMU fails at runtime with "group is not viable" or the host loses network connectivity.
 
@@ -760,7 +760,7 @@ Observed on XE8640: Broadcom `0000:02:00.1` shares IOMMU group 75 with managemen
 **Repo:** `johnahull/dra-driver-nvme`
 **Fix:** `johnahull/dra-driver-nvme` `main` commit `42b3e92`
 **Files:** `pkg/nvme/nvme.go`
-**Status:** Fixed.
+**Status:** Fixed in own repo. No upstream — this is our driver.
 
 The NVMe DRA driver discovers all PCIe NVMe controllers and publishes them as allocatable devices. When a VM claim requests an NVMe in VFIO mode, the driver unbinds it from the `nvme` kernel driver and binds to `vfio-pci`. If the selected NVMe is the boot disk, unbinding crashes the system by removing the root filesystem.
 
@@ -846,7 +846,7 @@ The topology coordinator runs a mutating admission webhook that expands simple "
 
 **Repo:** `johnahull/k8s-dra-topology-coordinator`
 **Fix:** `johnahull/k8s-dra-topology-coordinator` — `deviceFilter` field + qualified attribute name matching
-**Status:** Fixed.
+**Status:** Fixed in fork. No upstream PR — POC repo.
 
 The NVIDIA DRA driver publishes both compute (`gpu-0`, type=gpu) and VFIO (`gpu-vfio-0`, type=vfio) devices under the same driver `gpu.nvidia.com`. The topology coordinator's `driverCounts` counted all devices from the driver without distinguishing types, so on the XE8640 with 2 physical GPUs per NUMA node, it counted 4 devices (2 compute + 2 VFIO) and allocated 2 GPUs per quarter partition instead of 1.
 
@@ -878,7 +878,7 @@ Observed on XE8640 with 4x H100 SXM5, NVIDIA DRA driver `vfio-discovery-fix` bui
 
 **Repo:** `johnahull/k8s-dra-topology-coordinator`
 **Fix:** `johnahull/k8s-dra-topology-coordinator` — qualified name matching (same commit as TC-3)
-**Status:** Fixed.
+**Status:** Fixed in fork. No upstream PR — POC repo.
 
 DRA ResourceSlice attributes can be stored as unqualified names (e.g., `type`, `numa`) which belong to the publishing driver's domain. The topology coordinator's `extractTopologyDevice()` compared attribute names literally against topology rule attribute names, so a rule with `attribute: gpu.nvidia.com/type` wouldn't match a ResourceSlice attribute named just `type`.
 
@@ -892,7 +892,7 @@ The fix constructs a qualified name (`driverName + "/" + name`) for unqualified 
 
 **Repo:** `johnahull/kubevirt` `feature/dra-all-patches`
 **Fix:** Resolved by TC-3 (topology coordinator fix).
-**Status:** Fixed (root cause was TC-3).
+**Status:** Fixed in fork via TC-3. No upstream PR.
 
 KubeVirt's `resolveDevice()` in `pkg/dra/utils.go` enforces exactly 1 device per request for GPU passthrough. When the topology coordinator incorrectly allocated 2 GPUs per quarter partition (TC-3), the KEP-5304 metadata contained 2 devices under the `partition-vfio-gpu-nvidia-com` request. `resolveDevice()` returned an error, which was swallowed by `createHostDeviceForGPU()` (it checks `err == nil`), falling through to the generic error: `GPU gpu0 has no mdevUUID or pciBusID in metadata for claim`.
 
