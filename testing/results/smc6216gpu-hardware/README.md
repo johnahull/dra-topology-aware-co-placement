@@ -10,6 +10,18 @@ Open [`topology.excalidraw`](topology.excalidraw) in [excalidraw.com](https://ex
 
 ![PCIe / NUMA Topology](topology.svg)
 
+## IOD Quadrant / NPS Mode Comparison
+
+Each socket has 1 IOD with 4 quadrants. GPUs are on Q0 and Q3 (2 per quadrant). Under NPS4, each quadrant becomes its own NUMA node — a natural 2-GPU scheduling unit.
+
+![IOD Quadrant Layout](iod-quadrants.svg)
+
+## PCIe Switch Internal Structure
+
+Each GPU root has a Broadcom PEX890xx Gen5 switch with 5 downstream ports. The Pensando DSC3 has its own internal PCIe switch with 4 independently-assignable functions.
+
+![PCIe Switch Detail](pcie-switch-detail.svg)
+
 ## Quick Reference
 
 | | Socket 0 (NUMA 0) | Socket 1 (NUMA 1) |
@@ -17,7 +29,7 @@ Open [`topology.excalidraw`](topology.excalidraw) in [excalidraw.com](https://ex
 | **CPU** | AMD EPYC 9575F, 64c/128t | AMD EPYC 9575F, 64c/128t |
 | **CPUs** | 0-63, 128-191 | 64-127, 192-255 |
 | **GPUs** | 4x MI325X (roots 00/10/60/70) | 4x MI325X (roots 80/90/e0/f0) |
-| **NICs** | 4x Pensando DSC | 3x Pensando DSC + 1x ConnectX-7 |
+| **NICs** | 4x POLLARA-1Q400 | 3x POLLARA-1Q400 + 1x ConnectX-7 IB |
 | **NVMe** | 4x KIOXIA CD8P | 2x KIOXIA CD8P (roots 80/90 empty) |
 
 ## Co-Placement Coverage
@@ -27,16 +39,21 @@ For DRA topology-aware scheduling with `matchAttribute`:
 | Constraint | GPU↔NIC | GPU↔NVMe | GPU↔NIC↔NVMe |
 |------------|---------|----------|--------------|
 | `pcieRoot` | 8/8 (100%) | 6/8 (75%) | 6/8 (75%) |
-| `numaNode` | 8/8 (100%) | 6/8 (75%) | 6/8 (75%) |
+| `numaNode` (NPS1) | 8/8 (100%) | 6/8 (75%) | 6/8 (75%) |
+| `numaNode` (NPS4) | 8/8 (100%) | 6/8 (75%) | 6/8 (75%) |
 
-On this system, `pcieRoot` and `numaNode` produce identical co-placement results because each PCIe root maps to exactly one NUMA node with one GPU. However, `pcieRoot` is the finer constraint (8 groups vs 2).
+On this system, `pcieRoot` and `numaNode` produce identical co-placement results because each PCIe root maps to exactly one NUMA node with one GPU. However, `pcieRoot` is the finer constraint (8 groups vs 2 under NPS1, or 8 vs 4 under NPS4).
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| [`system-summary.md`](system-summary.md) | Full hardware inventory with BDFs, IOMMU groups, SR-IOV |
+| [`system-summary.md`](system-summary.md) | Full hardware inventory with BDFs, IOMMU groups, SR-IOV, IOD quadrants |
 | [`numa-topology.txt`](numa-topology.txt) | Full NUMA-aware PCIe topology with drivers, IOMMU groups, SR-IOV, link speeds |
 | [`pcie-tree.txt`](pcie-tree.txt) | Raw `lspci -tv` output |
-| [`topology.excalidraw`](topology.excalidraw) | Interactive diagram (drag into excalidraw.com) |
-| [`topology.svg`](topology.svg) | Exported SVG of the topology diagram |
+| [`topology.excalidraw`](topology.excalidraw) | System topology diagram — all 8 GPU roots across 2 NUMA nodes |
+| [`topology.svg`](topology.svg) | Exported SVG of system topology |
+| [`iod-quadrants.excalidraw`](iod-quadrants.excalidraw) | IOD quadrant layout with NPS1 vs NPS4 comparison |
+| [`iod-quadrants.svg`](iod-quadrants.svg) | Exported SVG of IOD quadrant diagram |
+| [`pcie-switch-detail.excalidraw`](pcie-switch-detail.excalidraw) | PCIe switch internal structure (root 0000:00 example) |
+| [`pcie-switch-detail.svg`](pcie-switch-detail.svg) | Exported SVG of PCIe switch detail |

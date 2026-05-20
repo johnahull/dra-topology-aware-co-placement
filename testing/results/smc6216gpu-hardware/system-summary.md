@@ -16,6 +16,24 @@
 - **L3 cache:** 512 MiB total (16 instances, 32 MiB each)
 - **Hugepages:** None allocated
 
+## IOD Quadrant Mapping
+
+Each socket has 1 IOD with 4 quadrants. Each quadrant has its own IOMMU and set of PCIe root complexes.
+With NPS4, each quadrant would become a separate NUMA node (8 total).
+
+| Quadrant | IOMMU Root | PCIe Roots | GPU Count | Devices |
+|----------|-----------|------------|-----------|---------|
+| S0-Q0 | `0000:00` | `00`, `10` | 2 | 2x MI325X + 2x POLLARA + 2x NVMe |
+| S0-Q1 | `0000:20` | `20` | 0 | USB, SATA (platform I/O) |
+| S0-Q2 | `0000:50` | `50` | 0 | X710 10GbE, ASPEED BMC, SATA |
+| S0-Q3 | `0000:70` | `60`, `70` | 2 | 2x MI325X + 2x POLLARA + 2x NVMe |
+| S1-Q0 | `0000:80` | `80`, `90` | 2 | 2x MI325X + 2x POLLARA (no NVMe) |
+| S1-Q1 | `0000:a0` | `a0` | 0 | USB, SATA (platform I/O) |
+| S1-Q2 | `0000:d0` | `c0`, `d0` | 0 | I350 GbE, MegaRAID, CCP |
+| S1-Q3 | `0000:f0` | `e0`, `f0` | 2 | 2x MI325X + ConnectX-7 + POLLARA + 2x NVMe |
+
+Data Fabric nodes: `00:18.*` (Socket 0), `00:19.*` (Socket 1) — 8 functions each.
+
 ## GPU + NIC + NVMe Co-Placement
 
 8x AMD Instinct MI325X (Aqua Vanjaram, PCI 0x1002:0x74a5).
