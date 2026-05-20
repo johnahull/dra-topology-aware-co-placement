@@ -36,6 +36,7 @@ On this system, `pcieRoot` and `numaNode` produce identical co-placement results
 | File | Description |
 |------|-------------|
 | [`system-summary.md`](system-summary.md) | Full hardware inventory with BDFs, IOMMU groups, SR-IOV |
+| [`numa-topology.txt`](numa-topology.txt) | Full NUMA-aware PCIe topology with drivers, IOMMU groups, SR-IOV, link speeds |
 | [`pcie-tree.txt`](pcie-tree.txt) | Raw `lspci -tv` output |
 | [`topology.excalidraw`](topology.excalidraw) | Interactive diagram (drag into excalidraw.com) |
 | [`topology.svg`](topology.svg) | Exported SVG of the topology diagram |
