@@ -18,21 +18,32 @@
 
 ## IOD Quadrant Mapping
 
-Each socket has 1 IOD with 4 quadrants. Each quadrant has its own IOMMU and set of PCIe root complexes.
-With NPS4, each quadrant would become a separate NUMA node (8 total).
+Each socket has 1 IOD with 4 quadrants. Each quadrant has its own IOMMU instance (ivhd)
+and owns 1-2 PCIe root complexes. Verified via `/sys/class/iommu/ivhd*/devices/`.
 
-| Quadrant | IOMMU Root | PCIe Roots | GPU Count | Devices |
-|----------|-----------|------------|-----------|---------|
-| S0-Q0 | `0000:00` | `00`, `10` | 2 | 2x MI325X + 2x POLLARA + 2x NVMe |
-| S0-Q1 | `0000:20` | `20` | 0 | USB, SATA (platform I/O) |
-| S0-Q2 | `0000:50` | `50` | 0 | X710 10GbE, ASPEED BMC, SATA |
-| S0-Q3 | `0000:70` | `60`, `70` | 2 | 2x MI325X + 2x POLLARA + 2x NVMe |
-| S1-Q0 | `0000:80` | `80`, `90` | 2 | 2x MI325X + 2x POLLARA (no NVMe) |
-| S1-Q1 | `0000:a0` | `a0` | 0 | USB, SATA (platform I/O) |
-| S1-Q2 | `0000:d0` | `c0`, `d0` | 0 | I350 GbE, MegaRAID, CCP |
-| S1-Q3 | `0000:f0` | `e0`, `f0` | 2 | 2x MI325X + ConnectX-7 + POLLARA + 2x NVMe |
+**Each quadrant has exactly 1 GPU.** Some quadrants own a second root for infrastructure,
+but the GPU is always on just one root per quadrant.
+
+| Quadrant | IOMMU (ivhd) | PCIe Roots | GPU BDF | Co-located Devices |
+|----------|-------------|------------|---------|-------------------|
+| S0-Q0 | ivhd2 | `00` (+20/30?) | `05:00.0` | POLLARA + NVMe |
+| S0-Q1 | ivhd3 | `10` | `15:00.0` | POLLARA + NVMe |
+| S0-Q2 | ivhd1 | `50`, `60` | `65:00.0` | POLLARA + NVMe + X710/BMC (infra on 50) |
+| S0-Q3 | ivhd0 | `40`, `70` | `75:00.0` | POLLARA + NVMe (empty root 40) |
+| S1-Q0 | ivhd6 | `80` | `85:00.0` | POLLARA (no NVMe) |
+| S1-Q1 | ivhd7 | `90` | `95:00.0` | POLLARA (no NVMe) |
+| S1-Q2 | ivhd5 | `d0`, `e0` | `e5:00.0` | ConnectX-7 IB + NVMe + MegaRAID/CCP (infra on d0) |
+| S1-Q3 | ivhd4 | `c0`, `f0` | `f5:00.0` | POLLARA + NVMe + I350 GbE (infra on c0) |
 
 Data Fabric nodes: `00:18.*` (Socket 0), `00:19.*` (Socket 1) — 8 functions each.
+
+### NPS Mode Impact
+
+| NPS Mode | NUMA Nodes | GPUs per Node | `numaNode` Granularity |
+|----------|-----------|---------------|----------------------|
+| NPS1 (current) | 2 | 4 | Coarse — same as socket |
+| NPS2 | 4 | 2 | Medium — pairs of quadrants |
+| NPS4 | 8 | 1 | Fine — matches `pcieRoot` exactly |
 
 ## GPU + NIC + NVMe Co-Placement
 

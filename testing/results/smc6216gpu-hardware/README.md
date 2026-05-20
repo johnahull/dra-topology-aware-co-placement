@@ -42,7 +42,7 @@ For DRA topology-aware scheduling with `matchAttribute`:
 | `numaNode` (NPS1) | 8/8 (100%) | 6/8 (75%) | 6/8 (75%) |
 | `numaNode` (NPS4) | 8/8 (100%) | 6/8 (75%) | 6/8 (75%) |
 
-On this system, `pcieRoot` and `numaNode` produce identical co-placement results because each PCIe root maps to exactly one NUMA node with one GPU. However, `pcieRoot` is the finer constraint (8 groups vs 2 under NPS1, or 8 vs 4 under NPS4).
+Under NPS1, `pcieRoot` is strictly finer than `numaNode` (8 groups vs 2). Under NPS4, each IOD quadrant becomes its own NUMA node with exactly 1 GPU — making `numaNode` and `pcieRoot` equivalent in granularity.
 
 ## Files
 
