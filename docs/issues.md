@@ -63,6 +63,23 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 ---
 
+## KubeVirt 1.9 VEP Tracking
+
+VEPs from the [KubeVirt 1.9 Enhancements Tracking](https://github.com/orgs/kubevirt/projects/21) board that relate to this project's steps.
+
+| VEP | Title | Owner | Stage | Project Step | Comments |
+|-----|-------|-------|-------|-------------|----------|
+| [VEP 10](https://github.com/kubevirt/enhancements/issues/10) | Support GPU DRA devices in KubeVirt | @alaypatel07 | New | Step 5, 6 | GPU passthrough via DRA. Feature gate `GPUsWithDRA`. Underpins our XE8640/R760xa end-to-end demos. |
+| [VEP 115](https://github.com/kubevirt/enhancements/issues/115) | PCIe NUMA Topology Awareness | @mresvanis, @fanzhangio | New | Step 7 | `pxb-pcie` expander bus placement. Our KV-5 extends this to read NUMA from KEP-5304 metadata instead of sysfs only. |
+| [VEP 152](https://github.com/kubevirt/enhancements/issues/152) | Add support for CPU DRA Driver | @alaypatel07 | New | Step 3 | KubeVirt + DRA CPU driver integration. Feature gate `CPUsWithDRA`. Our KV-8 (skip cpumanager label) is a prerequisite. |
+| [VEP 174](https://github.com/kubevirt/enhancements/issues/174) | HostDevicesWithDRA | @alaypatel07 | New | Step 5, 6 | Generic host device passthrough via DRA. Feature gate already alpha in upstream. Our KV-7 (VFIO capabilities) and KV-9/KV-10 (NUMA overrides) relate. |
+| [VEP 183](https://github.com/kubevirt/enhancements/issues/183) | NetworkDevicesWithDRA | @oshoval | New | Step 5, 6 | NIC passthrough via DRA. Feature gate `NetworkDevicesWithDRA`. SR-IOV DRA driver KEP-5304 PR #92 (D-1) is a dependency. |
+| [VEP 254](https://github.com/kubevirt/enhancements/issues/254) | Guest GPU Metrics via VSOCK | @machadovilaca | New | — | Not a dependency, but natural follow-on: observability for passthrough GPUs inside VMs. |
+| [VEP 266](https://github.com/kubevirt/enhancements/issues/266) | Host Devices Assignment with IOMMUFD | @fossedihelm | New | Step 5 | IOMMUFD replaces legacy `/dev/vfio/vfio`. Our D-18 (AMD GPU IOMMUFD) is the driver-side counterpart. |
+| [VEP 300](https://github.com/kubevirt/enhancements/issues/300) | Device manager like policies for DRA resources | — | New | Step 4 | KubeVirt-level DRA claim manager with policy-based claim generation. Overlaps with topology coordinator's partition DeviceClasses and webhook expansion. |
+
+---
+
 ## Upstream Sequencing
 
 The following work is sequenced behind [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) (standardize `resource.kubernetes.io/numaNode`). Hold until the KEP merges.
