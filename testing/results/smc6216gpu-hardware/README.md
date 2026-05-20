@@ -12,7 +12,7 @@ Open [`topology.excalidraw`](topology.excalidraw) in [excalidraw.com](https://ex
 
 ## IOD Quadrant / NPS Mode Comparison
 
-Each socket has 1 IOD with 4 quadrants. GPUs are on Q0 and Q3 (2 per quadrant). Under NPS4, each quadrant becomes its own NUMA node — a natural 2-GPU scheduling unit.
+Each socket has 1 IOD with 4 quadrants, each with its own IOMMU instance (ivhd). Every quadrant has exactly 1 GPU. Under NPS4, each quadrant becomes its own NUMA node — matching `pcieRoot` granularity exactly.
 
 ![IOD Quadrant Layout](iod-quadrants.svg)
 

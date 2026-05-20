@@ -130,19 +130,23 @@ No devices reported `numa_node = -1` (all have proper NUMA affinity).
 | `pcieRoot` GPU↔NIC | 8/8 (100%) | Every GPU has a co-located NIC |
 | `pcieRoot` GPU↔NVMe | 6/8 (75%) | Roots 80, 90 lack NVMe |
 | `pcieRoot` GPU↔NIC↔NVMe | 6/8 (75%) | |
-| `numaNode` GPU↔NIC | 8/8 (100%) | 4+4 split matches PCIe root grouping |
-| `numaNode` GPU↔NVMe | 6/8 (75%) | Same 2 missing as pcieRoot |
+| `numaNode` (NPS1) GPU↔NIC | 8/8 (100%) | 4+4 split, coarser than pcieRoot |
+| `numaNode` (NPS1) GPU↔NVMe | 6/8 (75%) | Same 2 missing as pcieRoot |
+| `numaNode` (NPS4) GPU↔NIC | 8/8 (100%) | 1:1 with pcieRoot |
+| `numaNode` (NPS4) GPU↔NVMe | 6/8 (75%) | Same 2 missing as pcieRoot |
 
 ## Topology Observations
 
-1. **pcieRoot ≡ numaNode for co-placement on this system.** Each PCIe root maps to exactly one NUMA node, and each root has exactly one GPU. Both `matchAttribute: pcieRoot` and `matchAttribute: numaNode` produce identical co-placement results — but `pcieRoot` is strictly finer-grained (8 groups vs 2).
+1. **1 GPU per IOD quadrant.** Verified via `/sys/class/iommu/ivhd*/devices/`: each of the 8 IOMMU instances (4 per socket) owns exactly 1 GPU root. Under NPS4, `matchAttribute: numaNode` would give identical granularity to `matchAttribute: pcieRoot` (1 GPU per group). Under NPS1 (current), `numaNode` is coarser (4 GPUs per group vs 8).
 
-2. **Clean 4+4 NUMA split.** No GPU straddles a NUMA boundary. Socket 0 owns roots 00/10/60/70; Socket 1 owns 80/90/e0/f0.
+2. **Clean 4+4 NUMA split (NPS1).** No GPU straddles a NUMA boundary. Socket 0 owns roots 00/10/60/70; Socket 1 owns 80/90/e0/f0.
 
-3. **Root e0 is the outlier.** Only root with a Mellanox ConnectX-7 InfiniBand HCA instead of a Pensando DSC. The CX-7 has 16 VFs (vs 1 VF per Pensando) and supports both InfiniBand and Ethernet, making it the best candidate for SR-IOV-heavy or RDMA workloads.
+3. **Non-contiguous quadrant roots.** Some quadrants own non-adjacent PCIe roots (e.g., ivhd0 owns roots 40+70, ivhd1 owns roots 50+60). PCIe address proximity does not imply shared IOMMU domain — always verify via ivhd mapping.
 
-4. **VFIO-ready.** All GPUs, NICs, and NVMe devices are in separate IOMMU groups — no ACS issues for DRA device passthrough.
+4. **Root e0 is the outlier.** Only root with a Mellanox ConnectX-7 InfiniBand HCA instead of a Pensando DSC. The CX-7 has 16 VFs (vs 1 VF per Pensando) and supports both InfiniBand and Ethernet, making it the best candidate for SR-IOV-heavy or RDMA workloads.
 
-5. **NVMe SR-IOV.** Each KIOXIA CD8P supports 32 VFs, enabling NVMe namespace partitioning via DRA if needed.
+5. **VFIO-ready.** All GPUs, NICs, and NVMe devices are in separate IOMMU groups — no ACS issues for DRA device passthrough.
 
-6. **Switch management devices.** Roots 00, 70, 80, f0 have additional Broadcom mpt3sas SAS controllers and TWC/NT endpoints for PCIe switch management — these are infrastructure devices, not relevant to DRA scheduling.
+6. **NVMe SR-IOV.** Each KIOXIA CD8P supports 32 VFs, enabling NVMe namespace partitioning via DRA if needed.
+
+7. **Switch management devices.** Roots 00, 70, 80, f0 have additional Broadcom mpt3sas SAS controllers and TWC/NT endpoints for PCIe switch management — these are infrastructure devices, not relevant to DRA scheduling.
