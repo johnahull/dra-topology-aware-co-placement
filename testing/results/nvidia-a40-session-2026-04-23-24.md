@@ -186,7 +186,7 @@ enp255s0: NUMA=0   # ConnectX-7 VF from host NUMA 0
 | `johnahull/kubevirt` | `feature/dra-vfio-numa-passthrough-v1.8.1` | Rebase to v1.8.1 + DRA-native NUMA (6 commits) |
 | `johnahull/dra-driver-sriov` | `feature/dra-topology-co-placement` | VFIO passthrough fixes + KEP-5304 metadata (4 commits) |
 | `johnahull/dra-driver-nvidia-gpu` | `feature/standardized-topology-attrs` | DeviceMetadata version gate (1 commit) |
-| `johnahull/dra-topology-aware-co-placement` | `main` | Docs, demo script, numa-topology.sh fix |
+| `johnahull/dra-topology-aware-co-placement` | `main` | Docs, demo script, hw-topology.sh fix |
 
 ## Remaining work
 

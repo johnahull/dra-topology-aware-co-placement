@@ -20,7 +20,7 @@
 
 Each socket has 1 IOD with 4 quadrants. Each quadrant has its own IOMMU instance (ivhd)
 and owns exactly 2 PCIe root complexes — one GPU root and one infrastructure root.
-Verified via `/sys/class/iommu/ivhd*/devices/` and `numa-topology.sh --iod`.
+Verified via `/sys/class/iommu/ivhd*/devices/` and `hw-topology.sh --iod`.
 
 **Each quadrant has exactly 1 GPU.**
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# numa-topology.sh — Display NUMA nodes with CPUs and PCIe device topology tree
+# hw-topology.sh — Display NUMA nodes with CPUs and PCIe device topology tree
 
 set -uo pipefail
 

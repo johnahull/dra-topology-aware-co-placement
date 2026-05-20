@@ -49,7 +49,7 @@ Under NPS1, `pcieRoot` is strictly finer than `numaNode` (8 groups vs 2). Under 
 | File | Description |
 |------|-------------|
 | [`system-summary.md`](system-summary.md) | Full hardware inventory with BDFs, IOMMU groups, SR-IOV, IOD quadrants |
-| [`numa-topology.txt`](numa-topology.txt) | Full NUMA-aware PCIe topology with drivers, IOMMU groups, SR-IOV, link speeds |
+| [`hw-topology.txt`](hw-topology.txt) | Full NUMA-aware PCIe topology with drivers, IOMMU groups, SR-IOV, link speeds |
 | [`pcie-tree.txt`](pcie-tree.txt) | Raw `lspci -tv` output |
 | [`topology.excalidraw`](topology.excalidraw) | System topology diagram — all 8 GPU roots across 2 NUMA nodes |
 | [`topology.svg`](topology.svg) | Exported SVG of system topology |

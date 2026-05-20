@@ -1,7 +1,7 @@
-# numa-topology-live.ks — Fedora 44 Live ISO kickstart
+# hw-topology-live.ks — Fedora 44 Live ISO kickstart
 # Built by build-live-iso.sh using livecd-creator
 #
-# The numa-topology.sh script is injected by the build script into the
+# The hw-topology.sh script is injected by the build script into the
 # INJECT_NUMA_TOPOLOGY_SCRIPT marker below.
 
 lang en_US.UTF-8
@@ -42,14 +42,14 @@ dracut-live
 %post
 #!/bin/bash
 
-# ── Embed numa-topology.sh ──────────────────────────────────────────────────
-cat > /usr/local/bin/numa-topology.sh << 'NUMA_SCRIPT_EOF'
+# ── Embed hw-topology.sh ──────────────────────────────────────────────────
+cat > /usr/local/bin/hw-topology.sh << 'NUMA_SCRIPT_EOF'
 ##INJECT_NUMA_TOPOLOGY_SCRIPT##
 NUMA_SCRIPT_EOF
-chmod +x /usr/local/bin/numa-topology.sh
+chmod +x /usr/local/bin/hw-topology.sh
 
 # ── Systemd service for auto-capture on boot ────────────────────────────────
-cat > /etc/systemd/system/numa-topology-capture.service << 'UNIT'
+cat > /etc/systemd/system/hw-topology-capture.service << 'UNIT'
 [Unit]
 Description=Capture NUMA topology on boot
 After=multi-user.target
@@ -58,7 +58,7 @@ Wants=multi-user.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/bin/numa-topology-capture.sh
+ExecStart=/usr/local/bin/hw-topology-capture.sh
 StandardOutput=journal+console
 
 [Install]
@@ -66,13 +66,13 @@ WantedBy=multi-user.target
 UNIT
 
 # ── Capture wrapper ─────────────────────────────────────────────────────────
-cat > /usr/local/bin/numa-topology-capture.sh << 'WRAPPER'
+cat > /usr/local/bin/hw-topology-capture.sh << 'WRAPPER'
 #!/bin/bash
 OUTDIR="/root"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 SYS_MODEL=$(dmidecode -s system-product-name 2>/dev/null | tr ' /' '-_' | tr -cd '[:alnum:]_-' || echo "unknown")
 [ -z "$SYS_MODEL" ] && SYS_MODEL="unknown"
-OUTFILE="${OUTDIR}/numa-topology-${SYS_MODEL}-${TIMESTAMP}.txt"
+OUTFILE="${OUTDIR}/hw-topology-${SYS_MODEL}-${TIMESTAMP}.txt"
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════════╗"
@@ -81,28 +81,28 @@ echo "║  Output: ${OUTFILE}                                          ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
-/usr/local/bin/numa-topology.sh 2>&1 | tee "${OUTFILE}"
+/usr/local/bin/hw-topology.sh 2>&1 | tee "${OUTFILE}"
 
-/usr/local/bin/numa-topology.sh --accelerators --flat 2>&1 \
-    > "${OUTDIR}/numa-topology-accelerators-${SYS_MODEL}-${TIMESTAMP}.txt"
+/usr/local/bin/hw-topology.sh --accelerators --flat 2>&1 \
+    > "${OUTDIR}/hw-topology-accelerators-${SYS_MODEL}-${TIMESTAMP}.txt"
 
 # Strip ANSI color codes from saved files
-for f in "${OUTDIR}"/numa-topology-*.txt; do
+for f in "${OUTDIR}"/hw-topology-*.txt; do
     sed -i 's/\x1b\[[0-9;]*m//g' "$f"
 done
 
 echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo "  Output saved to: ${OUTFILE}"
-echo "  Accelerator view: ${OUTDIR}/numa-topology-accelerators-${SYS_MODEL}-${TIMESTAMP}.txt"
+echo "  Accelerator view: ${OUTDIR}/hw-topology-accelerators-${SYS_MODEL}-${TIMESTAMP}.txt"
 echo ""
-echo "  To re-run:  numa-topology.sh [--help]"
-echo "  To copy out: mount a USB and cp /root/numa-topology-*.txt /mnt/"
+echo "  To re-run:  hw-topology.sh [--help]"
+echo "  To copy out: mount a USB and cp /root/hw-topology-*.txt /mnt/"
 echo "════════════════════════════════════════════════════════════════"
 WRAPPER
-chmod +x /usr/local/bin/numa-topology-capture.sh
+chmod +x /usr/local/bin/hw-topology-capture.sh
 
-systemctl enable numa-topology-capture.service
+systemctl enable hw-topology-capture.service
 
 # ── Auto-login root on tty1 ────────────────────────────────────────────────
 mkdir -p /etc/systemd/system/getty@tty1.service.d
@@ -119,13 +119,13 @@ cat > /etc/motd << 'MOTD'
   ║  NUMA Topology Capture — Fedora Live          ║
   ╚════════════════════════════════════════════════╝
 
-  Topology output is in /root/numa-topology-*.txt
+  Topology output is in /root/hw-topology-*.txt
 
   Useful commands:
-    numa-topology.sh              Full topology tree
-    numa-topology.sh -a           Accelerators only
-    numa-topology.sh -a -f        Accelerators flat list
-    numa-topology.sh -n           Network devices only
+    hw-topology.sh              Full topology tree
+    hw-topology.sh -a           Accelerators only
+    hw-topology.sh -a -f        Accelerators flat list
+    hw-topology.sh -n           Network devices only
     lspci -tv                     PCI tree
     dmidecode -t memory           DIMM info
     lscpu                         CPU topology

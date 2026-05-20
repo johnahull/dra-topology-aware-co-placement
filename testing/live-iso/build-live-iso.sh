@@ -1,5 +1,5 @@
 #!/bin/bash
-# build-live-iso.sh — Build a Fedora live ISO and USB image with numa-topology.sh
+# build-live-iso.sh — Build a Fedora live ISO and USB image with hw-topology.sh
 #
 # Prerequisites:
 #   sudo dnf install livecd-tools pykickstart
@@ -8,18 +8,18 @@
 #   sudo ./build-live-iso.sh
 #
 # Output:
-#   ./output/numa-topology-live.iso  — bootable ISO (iDRAC virtual media, burn to DVD)
-#   ./output/numa-topology-live.img  — bootable USB image with writable overlay
+#   ./output/hw-topology-live.iso  — bootable ISO (iDRAC virtual media, burn to DVD)
+#   ./output/hw-topology-live.img  — bootable USB image with writable overlay
 #
 # The .img file can be:
 #   - Mounted via iDRAC virtual media as a USB device
-#   - Written to a physical USB: dd if=output/numa-topology-live.img of=/dev/sdX bs=4M
+#   - Written to a physical USB: dd if=output/hw-topology-live.img of=/dev/sdX bs=4M
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-KICKSTART="${SCRIPT_DIR}/numa-topology-live.ks"
-NUMA_SCRIPT="${SCRIPT_DIR}/../scripts/numa-topology.sh"
+KICKSTART="${SCRIPT_DIR}/hw-topology-live.ks"
+NUMA_SCRIPT="${SCRIPT_DIR}/../scripts/hw-topology.sh"
 OUTPUT_DIR="${SCRIPT_DIR}/output"
 WORK_DIR="${SCRIPT_DIR}/work"
 ISO_LABEL="NUMA-TOPO"
@@ -41,7 +41,7 @@ for cmd in livecd-creator ksvalidator; do
 done
 
 if [ ! -f "$NUMA_SCRIPT" ]; then
-    echo "ERROR: numa-topology.sh not found at: $NUMA_SCRIPT"
+    echo "ERROR: hw-topology.sh not found at: $NUMA_SCRIPT"
     exit 1
 fi
 
@@ -50,9 +50,9 @@ ksvalidator "$KICKSTART" || {
     echo "WARNING: Kickstart validation failed (may still work)"
 }
 
-# Inject numa-topology.sh content into kickstart
-echo "Injecting numa-topology.sh into kickstart..."
-GENERATED_KS="${WORK_DIR}/numa-topology-live-generated.ks"
+# Inject hw-topology.sh content into kickstart
+echo "Injecting hw-topology.sh into kickstart..."
+GENERATED_KS="${WORK_DIR}/hw-topology-live-generated.ks"
 mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 sed -e "/##INJECT_NUMA_TOPOLOGY_SCRIPT##/{
     r $NUMA_SCRIPT
@@ -72,13 +72,13 @@ livecd-creator \
     --tmpdir "$WORK_DIR"
 
 # livecd-creator outputs to cwd
-mv "${ISO_LABEL}.iso" "$OUTPUT_DIR/numa-topology-live.iso"
+mv "${ISO_LABEL}.iso" "$OUTPUT_DIR/hw-topology-live.iso"
 
 echo ""
 echo "Step 2: Creating USB image with writable overlay..."
 echo ""
 
-IMG_FILE="$OUTPUT_DIR/numa-topology-live.img"
+IMG_FILE="$OUTPUT_DIR/hw-topology-live.img"
 
 # Create a sparse disk image file
 truncate -s ${IMG_SIZE_MB}M "$IMG_FILE"
@@ -90,7 +90,7 @@ trap "losetup -d $LOOP 2>/dev/null || true" EXIT
 # Convert ISO to bootable USB image on the loop device
 livecd-iso-to-disk \
     --overlay-size-mb "$OVERLAY_MB" \
-    "$OUTPUT_DIR/numa-topology-live.iso" \
+    "$OUTPUT_DIR/hw-topology-live.iso" \
     "$LOOP"
 
 losetup -d "$LOOP"
@@ -100,14 +100,14 @@ echo ""
 echo "════════════════════════════════════════════════════════════════"
 echo "  Built successfully:"
 echo ""
-echo "  ISO: $OUTPUT_DIR/numa-topology-live.iso"
+echo "  ISO: $OUTPUT_DIR/hw-topology-live.iso"
 echo "       Mount via iDRAC virtual media (read-only, console output only)"
 echo ""
-echo "  IMG: $OUTPUT_DIR/numa-topology-live.img"
+echo "  IMG: $OUTPUT_DIR/hw-topology-live.img"
 echo "       Mount via iDRAC as virtual USB (writable — output persists)"
 echo "       Or write to physical USB:"
-echo "         dd if=$OUTPUT_DIR/numa-topology-live.img of=/dev/sdX bs=4M"
+echo "         dd if=$OUTPUT_DIR/hw-topology-live.img of=/dev/sdX bs=4M"
 echo ""
 echo "  Boot the server — topology is auto-captured to:"
-echo "    /root/numa-topology-*.txt"
+echo "    /root/hw-topology-*.txt"
 echo "════════════════════════════════════════════════════════════════"

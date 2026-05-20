@@ -1,21 +1,21 @@
 # NUMA Topology Capture — Fedora 44 Live ISO
 
 A minimal Fedora 44 live ISO that boots on a server, automatically runs
-`numa-topology.sh`, and saves the output. Use it to quickly capture NUMA/PCIe
+`hw-topology.sh`, and saves the output. Use it to quickly capture NUMA/PCIe
 topology from bare-metal servers without installing anything.
 
 ## What it does
 
 On boot, the ISO:
 1. Auto-logins as root (no password prompt on console)
-2. Runs `numa-topology.sh` and displays output on the console
+2. Runs `hw-topology.sh` and displays output on the console
 3. Saves two files to `/root/`:
-   - `numa-topology-<system-model>-<timestamp>.txt` — full topology tree
-   - `numa-topology-accelerators-<system-model>-<timestamp>.txt` — accelerators-only flat view
+   - `hw-topology-<system-model>-<timestamp>.txt` — full topology tree
+   - `hw-topology-accelerators-<system-model>-<timestamp>.txt` — accelerators-only flat view
 4. Drops you to a root shell for interactive exploration
 
 The system model comes from DMI data (`dmidecode -s system-product-name`), so
-output files are named like `numa-topology-PowerEdge-R760xa-20260429-143022.txt`.
+output files are named like `hw-topology-PowerEdge-R760xa-20260429-143022.txt`.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ cd testing/live-iso
 sudo ./build-live-iso.sh
 ```
 
-This produces `output/numa-topology-live.iso`.
+This produces `output/hw-topology-live.iso`.
 
 ## Boot methods
 
@@ -43,13 +43,13 @@ so the topology output files persist on the USB and can be retrieved later.
 
 ```bash
 # Write ISO to USB with 512MB writable overlay
-sudo livecd-iso-to-disk --overlay-size-mb 512 output/numa-topology-live.iso /dev/sdX
+sudo livecd-iso-to-disk --overlay-size-mb 512 output/hw-topology-live.iso /dev/sdX
 ```
 
 **To retrieve output after booting the server:**
 1. Plug the USB into your laptop
 2. Mount the USB partition
-3. Files are in `/root/numa-topology-*.txt`
+3. Files are in `/root/hw-topology-*.txt`
 
 ### iDRAC / BMC virtual media
 
@@ -63,12 +63,12 @@ read-only when mounted this way.
 After the auto-capture completes, you have a root shell with these tools:
 
 ```bash
-numa-topology.sh              # Full NUMA + PCIe topology tree
-numa-topology.sh -a           # Accelerators (GPUs) only
-numa-topology.sh -a -f        # Accelerators flat list (no tree)
-numa-topology.sh -n           # Network devices only
-numa-topology.sh -s           # Storage devices only
-numa-topology.sh --help       # All options
+hw-topology.sh              # Full NUMA + PCIe topology tree
+hw-topology.sh -a           # Accelerators (GPUs) only
+hw-topology.sh -a -f        # Accelerators flat list (no tree)
+hw-topology.sh -n           # Network devices only
+hw-topology.sh -s           # Storage devices only
+hw-topology.sh --help       # All options
 
 lspci -tv                     # Raw PCI tree
 dmidecode -t memory           # DIMM details
@@ -80,9 +80,9 @@ numactl --hardware            # NUMA distances
 
 | File | Purpose |
 |------|---------|
-| `numa-topology-live.ks` | Kickstart — defines packages, embeds the script, creates the systemd auto-run service |
+| `hw-topology-live.ks` | Kickstart — defines packages, embeds the script, creates the systemd auto-run service |
 | `build-live-iso.sh` | Build script — validates kickstart, copies script, runs `livemedia-creator` |
-| `../scripts/numa-topology.sh` | The topology script that gets embedded in the ISO |
+| `../scripts/hw-topology.sh` | The topology script that gets embedded in the ISO |
 
 ## Configuration
 
