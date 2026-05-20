@@ -19,21 +19,21 @@
 ## IOD Quadrant Mapping
 
 Each socket has 1 IOD with 4 quadrants. Each quadrant has its own IOMMU instance (ivhd)
-and owns 1-2 PCIe root complexes. Verified via `/sys/class/iommu/ivhd*/devices/`.
+and owns exactly 2 PCIe root complexes — one GPU root and one infrastructure root.
+Verified via `/sys/class/iommu/ivhd*/devices/` and `numa-topology.sh --iod`.
 
-**Each quadrant has exactly 1 GPU.** Some quadrants own a second root for infrastructure,
-but the GPU is always on just one root per quadrant.
+**Each quadrant has exactly 1 GPU.**
 
-| Quadrant | IOMMU (ivhd) | PCIe Roots | GPU BDF | Co-located Devices |
-|----------|-------------|------------|---------|-------------------|
-| S0-Q0 | ivhd2 | `00` (+20/30?) | `05:00.0` | POLLARA + NVMe |
-| S0-Q1 | ivhd3 | `10` | `15:00.0` | POLLARA + NVMe |
-| S0-Q2 | ivhd1 | `50`, `60` | `65:00.0` | POLLARA + NVMe + X710/BMC (infra on 50) |
-| S0-Q3 | ivhd0 | `40`, `70` | `75:00.0` | POLLARA + NVMe (empty root 40) |
-| S1-Q0 | ivhd6 | `80` | `85:00.0` | POLLARA (no NVMe) |
-| S1-Q1 | ivhd7 | `90` | `95:00.0` | POLLARA (no NVMe) |
-| S1-Q2 | ivhd5 | `d0`, `e0` | `e5:00.0` | ConnectX-7 IB + NVMe + MegaRAID/CCP (infra on d0) |
-| S1-Q3 | ivhd4 | `c0`, `f0` | `f5:00.0` | POLLARA + NVMe + I350 GbE (infra on c0) |
+| Quadrant | IOMMU (ivhd) | GPU Root | Infra Root | GPU BDF | Co-located Devices |
+|----------|-------------|----------|------------|---------|-------------------|
+| S0-Q0 | ivhd2 | `00` | `30` (empty) | `05:00.0` | POLLARA + NVMe |
+| S0-Q1 | ivhd3 | `10` | `20` (USB, SATA) | `15:00.0` | POLLARA + NVMe |
+| S0-Q2 | ivhd1 | `60` | `50` (X710, BMC) | `65:00.0` | POLLARA + NVMe |
+| S0-Q3 | ivhd0 | `70` | `40` (empty) | `75:00.0` | POLLARA + NVMe |
+| S1-Q0 | ivhd6 | `80` | `b0` (empty) | `85:00.0` | POLLARA (no NVMe) |
+| S1-Q1 | ivhd7 | `90` | `a0` (USB, SATA) | `95:00.0` | POLLARA (no NVMe) |
+| S1-Q2 | ivhd5 | `e0` | `d0` (MegaRAID, CCP) | `e5:00.0` | ConnectX-7 IB + NVMe |
+| S1-Q3 | ivhd4 | `f0` | `c0` (I350 GbE) | `f5:00.0` | POLLARA + NVMe |
 
 Data Fabric nodes: `00:18.*` (Socket 0), `00:19.*` (Socket 1) — 8 functions each.
 

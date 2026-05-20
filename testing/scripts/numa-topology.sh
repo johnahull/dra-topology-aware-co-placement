@@ -339,6 +339,84 @@ for dev_path in /sys/bus/pci/devices/*/; do
     DEV_CLASS["$bdf"]=$(cat "${dev_path}class" 2>/dev/null || echo "0x000000")
 done
 
+# ── IOMMU instance (ivhd) to device mapping ──────────────────────────────────
+# On AMD systems, /sys/class/iommu/ivhd* maps each IOMMU hardware unit to its
+# owned devices. Each ivhd corresponds to one IOD quadrant.
+
+declare -A IVHD_ROOTS=()     # ivhd name → space-separated root bus IDs (e.g. "00 10")
+declare -A IVHD_GPUS=()      # ivhd name → space-separated GPU BDFs
+declare -A IVHD_NICS=()      # ivhd name → space-separated NIC BDFs
+declare -A IVHD_NVME=()      # ivhd name → space-separated NVMe BDFs
+declare -a IVHD_LIST=()      # sorted ivhd names
+IVHD_AVAILABLE=0
+
+if ls /sys/class/iommu/ivhd* &>/dev/null 2>&1; then
+    IVHD_AVAILABLE=1
+    for _iommu_path in /sys/class/iommu/ivhd*/; do
+        _ivhd=$(basename "$_iommu_path")
+        IVHD_LIST+=("$_ivhd")
+        [ -d "${_iommu_path}devices" ] || continue
+
+        declare -A _seen_roots=()
+        for _dev_link in "${_iommu_path}devices/"*/; do
+            _dbdf=$(basename "$_dev_link")
+            [ -z "$_dbdf" ] || [ "$_dbdf" = "*" ] && continue
+
+            # Walk DEV_PARENT to find the root complex for this device
+            _root_bus=""
+            _cur="$_dbdf"
+            while true; do
+                _par="${DEV_PARENT[$_cur]:-}"
+                [ -z "$_par" ] && break
+                if [[ "$_par" == root:* ]]; then
+                    _root_bus="${_par#root:}"
+                    _root_bus="${_root_bus#*:}"  # strip domain prefix "0000:" → "00"
+                    break
+                fi
+                _cur="$_par"
+            done
+            # Skip devices we can't trace to a root (e.g. IOMMU devices themselves)
+            [ -z "$_root_bus" ] && continue
+
+            if [ -z "${_seen_roots[$_root_bus]+x}" ]; then
+                _seen_roots["$_root_bus"]=1
+                IVHD_ROOTS["$_ivhd"]+=" $_root_bus"
+            fi
+
+            # Classify endpoint devices
+            _dclass="${DEV_CLASS[$_dbdf]:-0x000000}"
+            _dclass_int=$(printf '%d' "$_dclass" 2>/dev/null) || continue
+            _dtop=$(( _dclass_int >> 16 ))
+            _dsub=$(( (_dclass_int >> 8) & 0xFF ))
+
+            case "$_dtop" in
+                18|3)  # Processing accelerator or Display — check if it's a GPU (not DPU)
+                    _dev_path="/sys/bus/pci/devices/${_dbdf}/"
+                    if [ -L "${_dev_path}driver" ]; then
+                        _drv=$(basename "$(readlink "${_dev_path}driver" 2>/dev/null)" 2>/dev/null)
+                        case "$_drv" in
+                            amdgpu|nvidia|i915|xe) IVHD_GPUS["$_ivhd"]+=" $_dbdf" ;;
+                        esac
+                    fi
+                    ;;
+                2)   # Network controller
+                    IVHD_NICS["$_ivhd"]+=" $_dbdf"
+                    ;;
+                1)   # Storage — check subclass for NVMe (0x08)
+                    if [ "$_dsub" -eq 8 ]; then
+                        IVHD_NVME["$_ivhd"]+=" $_dbdf"
+                    fi
+                    ;;
+            esac
+        done
+        unset _seen_roots
+    done
+    IFS=$'\n' IVHD_LIST=($(printf '%s\n' "${IVHD_LIST[@]}" | sort))
+    IFS=$' \t\n'
+    unset _iommu_path _ivhd _dev_link _dbdf _root_bus _cur _par
+    unset _dclass _dclass_int _dtop _dsub _dev_path _drv
+fi
+
 # ── PCIe switch detection ────────────────────────────────────────────────────
 # Detect PCIe switch ports from lspci device names (single call).
 # An upstream port is a switch port whose parent is NOT another switch port.
@@ -824,6 +902,23 @@ unset _line _phys_id _model
 
 NUM_SOCKETS=${#SOCKET_SET[@]}
 
+# ── NPS mode detection (AMD EPYC) ────────────────────────────────────────────
+# NPS (Nodes Per Socket) is inferred from NUMA-to-socket ratio on AMD CPUs.
+NPS_MODE=""
+IS_AMD=0
+if grep -q 'AuthenticAMD' /proc/cpuinfo 2>/dev/null; then
+    IS_AMD=1
+    if [ "$NUM_SOCKETS" -gt 0 ] && [ "$NUMA_NODES" -gt 0 ]; then
+        _nodes_per_socket=$(( NUMA_NODES / NUM_SOCKETS ))
+        case "$_nodes_per_socket" in
+            1) NPS_MODE="NPS1" ;;
+            2) NPS_MODE="NPS2" ;;
+            4) NPS_MODE="NPS4" ;;
+        esac
+        unset _nodes_per_socket
+    fi
+fi
+
 # ── DIMM-to-NUMA correlation ──────────────────────────────────────────────────
 # Try phys_device first. If all blocks share one phys_device (single-array
 # firmware), fall back to cumulative-size heuristic: walk DIMMs in dmidecode
@@ -905,11 +1000,15 @@ if [ "$_total_slots" -gt 0 ]; then
     _slot_info=", ${_populated_slots}/${_total_slots} PCIe slots populated"
 fi
 
+_nps_info=""
+[ -n "$NPS_MODE" ] && _nps_info=", ${NPS_MODE}"
+
 if [ "$NUM_SOCKETS" -gt 0 ]; then
-    echo -e "${BOLD}NUMA Topology${RESET}  (${NUM_SOCKETS} socket(s), ${NUMA_NODES} node(s)${_slot_info})"
+    echo -e "${BOLD}NUMA Topology${RESET}  (${NUM_SOCKETS} socket(s), ${NUMA_NODES} node(s)${_nps_info}${_slot_info})"
 else
     echo -e "${BOLD}NUMA Topology${RESET}  (${NUMA_NODES} node(s)${_slot_info})"
 fi
+unset _nps_info
 unset _total_slots _empty_slots _populated_slots _slot_info
 echo ""
 
@@ -984,6 +1083,85 @@ for node_path in /sys/devices/system/node/node*/; do
         echo ""
     fi
 done
+
+# ── IOD Quadrant / IOMMU Instance Summary ────────────────────────────────────
+
+if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
+    # Count GPUs across all ivhd instances
+    _total_ivhd_gpus=0
+    for _iv in "${IVHD_LIST[@]}"; do
+        for _g in ${IVHD_GPUS[$_iv]:-}; do
+            _total_ivhd_gpus=$(( _total_ivhd_gpus + 1 ))
+        done
+    done
+
+    _gpu_ratio=""
+    if [ "$_total_ivhd_gpus" -gt 0 ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
+        _gpus_per=$(( _total_ivhd_gpus / ${#IVHD_LIST[@]} ))
+        if [ "$_gpus_per" -le 1 ]; then
+            _gpu_ratio=", 1 GPU per quadrant"
+        else
+            _gpu_ratio=", ${_gpus_per} GPUs per quadrant"
+        fi
+    fi
+
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${BOLD}${CYAN}║  IOD Quadrant Mapping  (${#IVHD_LIST[@]} IOMMU instances${_gpu_ratio})${RESET}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
+
+    if [ -n "$NPS_MODE" ]; then
+        _gpus_per_numa=$(( _total_ivhd_gpus / NUMA_NODES ))
+        echo -e "  ${DIM}Current: ${NPS_MODE} (${_gpus_per_numa} GPU(s) per NUMA node)${RESET}"
+        if [ "$NPS_MODE" != "NPS4" ] && [ "$_total_ivhd_gpus" -gt 0 ]; then
+            echo -e "  ${DIM}NPS4 would give: 1 GPU per NUMA node (= pcieRoot granularity)${RESET}"
+        fi
+        echo ""
+    fi
+
+    for _iv in "${IVHD_LIST[@]}"; do
+        _roots="${IVHD_ROOTS[$_iv]:-}"
+        _roots="${_roots# }"
+        # Sort and format roots
+        _roots_sorted=$(echo "$_roots" | tr ' ' '\n' | sort | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
+
+        _line="  ${BOLD}${_iv}${RESET}  ${DIM}Roots:${RESET} ${_roots_sorted}"
+
+        # GPU
+        _gpu_list=""
+        for _g in ${IVHD_GPUS[$_iv]:-}; do
+            [ -n "$_gpu_list" ] && _gpu_list+=", "
+            _gpu_list+="$_g"
+        done
+        if [ -n "$_gpu_list" ]; then
+            _line+="  ${BOLD}${YELLOW}GPU:${RESET} ${_gpu_list}"
+        fi
+
+        # NIC
+        _nic_list=""
+        for _n in ${IVHD_NICS[$_iv]:-}; do
+            [ -n "$_nic_list" ] && _nic_list+=", "
+            _nic_list+="$_n"
+        done
+        if [ -n "$_nic_list" ]; then
+            _line+="  ${BOLD}${MAGENTA}NIC:${RESET} ${_nic_list}"
+        fi
+
+        # NVMe
+        _nvme_list=""
+        for _v in ${IVHD_NVME[$_iv]:-}; do
+            [ -n "$_nvme_list" ] && _nvme_list+=", "
+            _nvme_list+="$_v"
+        done
+        if [ -n "$_nvme_list" ]; then
+            _line+="  ${BOLD}${BLUE}NVMe:${RESET} ${_nvme_list}"
+        fi
+
+        echo -e "$_line"
+    done
+    echo ""
+    unset _iv _roots _roots_sorted _line _gpu_list _nic_list _nvme_list
+    unset _g _n _v _total_ivhd_gpus _gpu_ratio _gpus_per _gpus_per_numa
+fi
 
 # Devices with no NUMA affinity
 echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
