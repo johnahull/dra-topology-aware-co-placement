@@ -1121,10 +1121,39 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
     for _iv in "${IVHD_LIST[@]}"; do
         _roots="${IVHD_ROOTS[$_iv]:-}"
         _roots="${_roots# }"
-        # Sort and format roots
         _roots_sorted=$(echo "$_roots" | tr ' ' '\n' | sort | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
 
-        _line="  ${BOLD}${_iv}${RESET}  ${DIM}Roots:${RESET} ${_roots_sorted}"
+        # Determine socket and NUMA node from first GPU (or first device) in this ivhd
+        _iv_numa=""
+        _iv_socket=""
+        for _g in ${IVHD_GPUS[$_iv]:-}; do
+            _iv_numa="${DEV_NUMA[$_g]:--1}"
+            break
+        done
+        # Fallback: use first NIC if no GPU
+        if [ -z "$_iv_numa" ]; then
+            for _n in ${IVHD_NICS[$_iv]:-}; do
+                _iv_numa="${DEV_NUMA[$_n]:--1}"
+                break
+            done
+        fi
+        if [ -n "$_iv_numa" ] && [ "$_iv_numa" != "-1" ]; then
+            _first_cpu=$(cat "/sys/devices/system/node/node${_iv_numa}/cpulist" 2>/dev/null | tr ',' '\n' | head -1 | tr '-' '\n' | head -1)
+            if [ -n "$_first_cpu" ]; then
+                _iv_socket=$(cat "/sys/devices/system/cpu/cpu${_first_cpu}/topology/physical_package_id" 2>/dev/null)
+            fi
+        fi
+
+        _loc=""
+        if [ -n "$_iv_socket" ]; then
+            _loc="Socket ${_iv_socket}, NUMA ${_iv_numa}"
+        elif [ -n "$_iv_numa" ] && [ "$_iv_numa" != "-1" ]; then
+            _loc="NUMA ${_iv_numa}"
+        fi
+
+        _line="  ${BOLD}${_iv}${RESET}"
+        [ -n "$_loc" ] && _line+="  ${DIM}${_loc}${RESET}"
+        _line+="  ${DIM}Roots:${RESET} ${_roots_sorted}"
 
         # GPU
         _gpu_list=""
@@ -1161,6 +1190,7 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
     echo ""
     unset _iv _roots _roots_sorted _line _gpu_list _nic_list _nvme_list
     unset _g _n _v _total_ivhd_gpus _gpu_ratio _gpus_per _gpus_per_numa
+    unset _iv_numa _iv_socket _first_cpu _loc
 fi
 
 # Devices with no NUMA affinity
