@@ -1146,7 +1146,7 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
 
         _loc=""
         if [ -n "$_iv_socket" ]; then
-            _loc="Socket ${_iv_socket}, NUMA ${_iv_numa}"
+            _loc="IOD ${_iv_socket}, Socket ${_iv_socket}, NUMA ${_iv_numa}"
         elif [ -n "$_iv_numa" ] && [ "$_iv_numa" != "-1" ]; then
             _loc="NUMA ${_iv_numa}"
         fi
