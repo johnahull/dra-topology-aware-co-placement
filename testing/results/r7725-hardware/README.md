@@ -15,6 +15,20 @@
 | **NICs** | BCM57504 4x25G (NUMA 1) | CX-6 Dx (NUMA 6) + BCM57508 2x100G (NUMA 4) |
 | **NVMe** | 4x Samsung PM1745 3.2TB (NUMA 0) | — |
 
+## NPS Mode Topology Diagrams
+
+### NPS1 — 2 NUMA Nodes (1 per socket)
+
+![NPS1 Layout](r7725-nps1.svg)
+
+### NPS4 — 8 NUMA Nodes (1 per IOD quadrant, current)
+
+![NPS4 Layout](r7725-nps4.svg)
+
+### L3-as-NUMA — 24 NUMA Nodes (1 per CCD)
+
+![L3-as-NUMA Layout](r7725-l3-numa.svg)
+
 ## Key Findings
 
 - **No GPUs installed** — compute-only configuration with 4 empty GPU slots on Socket 1
@@ -35,3 +49,9 @@
 | [`lscpu.txt`](lscpu.txt) | CPU topology and features |
 | [`iommu-df.txt`](iommu-df.txt) | IOMMU instances and Data Fabric nodes |
 | [`numa-memory.txt`](numa-memory.txt) | NUMA memory and node distances |
+| [`r7725-nps1.excalidraw`](r7725-nps1.excalidraw) | NPS1 topology diagram |
+| [`r7725-nps1.svg`](r7725-nps1.svg) | NPS1 topology SVG |
+| [`r7725-nps4.excalidraw`](r7725-nps4.excalidraw) | NPS4 topology diagram |
+| [`r7725-nps4.svg`](r7725-nps4.svg) | NPS4 topology SVG |
+| [`r7725-l3-numa.excalidraw`](r7725-l3-numa.excalidraw) | L3-as-NUMA topology diagram |
+| [`r7725-l3-numa.svg`](r7725-l3-numa.svg) | L3-as-NUMA topology SVG |
