@@ -86,6 +86,49 @@ Key finding: the coordinator adapts automatically to SNC changes without configu
 | libnbd ABI mismatch | virt-launcher built on Fedora 43, base image is RHEL 9 | Build with CentOS Stream 9 container | kubevirt |
 | Multi-device DRA requests | KubeVirt expects 1 device per request, coordinator uses count>1 | Use count:1 per claim (needs upstream fix for multi-device) | kubevirt |
 
+## Cross-System Hardware Comparison
+
+Four systems tested, three architectures, covering Intel Sapphire Rapids and AMD Turin Classic/Dense:
+
+| | Dell XE9680 | Supermicro AS-8126GS-TNMR | Dell R7725 |
+|--|-------------|---------------------------|------------|
+| **CPU** | 2x Xeon Gold 6448Y (SPR) | 2x EPYC 9575F (Turin) | 2x EPYC 9825 (Turin Dense) |
+| **Cores** | 64c / 128t | 128c / 256t | 288c / 576t |
+| **GPUs** | 8x MI300X | 8x MI325X | None (4 empty slots) |
+| **NICs** | 2x CX-6 Dx | 7x POLLARA-1Q400 + 1x CX-7 IB | BCM57504 + CX-6 Dx + BCM57508 |
+| **NVMe** | None (GPU-local) | 6x KIOXIA CD8P | 4x Samsung PM1745 |
+| **PCI domains** | Single (`0000:`) | Single (`0000:`) | Dual (`0000:` + `0001:`) |
+| **IOMMU type** | Intel VT-d (DMAR) | AMD IVHD (8 instances) | AMD IVHD (8 instances) |
+| **SNC/NPS modes tested** | SNC-2, SNC-off | NPS1 | NPS1, NPS4, L3-as-NUMA |
+
+### GPU + NIC Co-Placement Coverage
+
+| System | `pcieRoot` GPU↔NIC | `numaNode` GPU↔NIC | Notes |
+|--------|-------------------|-------------------|-------|
+| XE9680 (SNC-2) | 2/8 (25%) | 4/8 (50%) | Only 2 PCIe roots have both GPU + NIC |
+| XE9680 (SNC-off) | 2/8 (25%) | 8/8 (100%) | numaNode is coarse (4 GPU/node) |
+| SMC6216GPU (NPS1) | 8/8 (100%) | 8/8 (100%) | Every GPU has co-located NIC on same switch |
+| SMC6216GPU (NPS4*) | 8/8 (100%) | 8/8 (100%) | numaNode matches pcieRoot under NPS4 |
+| R7725 (NPS4) | N/A | N/A | GPU slots and NICs on different quadrants |
+
+*NPS4 not tested on SMC6216GPU, predicted from IOD quadrant mapping.
+
+### Key Conclusions
+
+1. **`pcieRoot` is the only universally reliable co-placement constraint.** It accurately reflects what the hardware provides regardless of BIOS settings. `numaNode` depends on NPS/SNC mode — a setting the DRA driver doesn't control.
+
+2. **Board layout matters more than CPU architecture.** SMC6216GPU and R7725 both use AMD Turin with identical IOD structures, but the SMC co-locates GPU+NIC+NVMe per switch while the R7725 separates them across quadrants.
+
+3. **NPS/SNC changes `numaNode` granularity but not `pcieRoot`.** On the SMC6216GPU, NPS4 makes `numaNode` converge to `pcieRoot`. On the XE9680, they never match because the GPU-to-root mapping isn't 1:1.
+
+4. **IOD quadrant = IOMMU instance = natural scheduling domain on AMD.** Each `ivhd` owns 2 PCIe roots and at most 1 GPU. Under NPS4, each quadrant = 1 NUMA node.
+
+5. **L3-as-NUMA is a CPU cache optimization, not an I/O optimization.** All same-socket CCDs are equidistant (distance 11) to PCIe roots. No I/O locality benefit beyond socket level.
+
+6. **NVMe co-location is hardware-dependent and often incomplete.** SMC: 6/8 roots have NVMe. XE9680: none. R7725: all NVMe on one socket, no GPUs. Should be a soft preference, not a hard constraint.
+
+7. **Intel and AMD need different IOMMU domain detection.** AMD uses `ivhd*`, Intel uses `dmar*`. The hw-topology.sh script currently supports AMD IOD mapping only.
+
 ## Detailed Results
 
 - [OCP 4.21 Baseline Results](ocp421-xe9680.md)
@@ -94,8 +137,10 @@ Key finding: the coordinator adapts automatically to SNC changes without configu
 - [Topology Coordinator Partitioning](../../docs/topology-coordinator.md)
 
 ### Hardware Captures
-- [XE9680 SNC-2 ON (4 NUMA)](xe9680-hardware/) — PCIe tree, IOMMU groups, lstopo, ResourceSlices, DeviceClasses
+- [XE9680 SNC-2 ON (4 NUMA)](xe9680-hardware/) — Intel SPR, PCIe tree, IOMMU groups, lstopo, ResourceSlices, DeviceClasses
 - [XE9680 SNC OFF (2 NUMA)](xe9680-hardware-snc-off/) — same captures, plus e2e test results
+- [SMC6216GPU (NPS1)](smc6216gpu-hardware/) — AMD Turin, 8x MI325X, IOD quadrant mapping, Excalidraw diagrams
+- [R7725 (NPS1/NPS4/L3-as-NUMA)](r7725-hardware/) — AMD Turin Dense, compute-only, 3 NPS mode captures with diagrams
 
 ### E2E Test Results (2026-04-17)
 - [Pod scheduling test](xe9680-hardware-snc-off/e2e-test-running.txt) — 2 eighth pods with 4-driver NUMA alignment
