@@ -1,440 +1,400 @@
-NUMA Topology  (2 socket(s), 2 node(s), 23/32 PCIe slots populated)
+[1mNUMA Topology[0m  (2 socket(s), 2 node(s), NPS1, 23/32 PCIe slots populated)
 
-╔══════════════════════════════════════════════════════════════╗
-║  NUMA Node 0  ·  Socket 0
-╚══════════════════════════════════════════════════════════════╝
-  CPUs:   0-63,128-191  (AMD EPYC 9575F 64-Core Processor)
-  Memory: 755.5 GB total, 706.3 GB free
-  Hugepages:  (none allocated)
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 0  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   0-63,128-191  [2m(AMD EPYC 9575F 64-Core Processor)[0m
+  [1m[0;32mMemory:[0m 755.5 GB total, 712.7 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
 
-  PCIe topology:
+  [2mPCIe topology:[0m
 
-  ├── 0000:00:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:00:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 67]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:00:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:01:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:02:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:03:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:04:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:05:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 87]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:02:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:06:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:07:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:08:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 91]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:08:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 92]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:08:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 93]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:07:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:09:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 94]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       ├── 0000:02:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:0a:00.0  Non-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller [SR-IOV 0/32 VFs] [IOMMU grp 95]
-  │       │       driver: nvme  |  link: Gen5 x4
-  │       │       subsystem: KIOXIA Corporation Device 0120
-  │       ├── 0000:02:1e.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:0b:00.0  Bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0) [IOMMU grp 96]
-  │       │       driver: none  |  link: Gen5 x16
-  │       │       subsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint
-  │       └── 0000:02:1f.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:0c:00.0  Serial Attached SCSI controller: Broadcom / LSI PCIe Switch management [IOMMU grp 97]
-  │               driver: mpt3sas  |  link: Gen5 x16
-  │               subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:00:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   └── 0000:0d:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 98]
-  │       driver: none  |  link: Gen5 x16
-  │       subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  ├── 0000:00:14.0  SMBus: Advanced Micro Devices, Inc. [AMD] FCH SMBus Controller (rev 71 [IOMMU grp 76]
-  │   driver: piix4_smbus
-  │   subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:10:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 102]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:10:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:11:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:12:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:13:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:14:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:15:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 112]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:12:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:16:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:17:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:18:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 116]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:18:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 117]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:18:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 118]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:17:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:19:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 119]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       └── 0000:12:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:1a:00.0  Non-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller [SR-IOV 0/32 VFs] [IOMMU grp 120]
-  │               driver: nvme  |  link: Gen5 x4
-  │               subsystem: KIOXIA Corporation Device 0120
-  ├── 0000:20:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:20:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:21:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 128]
-  │   │   driver: none  |  link: Gen5 x16
-  │   │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  │   └── 0000:21:00.4  USB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI  [IOMMU grp 128]
-  │       driver: xhci_hcd  |  link: Gen5 x16
-  │       subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:20:07.2  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:22:00.0  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 126]
-  │   │   driver: ahci  |  link: Gen5 x16
-  │   │   subsystem: Super Micro Computer Inc Device 1d72
-  │   └── 0000:22:00.1  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 126]
-  │       driver: ahci  |  link: Gen5 x16
-  │       subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:50:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:50:03.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   ├── 0000:51:00.0  Ethernet controller: Intel Corporation Ethernet Controller X710 for 10 [SR-IOV 0/64 VFs] [IOMMU grp 42]
-  │   │   driver: i40e  |  link: Gen3 x4
-  │   │   subsystem: Super Micro Computer Inc Device 1d4d
-  │   └── 0000:51:00.1  Ethernet controller: Intel Corporation Ethernet Controller X710 for 10 [SR-IOV 0/64 VFs] [IOMMU grp 43]
-  │       driver: i40e  |  link: Gen3 x4
-  │       subsystem: Super Micro Computer Inc Device 0000
-  ├── 0000:50:03.3  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:52:00.0  SATA controller: ASMedia Technology Inc. ASM1061/ASM1062 Serial ATA Co [IOMMU grp 44]
-  │       driver: ahci  |  link: Gen2 x1
-  │       subsystem: Super Micro Computer Inc Device 1b19
-  ├── 0000:50:03.4  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:53:00.0  PCI bridge: ASPEED Technology, Inc. AST1150 PCI-to-PCI Bridge (rev 06)
-  │       └── 0000:54:00.0  VGA compatible controller: ASPEED Technology, Inc. ASPEED Graphics Fam [IOMMU grp 45]
-  │           driver: ast
-  │           subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:50:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:55:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 46]
-  │   │   driver: none  |  link: Gen5 x16
-  │   │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  │   └── 0000:55:00.5  Encryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS [IOMMU grp 46]
-  │       driver: ccp  |  link: Gen5 x16
-  │       subsystem: Advanced Micro Devices, Inc. [AMD] Device 14ca
-  ├── 0000:60:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 47]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:60:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:61:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:62:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:63:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:64:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:65:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 57]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:62:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:66:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:67:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:68:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 61]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:68:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 62]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:68:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 63]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:67:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:69:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 64]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       └── 0000:62:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:6a:00.0  Non-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller [SR-IOV 0/32 VFs] [IOMMU grp 65]
-  │               driver: nvme  |  link: Gen5 x4
-  │               subsystem: KIOXIA Corporation Device 0120
-  ├── 0000:70:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:70:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 3]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:70:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:71:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:72:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:73:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:74:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:75:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 20]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:72:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:76:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:77:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:78:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 24]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:78:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 25]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:78:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 26]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:77:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:79:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 27]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       ├── 0000:72:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:7a:00.0  Non-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller [SR-IOV 0/32 VFs] [IOMMU grp 28]
-  │       │       driver: nvme  |  link: Gen5 x4
-  │       │       subsystem: KIOXIA Corporation Device 0120
-  │       ├── 0000:72:1e.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:7b:00.0  Bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0) [IOMMU grp 29]
-  │       │       driver: none  |  link: Gen5 x16
-  │       │       subsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint
-  │       └── 0000:72:1f.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:7c:00.0  Serial Attached SCSI controller: Broadcom / LSI PCIe Switch management [IOMMU grp 30]
-  │               driver: mpt3sas  |  link: Gen5 x16
-  │               subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:70:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:7d:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 31]
-  │   │   driver: none  |  link: Gen5 x16
-  │   │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  │   └── 0000:7d:00.4  USB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI  [IOMMU grp 31]
-  │       driver: xhci_hcd  |  link: Gen5 x16
-  │       subsystem: Super Micro Computer Inc Device 1d72
-  └── 0000:70:07.2  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-      ├── 0000:7e:00.0  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 10]
-      │   driver: ahci  |  link: Gen5 x16
-      │   subsystem: Super Micro Computer Inc Device 1d72
-      └── 0000:7e:00.1  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 10]
-          driver: ahci  |  link: Gen5 x16
-          subsystem: Super Micro Computer Inc Device 1d72
+  [2m├── 0000:00:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:01:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:02:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:03:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:04:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:05:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 87][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:02:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:06:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:07:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:08:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 91][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:08:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 92][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:08:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 93][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:07:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:09:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 94][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       [2m├── 0000:02:02.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;34m[1m0000:0a:00.0[0m  [0;34mNon-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller[0m [2m[SR-IOV 0/32 VFs][0m [2m[IOMMU grp 95][0m
+  │       │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       │       [2msubsystem: KIOXIA Corporation Device 0120[0m
+  │       [2m├── 0000:02:1e.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;37m[1m0000:0b:00.0[0m  [0;37mBridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m [2m[IOMMU grp 96][0m
+  │       │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       [2msubsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint[0m
+  │       [2m└── 0000:02:1f.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:0c:00.0[0m  [0;34mSerial Attached SCSI controller: Broadcom / LSI PCIe Switch management[0m [2m[IOMMU grp 97][0m
+  │               [2mdriver: [1mmpt3sas[0m[2m  |  link: [1mGen5 x16[0m
+  │               [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:00:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   └── [0;37m[1m0000:0d:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 98][0m
+  │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  [2m├── 0000:10:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:11:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:12:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:13:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:14:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:15:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 112][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:12:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:16:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:17:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:18:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 116][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:18:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 117][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:18:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 118][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:17:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:19:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 119][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       [2m└── 0000:12:02.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:1a:00.0[0m  [0;34mNon-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller[0m [2m[SR-IOV 0/32 VFs][0m [2m[IOMMU grp 120][0m
+  │               [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │               [2msubsystem: KIOXIA Corporation Device 0120[0m
+  [2m├── 0000:20:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:21:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 128][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  │   └── [0;36m[1m0000:21:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 128][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:20:07.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;34m[1m0000:22:00.0[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 126][0m
+  │   │   [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  │   └── [0;34m[1m0000:22:00.1[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 126][0m
+  │       [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:50:03.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   ├── [0;35m[1m0000:51:00.0[0m  [0;35mEthernet controller: Intel Corporation Ethernet Controller X710 for 10[0m [2m[SR-IOV 0/64 VFs][0m [2m[IOMMU grp 42][0m
+  │   │   [2mdriver: [1mi40e[0m[2m  |  link: [1mGen3 x4[0m
+  │   │   [2msubsystem: Super Micro Computer Inc Device 1d4d[0m
+  │   └── [0;35m[1m0000:51:00.1[0m  [0;35mEthernet controller: Intel Corporation Ethernet Controller X710 for 10[0m [2m[SR-IOV 0/64 VFs][0m [2m[IOMMU grp 43][0m
+  │       [2mdriver: [1mi40e[0m[2m  |  link: [1mGen3 x4[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 0000[0m
+  [2m├── 0000:50:03.3[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:52:00.0[0m  [0;34mSATA controller: ASMedia Technology Inc. ASM1061/ASM1062 Serial ATA Co[0m [2m[IOMMU grp 44][0m
+  │       [2mdriver: [1mahci[0m[2m  |  link: [1mGen2 x1[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1b19[0m
+  [2m├── 0000:50:03.4[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   [2m└── 0000:53:00.0[0m  [2mPCI bridge: ASPEED Technology, Inc. AST1150 PCI-to-PCI Bridge (rev 06)[0m
+  │       └── [0;32m[1m0000:54:00.0[0m  [0;32mVGA compatible controller: ASPEED Technology, Inc. ASPEED Graphics Fam[0m [2m[IOMMU grp 45][0m
+  │           [2mdriver: [1mast[0m
+  │           [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:50:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:55:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 46][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  │   └── [0;37m[1m0000:55:00.5[0m  [0;37mEncryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS[0m [2m[IOMMU grp 46][0m
+  │       [2mdriver: [1mccp[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Device 14ca[0m
+  [2m├── 0000:60:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:61:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:62:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:63:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:64:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:65:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 57][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:62:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:66:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:67:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:68:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 61][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:68:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 62][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:68:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 63][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:67:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:69:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 64][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       [2m└── 0000:62:02.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:6a:00.0[0m  [0;34mNon-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller[0m [2m[SR-IOV 0/32 VFs][0m [2m[IOMMU grp 65][0m
+  │               [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │               [2msubsystem: KIOXIA Corporation Device 0120[0m
+  [2m├── 0000:70:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:71:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:72:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:73:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:74:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:75:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 20][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:72:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:76:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:77:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:78:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 24][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:78:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 25][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:78:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 26][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:77:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:79:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 27][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       [2m├── 0000:72:02.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;34m[1m0000:7a:00.0[0m  [0;34mNon-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller[0m [2m[SR-IOV 0/32 VFs][0m [2m[IOMMU grp 28][0m
+  │       │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       │       [2msubsystem: KIOXIA Corporation Device 0120[0m
+  │       [2m├── 0000:72:1e.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;37m[1m0000:7b:00.0[0m  [0;37mBridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m [2m[IOMMU grp 29][0m
+  │       │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       [2msubsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint[0m
+  │       [2m└── 0000:72:1f.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:7c:00.0[0m  [0;34mSerial Attached SCSI controller: Broadcom / LSI PCIe Switch management[0m [2m[IOMMU grp 30][0m
+  │               [2mdriver: [1mmpt3sas[0m[2m  |  link: [1mGen5 x16[0m
+  │               [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:70:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:7d:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 31][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  │   └── [0;36m[1m0000:7d:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 31][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m└── 0000:70:07.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      ├── [0;34m[1m0000:7e:00.0[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 10][0m
+      │   [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+      │   [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+      └── [0;34m[1m0000:7e:00.1[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 10][0m
+          [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Super Micro Computer Inc Device 1d72[0m
 
-  Empty slots:
-  └── Slot 13  (0000:1a:00.0, root pci0000:10)
-  └── Slot 14  (0000:0a:00.0, root pci0000:00)
-  └── Slot 11  (0000:6a:00.0, root pci0000:60)
-  └── Slot 12  (0000:7a:00.0, root pci0000:70)
+  [2mEmpty slots:[0m
+  [2m└── Slot 13  (0000:1a:00.0, root pci0000:10)[0m
+  [2m└── Slot 14  (0000:0a:00.0, root pci0000:00)[0m
+  [2m└── Slot 11  (0000:6a:00.0, root pci0000:60)[0m
+  [2m└── Slot 12  (0000:7a:00.0, root pci0000:70)[0m
 
-╔══════════════════════════════════════════════════════════════╗
-║  NUMA Node 1  ·  Socket 1
-╚══════════════════════════════════════════════════════════════╝
-  CPUs:   64-127,192-255  (AMD EPYC 9575F 64-Core Processor)
-  Memory: 755.9 GB total, 708.9 GB free
-  Hugepages:  (none allocated)
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 1  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   64-127,192-255  [2m(AMD EPYC 9575F 64-Core Processor)[0m
+  [1m[0;32mMemory:[0m 755.9 GB total, 713.6 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
 
-  PCIe topology:
+  [2mPCIe topology:[0m
 
-  ├── 0000:80:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:80:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 188]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:80:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:81:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:82:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:83:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:84:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:85:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 205]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:82:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:86:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:87:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:88:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 209]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:88:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 210]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:88:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 211]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:87:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:89:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 212]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       ├── 0000:82:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       ├── 0000:82:1e.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:8b:00.0  Bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0) [IOMMU grp 213]
-  │       │       driver: none  |  link: Gen5 x16
-  │       │       subsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint
-  │       └── 0000:82:1f.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:8c:00.0  Serial Attached SCSI controller: Broadcom / LSI PCIe Switch management [IOMMU grp 214]
-  │               driver: mpt3sas  |  link: Gen5 x16
-  │               subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:80:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   └── 0000:8d:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 215]
-  │       driver: none  |  link: Gen5 x16
-  │       subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  ├── 0000:90:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 218]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:90:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:91:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:92:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:93:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:94:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:95:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 228]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:92:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:96:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:97:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:98:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 232]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:98:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 233]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:98:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 234]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:97:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:99:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 235]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       └── 0000:92:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  ├── 0000:a0:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:a0:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:a1:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 243]
-  │   │   driver: none  |  link: Gen5 x16
-  │   │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  │   └── 0000:a1:00.4  USB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI  [IOMMU grp 243]
-  │       driver: xhci_hcd  |  link: Gen5 x16
-  │       subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:a0:07.2  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:a2:00.0  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 241]
-  │   │   driver: ahci  |  link: Gen5 x16
-  │   │   subsystem: Super Micro Computer Inc Device 1d72
-  │   └── 0000:a2:00.1  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 241]
-  │       driver: ahci  |  link: Gen5 x16
-  │       subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:c0:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   ├── 0000:c1:00.0  Ethernet controller: Intel Corporation I350 Gigabit Network Connection [SR-IOV 0/7 VFs] [IOMMU grp 133]
-  │   │   driver: igb  |  link: Gen2 x4
-  │   │   subsystem: Super Micro Computer Inc Device 0656
-  │   └── 0000:c1:00.1  Ethernet controller: Intel Corporation I350 Gigabit Network Connection [SR-IOV 0/7 VFs] [IOMMU grp 134]
-  │       driver: igb  |  link: Gen2 x4
-  │       subsystem: Super Micro Computer Inc Device 0656
-  ├── 0000:d0:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:d0:03.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:d1:00.0  RAID bus controller: Broadcom / LSI MegaRAID 12GSAS/PCIe Secure SAS38x [IOMMU grp 172]
-  │       driver: megaraid_sas  |  link: Gen3 x4 (max: Gen4 x4)
-  │       subsystem: Super Micro Computer Inc Device 1c71
-  ├── 0000:d0:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:d2:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 173]
-  │   │   driver: none  |  link: Gen5 x16
-  │   │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  │   └── 0000:d2:00.5  Encryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS [IOMMU grp 173]
-  │       driver: ccp  |  link: Gen5 x16
-  │       subsystem: Advanced Micro Devices, Inc. [AMD] Device 14ca
-  ├── 0000:e0:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 174]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:e0:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:e1:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:e2:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:e3:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:e4:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:e5:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 184]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:e2:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:e6:00.0  Infiniband controller: Mellanox Technologies MT2910 Family [ConnectX-7 [SR-IOV 0/16 VFs] [IOMMU grp 185]
-  │       │       driver: mlx5_core  |  link: Gen5 x16
-  │       │       subsystem: Mellanox Technologies Device 0023
-  │       └── 0000:e2:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:e7:00.0  Non-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller [SR-IOV 0/32 VFs] [IOMMU grp 186]
-  │               driver: nvme  |  link: Gen5 x4
-  │               subsystem: KIOXIA Corporation Device 0148
-  ├── 0000:f0:00.2  IOMMU: Advanced Micro Devices, Inc. [AMD] Turin IOMMU (rev 01)
-  │   driver: none
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin IOMMU
-  ├── 0000:f0:00.3  Generic system peripheral [0807]: Advanced Micro Devices, Inc. [AMD] T [IOMMU grp 135]
-  │   driver: pcieport
-  │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin RCEC
-  ├── 0000:f0:01.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge
-  │   └── 0000:f1:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [upstream]
-  │       ├── 0000:f2:00.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:f3:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500
-  │       │       └── 0000:f4:00.0  PCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501
-  │       │           └── 0000:f5:00.0  Processing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V [SR-IOV 0/1 VFs] [IOMMU grp 152]
-  │       │               driver: amdgpu  |  link: Gen5 x16
-  │       │               subsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X]
-  │       ├── 0000:f2:01.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:f6:00.0  PCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port
-  │       │       ├── 0000:f7:00.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │       │   ├── 0000:f8:00.0  Processing accelerators: AMD Pensando Systems Device 1012 [IOMMU grp 156]
-  │       │       │   │   driver: tawk_ipc  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   ├── 0000:f8:00.1  Processing accelerators: AMD Pensando Systems Device 100f [IOMMU grp 157]
-  │       │       │   │   driver: none  |  link: Gen5 x16
-  │       │       │   │   subsystem: AMD Pensando Systems Device 5201
-  │       │       │   └── 0000:f8:00.2  Processing accelerators: AMD Pensando Systems DSC PDS Core Management [IOMMU grp 158]
-  │       │       │       driver: pds_core  |  link: Gen5 x16
-  │       │       │       subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       │       └── 0000:f7:01.0  PCI bridge: AMD Pensando Systems DSC Virtual Downstream Port
-  │       │           └── 0000:f9:00.0  Ethernet controller: AMD Pensando Systems DSC Ethernet Controller [SR-IOV 0/1 VFs] [IOMMU grp 159]
-  │       │               driver: ionic  |  link: Gen5 x16
-  │       │               subsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card
-  │       ├── 0000:f2:02.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:fa:00.0  Non-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller [SR-IOV 0/32 VFs] [IOMMU grp 160]
-  │       │       driver: nvme  |  link: Gen5 x4
-  │       │       subsystem: KIOXIA Corporation Device 0148
-  │       ├── 0000:f2:1e.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │       │   └── 0000:fb:00.0  Bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0) [IOMMU grp 161]
-  │       │       driver: none  |  link: Gen5 x16
-  │       │       subsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint
-  │       └── 0000:f2:1f.0  PCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)  [downstream]
-  │           └── 0000:fc:00.0  Serial Attached SCSI controller: Broadcom / LSI PCIe Switch management [IOMMU grp 162]
-  │               driver: mpt3sas  |  link: Gen5 x16
-  │               subsystem: Super Micro Computer Inc Device 1d72
-  ├── 0000:f0:07.1  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-  │   ├── 0000:fd:00.0  Non-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM [IOMMU grp 163]
-  │   │   driver: none  |  link: Gen5 x16
-  │   │   subsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function
-  │   └── 0000:fd:00.4  USB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI  [IOMMU grp 163]
-  │       driver: xhci_hcd  |  link: Gen5 x16
-  │       subsystem: Super Micro Computer Inc Device 1d72
-  └── 0000:f0:07.2  PCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP
-      ├── 0000:fe:00.0  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 142]
-      │   driver: ahci  |  link: Gen5 x16
-      │   subsystem: Super Micro Computer Inc Device 1d72
-      └── 0000:fe:00.1  SATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle [IOMMU grp 142]
-          driver: ahci  |  link: Gen5 x16
-          subsystem: Super Micro Computer Inc Device 1d72
+  [2m├── 0000:80:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:81:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:82:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:83:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:84:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:85:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 205][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:82:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:86:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:87:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:88:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 209][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:88:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 210][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:88:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 211][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:87:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:89:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 212][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       [2m├── 0000:82:1e.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;37m[1m0000:8b:00.0[0m  [0;37mBridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m [2m[IOMMU grp 213][0m
+  │       │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       [2msubsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint[0m
+  │       [2m└── 0000:82:1f.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:8c:00.0[0m  [0;34mSerial Attached SCSI controller: Broadcom / LSI PCIe Switch management[0m [2m[IOMMU grp 214][0m
+  │               [2mdriver: [1mmpt3sas[0m[2m  |  link: [1mGen5 x16[0m
+  │               [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:80:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   └── [0;37m[1m0000:8d:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 215][0m
+  │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  [2m├── 0000:90:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:91:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:92:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:93:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:94:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:95:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 228][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:92:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:96:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:97:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:98:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 232][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:98:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 233][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:98:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 234][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:97:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:99:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 235][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  [2m├── 0000:a0:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:a1:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 243][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  │   └── [0;36m[1m0000:a1:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 243][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:a0:07.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;34m[1m0000:a2:00.0[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 241][0m
+  │   │   [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  │   └── [0;34m[1m0000:a2:00.1[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 241][0m
+  │       [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:c0:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   ├── [0;35m[1m0000:c1:00.0[0m  [0;35mEthernet controller: Intel Corporation I350 Gigabit Network Connection[0m [2m[SR-IOV 0/7 VFs][0m [2m[IOMMU grp 133][0m
+  │   │   [2mdriver: [1migb[0m[2m  |  link: [1mGen2 x4[0m
+  │   │   [2msubsystem: Super Micro Computer Inc Device 0656[0m
+  │   └── [0;35m[1m0000:c1:00.1[0m  [0;35mEthernet controller: Intel Corporation I350 Gigabit Network Connection[0m [2m[SR-IOV 0/7 VFs][0m [2m[IOMMU grp 134][0m
+  │       [2mdriver: [1migb[0m[2m  |  link: [1mGen2 x4[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 0656[0m
+  [2m├── 0000:d0:03.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:d1:00.0[0m  [0;34mRAID bus controller: Broadcom / LSI MegaRAID 12GSAS/PCIe Secure SAS38x[0m [2m[IOMMU grp 172][0m
+  │       [2mdriver: [1mmegaraid_sas[0m[2m  |  link: [1mGen3 x4 (max: Gen4 x4)[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1c71[0m
+  [2m├── 0000:d0:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:d2:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 173][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  │   └── [0;37m[1m0000:d2:00.5[0m  [0;37mEncryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS[0m [2m[IOMMU grp 173][0m
+  │       [2mdriver: [1mccp[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Device 14ca[0m
+  [2m├── 0000:e0:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:e1:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:e2:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:e3:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:e4:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:e5:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 184][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:e2:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;35m[1m0000:e6:00.0[0m  [0;35mInfiniband controller: Mellanox Technologies MT2910 Family [ConnectX-7[0m [2m[SR-IOV 0/16 VFs][0m [2m[IOMMU grp 185][0m
+  │       │       [2mdriver: [1mmlx5_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       [2msubsystem: Mellanox Technologies Device 0023[0m
+  │       [2m└── 0000:e2:02.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:e7:00.0[0m  [0;34mNon-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller[0m [2m[SR-IOV 0/32 VFs][0m [2m[IOMMU grp 186][0m
+  │               [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │               [2msubsystem: KIOXIA Corporation Device 0148[0m
+  [2m├── 0000:f0:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;33m0000:f1:00.0[0m  [0;33mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[upstream][0m
+  │       [2m├── 0000:f2:00.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:f3:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Device 1500[0m
+  │       │       [2m└── 0000:f4:00.0[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD/ATI] Device 1501[0m
+  │       │           └── [1m[0;33m[1m0000:f5:00.0[0m  [1m[0;33mProcessing accelerators: Advanced Micro Devices, Inc. [AMD/ATI] Aqua V[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 152][0m
+  │       │               [2mdriver: [1mamdgpu[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: Advanced Micro Devices, Inc. [AMD/ATI] Aqua Vanjaram [Instinct MI325X][0m
+  │       [2m├── 0000:f2:01.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   [2m└── 0000:f6:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC3 Salina Upstream Port[0m
+  │       │       [2m├── 0000:f7:00.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │       │   ├── [1m[0;33m[1m0000:f8:00.0[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 1012[0m [2m[IOMMU grp 156][0m
+  │       │       │   │   [2mdriver: [1mtawk_ipc[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   ├── [1m[0;33m[1m0000:f8:00.1[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems Device 100f[0m [2m[IOMMU grp 157][0m
+  │       │       │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │   │   [2msubsystem: AMD Pensando Systems Device 5201[0m
+  │       │       │   └── [1m[0;33m[1m0000:f8:00.2[0m  [1m[0;33mProcessing accelerators: AMD Pensando Systems DSC PDS Core Management[0m [2m[IOMMU grp 158][0m
+  │       │       │       [2mdriver: [1mpds_core[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       │       [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       │       [2m└── 0000:f7:01.0[0m  [2mPCI bridge: AMD Pensando Systems DSC Virtual Downstream Port[0m
+  │       │           └── [0;35m[1m0000:f9:00.0[0m  [0;35mEthernet controller: AMD Pensando Systems DSC Ethernet Controller[0m [2m[SR-IOV 0/1 VFs][0m [2m[IOMMU grp 159][0m
+  │       │               [2mdriver: [1mionic[0m[2m  |  link: [1mGen5 x16[0m
+  │       │               [2msubsystem: AMD Pensando Systems POLLARA-1Q400 100/200/400G 1-port Card[0m
+  │       [2m├── 0000:f2:02.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;34m[1m0000:fa:00.0[0m  [0;34mNon-Volatile memory controller: KIOXIA Corporation NVMe SSD Controller[0m [2m[SR-IOV 0/32 VFs][0m [2m[IOMMU grp 160][0m
+  │       │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       │       [2msubsystem: KIOXIA Corporation Device 0148[0m
+  │       [2m├── 0000:f2:1e.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │       │   └── [0;37m[1m0000:fb:00.0[0m  [0;37mBridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m [2m[IOMMU grp 161][0m
+  │       │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       │       [2msubsystem: Broadcom / LSI PEX89000 Virtual PCIe TWC/NT 2.0 Endpoint[0m
+  │       [2m└── 0000:f2:1f.0[0m  [2mPCI bridge: Broadcom / LSI PEX890xx PCIe Gen 5 Switch (rev b0)[0m  [2m[downstream][0m
+  │           └── [0;34m[1m0000:fc:00.0[0m  [0;34mSerial Attached SCSI controller: Broadcom / LSI PCIe Switch management[0m [2m[IOMMU grp 162][0m
+  │               [2mdriver: [1mmpt3sas[0m[2m  |  link: [1mGen5 x16[0m
+  │               [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m├── 0000:f0:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:fd:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 163][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin PCIe Dummy Function[0m
+  │   └── [0;36m[1m0000:fd:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 163][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+  [2m└── 0000:f0:07.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      ├── [0;34m[1m0000:fe:00.0[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 142][0m
+      │   [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+      │   [2msubsystem: Super Micro Computer Inc Device 1d72[0m
+      └── [0;34m[1m0000:fe:00.1[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 142][0m
+          [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Super Micro Computer Inc Device 1d72[0m
 
-  Empty slots:
-  └── Slot 0  (0000:c1:00.1, root pci0000:c0)
-  └── Slot 0  (0000:c1:00.0, root pci0000:c0)
-  └── Slot 21  (0000:e6:00.0, root pci0000:e0)
-  └── Slot 8  (0000:fa:00.0, root pci0000:f0)
-  └── Slot 7  (0000:e7:00.0, root pci0000:e0)
+  [2mEmpty slots:[0m
+  [2m└── Slot 0  (0000:c1:00.1, root pci0000:c0)[0m
+  [2m└── Slot 0  (0000:c1:00.0, root pci0000:c0)[0m
+  [2m└── Slot 21  (0000:e6:00.0, root pci0000:e0)[0m
+  [2m└── Slot 8  (0000:fa:00.0, root pci0000:f0)[0m
+  [2m└── Slot 7  (0000:e7:00.0, root pci0000:e0)[0m
 
-╔══════════════════════════════════════════════════════════════╗
-║  No NUMA Affinity  (numa_node = -1)
-╚══════════════════════════════════════════════════════════════╝
-  (none)
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  IOD Quadrant Mapping  (8 IOMMU instances, 1 GPU per quadrant)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2mCurrent: NPS1 (4 GPU(s) per NUMA node)[0m
+  [2mNPS4 would give: 1 GPU per NUMA node (= pcieRoot granularity)[0m
 
-Legend:
-  ■ Processing Accelerator (GPU/NPU)   ■ Network
-  ■ Storage                             ■ Display
-  ■ Serial Bus (USB/TB)                 dim = bridge/root port
+  [1mivhd0[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 40, 70  [1m[0;33mGPU:[0m 0000:75:00.0  [1m[0;35mNIC:[0m 0000:79:00.0  [1m[0;34mNVMe:[0m 0000:7a:00.0
+  [1mivhd1[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 50, 60  [1m[0;33mGPU:[0m 0000:65:00.0  [1m[0;35mNIC:[0m 0000:51:00.0, 0000:51:00.1, 0000:69:00.0  [1m[0;34mNVMe:[0m 0000:6a:00.0
+  [1mivhd2[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 00, 30  [1m[0;33mGPU:[0m 0000:05:00.0  [1m[0;35mNIC:[0m 0000:09:00.0  [1m[0;34mNVMe:[0m 0000:0a:00.0
+  [1mivhd3[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 10, 20  [1m[0;33mGPU:[0m 0000:15:00.0  [1m[0;35mNIC:[0m 0000:19:00.0  [1m[0;34mNVMe:[0m 0000:1a:00.0
+  [1mivhd4[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m c0, f0  [1m[0;33mGPU:[0m 0000:f5:00.0  [1m[0;35mNIC:[0m 0000:c1:00.0, 0000:c1:00.1, 0000:f9:00.0  [1m[0;34mNVMe:[0m 0000:fa:00.0
+  [1mivhd5[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m d0, e0  [1m[0;33mGPU:[0m 0000:e5:00.0  [1m[0;35mNIC:[0m 0000:e6:00.0  [1m[0;34mNVMe:[0m 0000:e7:00.0
+  [1mivhd6[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m 80, b0  [1m[0;33mGPU:[0m 0000:85:00.0  [1m[0;35mNIC:[0m 0000:89:00.0
+  [1mivhd7[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m 90, a0  [1m[0;33mGPU:[0m 0000:95:00.0  [1m[0;35mNIC:[0m 0000:99:00.0
 
-save this to the hardware directory and update readme. commit and push
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  No NUMA Affinity  (numa_node = -1)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2m(none)[0m
+
+[2mLegend:[0m
+  [1m[0;33m■[0m Processing Accelerator (GPU/NPU)   [1m[0;35m■[0m Network
+  [1m[0;34m■[0m Storage                             [1m[0;32m■[0m Display
+  [1m[0;36m■[0m Serial Bus (USB/TB)                 [2mdim = bridge/root port[0m
