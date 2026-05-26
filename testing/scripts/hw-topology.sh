@@ -1139,18 +1139,39 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
         _roots="${_roots# }"
         _roots_sorted=$(echo "$_roots" | tr ' ' '\n' | sort | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
 
-        # Determine socket and NUMA node from first GPU (or first device) in this ivhd
+        # Determine socket and NUMA node from devices in this ivhd
+        # Priority: GPU → NIC → NVMe → any device with valid NUMA
         _iv_numa=""
         _iv_socket=""
         for _g in ${IVHD_GPUS[$_iv]:-}; do
             _iv_numa="${DEV_NUMA[$_g]:--1}"
-            break
+            [ "$_iv_numa" != "-1" ] && break
+            _iv_numa=""
         done
-        # Fallback: use first NIC if no GPU
         if [ -z "$_iv_numa" ]; then
             for _n in ${IVHD_NICS[$_iv]:-}; do
                 _iv_numa="${DEV_NUMA[$_n]:--1}"
-                break
+                [ "$_iv_numa" != "-1" ] && break
+                _iv_numa=""
+            done
+        fi
+        if [ -z "$_iv_numa" ]; then
+            for _v in ${IVHD_NVME[$_iv]:-}; do
+                _iv_numa="${DEV_NUMA[$_v]:--1}"
+                [ "$_iv_numa" != "-1" ] && break
+                _iv_numa=""
+            done
+        fi
+        # Last resort: scan all devices owned by this ivhd
+        if [ -z "$_iv_numa" ] && [ -d "/sys/class/iommu/${_iv}/devices" ]; then
+            for _dev_link in "/sys/class/iommu/${_iv}/devices/"*/; do
+                _dbdf=$(basename "$_dev_link")
+                [ "$_dbdf" = "*" ] && continue
+                _dn="${DEV_NUMA[$_dbdf]:--1}"
+                if [ "$_dn" != "-1" ]; then
+                    _iv_numa="$_dn"
+                    break
+                fi
             done
         fi
         if [ -n "$_iv_numa" ] && [ "$_iv_numa" != "-1" ]; then
