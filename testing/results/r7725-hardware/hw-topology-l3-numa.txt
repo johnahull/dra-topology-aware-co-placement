@@ -1,0 +1,381 @@
+[1mNUMA Topology[0m  (2 socket(s), 24 node(s), L3-as-NUMA (12 nodes/socket), 6/17 PCIe slots populated)
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 0  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   0-11,288-299  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 30.7 GB total, 29.0 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m├── 0000:80:03.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:81:00.0[0m  [0;34mNon-Volatile memory controller: Marvell Technology Group Ltd. 88NR2241[0m [2m[IOMMU grp 29][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen3 x4 (max: Gen3 x8)[0m
+  │       [2msubsystem: Dell BOSS-N1 DC-MHS[0m
+  [2m├── 0000:80:03.3[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   [2m└── 0000:82:00.0[0m  [2mPCI bridge: PLDA PCI Express Bridge (rev 02)[0m
+  │       └── [0;32m[1m0000:83:00.0[0m  [0;32mVGA compatible controller: Matrox Electronics Systems Ltd. Integrated [0m [2m[IOMMU grp 30][0m
+  │           [2mdriver: [1mmgag200[0m
+  │           [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:80:03.4[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;36m[1m0000:84:00.0[0m  [0;36mUSB controller: Renesas Electronics Corp. uPD720201 USB 3.0 Host Contr[0m [2m[IOMMU grp 31][0m
+  │       [2mdriver: [1mxhci-pci-renesas[0m[2m  |  link: [1mGen2 x1[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:80:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:85:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 32][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Dell Device 0caf[0m
+  │   └── [0;37m[1m0000:85:00.5[0m  [0;37mEncryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS[0m [2m[IOMMU grp 32][0m
+  │       [2mdriver: [1mccp[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:c4:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c5:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 14][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:01.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c6:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 15][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:01.3[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c7:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 16][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:01.4[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c8:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 17][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:c9:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 18][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Dell Device 0caf[0m
+  │   └── [0;36m[1m0000:c9:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 18][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI[0m
+  [2m└── 0000:c4:07.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      ├── [0;34m[1m0000:ca:00.0[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 12][0m
+      │   [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+      │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] FCH SATA Controller [AHCI mode][0m
+      └── [0;34m[1m0000:ca:00.1[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 12][0m
+          [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Advanced Micro Devices, Inc. [AMD] FCH SATA Controller [AHCI mode][0m
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 163  (0000:c7:00.0, root pci0000:c4)[0m
+  [2m└── Slot 6  (0000:80:03.0, root pci0000:80)[0m
+  [2m└── Slot 162  (0000:c8:00.0, root pci0000:c4)[0m
+  [2m└── Slot 161  (0000:c5:00.0, root pci0000:c4)[0m
+  [2m└── Slot 160  (0000:c6:00.0, root pci0000:c4)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 1  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   12-23,300-311  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 30.8 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 10  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   120-131,408-419  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 11  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   132-143,420-431  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 12  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   144-155,432-443  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.4 GB total, 30.7 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m├── 0001:80:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0001:81:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 87][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Dell Device 0caf[0m
+  │   └── [0;37m[1m0001:81:00.5[0m  [0;37mEncryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS[0m [2m[IOMMU grp 87][0m
+  │       [2mdriver: [1mccp[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0001:c4:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   ├── [0;35m[1m0001:c5:00.0[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57508 NetXtreme[0m [2m[IOMMU grp 77][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E P2100D BCM57508 2x100G QSFP PCIE[0m
+  │   └── [0;35m[1m0001:c5:00.1[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57508 NetXtreme[0m [2m[IOMMU grp 78][0m
+  │       [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │       [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E P2100D BCM57508 2x100G QSFP PCIE[0m
+  [2m└── 0001:c4:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      └── [0;37m[1m0001:c6:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 79][0m
+          [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Dell Device 0caf[0m
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 2  (0001:c4:01.0, root pci0001:c4)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 13  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   156-167,444-455  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.0 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 14  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   168-179,456-467  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.1 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 15  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   180-191,468-479  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.0 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m├── 0001:00:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   └── [0;37m[1m0001:05:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 103][0m
+  │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m└── 0001:7a:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      └── [0;37m[1m0001:7b:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 119][0m
+          [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Dell Device 0caf[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 16  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   192-203,480-491  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.0 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 17  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   204-215,492-503  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.2 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 18  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   216-227,504-515  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 30.7 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m└── 0001:3e:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+      ├── [0;35m[1m0001:3f:00.0[0m  [0;35mEthernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 D[0m [2m[SR-IOV 0/8 VFs][0m [2m[IOMMU grp 110][0m
+      │   [2mdriver: [1mmlx5_core[0m[2m  |  link: [1mGen4 x16[0m
+      │   [2msubsystem: Mellanox Technologies Device 0042[0m
+      └── [0;35m[1m0001:3f:00.1[0m  [0;35mEthernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 D[0m [2m[SR-IOV 0/8 VFs][0m [2m[IOMMU grp 111][0m
+          [2mdriver: [1mmlx5_core[0m[2m  |  link: [1mGen4 x16[0m
+          [2msubsystem: Mellanox Technologies Device 0042[0m
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 3  (0001:3e:01.0, root pci0001:3e)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 19  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   228-239,516-527  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.2 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 2  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   24-35,312-323  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 30.8 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 20  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   240-251,528-539  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.4 GB total, 31.2 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 21  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   252-263,540-551  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 4  (0001:88:01.0, root pci0001:88)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 22  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   264-275,552-563  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.2 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 23  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   276-287,564-575  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 3  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   36-47,324-335  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 30.0 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m├── 0000:00:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   ├── [0;35m[1m0000:01:00.0[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 48][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  │   ├── [0;35m[1m0000:01:00.1[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 49][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  │   ├── [0;35m[1m0000:01:00.2[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 50][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  │   └── [0;35m[1m0000:01:00.3[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 51][0m
+  │       [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │       [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  [2m├── 0000:00:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   └── [0;37m[1m0000:02:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 52][0m
+  │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m└── 0000:7a:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      ├── [0;37m[1m0000:7b:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 65][0m
+      │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+      │   [2msubsystem: Dell Device 0caf[0m
+      └── [0;36m[1m0000:7b:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 65][0m
+          [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI[0m
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 10  (0000:00:01.0, root pci0000:00)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 4  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   48-59,336-347  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 30.9 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 5  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   60-71,348-359  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.2 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 6  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   72-83,360-371  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 9  (0000:3e:01.0, root pci0000:3e)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 7  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   84-95,372-383  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 8  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   96-107,384-395  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2m(no PCIe devices on this NUMA node)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 9  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   108-119,396-407  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 31.5 GB total, 31.3 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 7  (0000:88:01.0, root pci0000:88)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  IOD Quadrant Mapping  (8 IOMMU instances)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2mCurrent: L3-as-NUMA (12 nodes/socket) (0 GPU(s) per NUMA node)[0m
+
+  [1mivhd0[0m  [2mRoots:[0m 7e, c4  [1m[0;34mNVMe:[0m 0000:c5:00.0, 0000:c6:00.0, 0000:c7:00.0, 0000:c8:00.0
+  [1mivhd1[0m  [2mRoots:[0m 80, 88  [1m[0;34mNVMe:[0m 0000:81:00.0
+  [1mivhd2[0m  [2mSocket 0, NUMA 3[0m  [2mRoots:[0m 00, 7c  [1m[0;35mNIC:[0m 0000:01:00.0, 0000:01:00.1, 0000:01:00.2, 0000:01:00.3
+  [1mivhd3[0m  [2mRoots:[0m 3e, 7a
+  [1mivhd4[0m  [2mSocket 1, NUMA 12[0m  [2mRoots:[0m 7e, c4  [1m[0;35mNIC:[0m 0001:c5:00.0, 0001:c5:00.1
+  [1mivhd5[0m  [2mRoots:[0m 80, 88
+  [1mivhd6[0m  [2mRoots:[0m 00, 7c
+  [1mivhd7[0m  [2mSocket 1, NUMA 18[0m  [2mRoots:[0m 3e, 7a  [1m[0;35mNIC:[0m 0001:3f:00.0, 0001:3f:00.1
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  No NUMA Affinity  (numa_node = -1)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2m(none)[0m
+
+[2mLegend:[0m
+  [1m[0;33m■[0m Processing Accelerator (GPU/NPU)   [1m[0;35m■[0m Network
+  [1m[0;34m■[0m Storage                             [1m[0;32m■[0m Display
+  [1m[0;36m■[0m Serial Bus (USB/TB)                 [2mdim = bridge/root port[0m

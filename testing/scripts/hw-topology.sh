@@ -911,9 +911,25 @@ if grep -q 'AuthenticAMD' /proc/cpuinfo 2>/dev/null; then
     if [ "$NUM_SOCKETS" -gt 0 ] && [ "$NUMA_NODES" -gt 0 ]; then
         _nodes_per_socket=$(( NUMA_NODES / NUM_SOCKETS ))
         case "$_nodes_per_socket" in
-            1) NPS_MODE="NPS1" ;;
-            2) NPS_MODE="NPS2" ;;
-            4) NPS_MODE="NPS4" ;;
+            1)  NPS_MODE="NPS1" ;;
+            2)  NPS_MODE="NPS2" ;;
+            4)  NPS_MODE="NPS4" ;;
+            *)  # L3-as-NUMA or other sub-NUMA clustering
+                _l3_count=$(find /sys/devices/system/cpu/cpu0/cache/ -maxdepth 1 -name 'index*' -exec sh -c \
+                    'cat "$1/level" "$1/type" 2>/dev/null | tr "\n" " "' _ {} \; 2>/dev/null | grep -c '3 ')
+                if [ "$_l3_count" -gt 0 ]; then
+                    _total_l3=$(( $(lscpu 2>/dev/null | awk '/^L3 cache:/ {print $3}' | sed 's/[^0-9]//g') ))
+                    _l3_per_cpu=$(( $(cat /sys/devices/system/cpu/cpu0/cache/index3/size 2>/dev/null | sed 's/K//') ))
+                    if [ "${_l3_per_cpu:-0}" -gt 0 ] && [ "${_total_l3:-0}" -gt 0 ]; then
+                        _l3_instances=$(( _total_l3 * 1024 / _l3_per_cpu ))
+                        if [ "$NUMA_NODES" -eq "$_l3_instances" ]; then
+                            NPS_MODE="L3-as-NUMA (${_nodes_per_socket} nodes/socket)"
+                        fi
+                    fi
+                fi
+                [ -z "$NPS_MODE" ] && NPS_MODE="NPS? (${_nodes_per_socket} nodes/socket)"
+                unset _l3_count _total_l3 _l3_per_cpu _l3_instances
+                ;;
         esac
         unset _nodes_per_socket
     fi
