@@ -487,6 +487,8 @@ When using CPU pinning option A (DRA CPU driver with `cpuManagerPolicy: none`), 
 
 The root cause: KubeVirt equates "dedicated CPUs" with "kubelet CPU manager is static." With option A, dedicated CPUs come from the DRA CPU driver via NRI, not the kubelet CPU manager. The cpumanager label check is too narrow.
 
+**Expected resolution:** This will be resolved as part of VEP-152 (CPU DRA support in KubeVirt). Once the combined CPU+memory DRA driver is stable and KubeVirt implements native DRA CPU allocation, the cpumanager label gate becomes irrelevant — KubeVirt will understand that CPUs come from DRA, not the kubelet CPU manager. PR #17708 is a POC stopgap, not an upstream deliverable. Timeline: KubeVirt 1.10+ (~November 2026), gated on Francesco's combined driver.
+
 **Upstream discussion needed.** This is not a simple bug fix — it requires KubeVirt to decide how `dedicatedCpuPlacement` works with DRA. Options:
 
 1. **`CPUsWithDRA` feature gate** — skip the cpumanager label check when DRA CPU claims are present in the VMI spec. Follows the `HostDevicesWithDRA` pattern (already merged upstream for GPU passthrough). Small, contained change.
