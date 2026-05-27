@@ -924,14 +924,16 @@ try:
 except:
     claims_data = {'items': []}
 
-# Build set of allocated device keys: 'driver/device'
-allocated = {}
+# Build set of allocated device keys: 'driver/device' -> [pod_names]
+allocated = defaultdict(list)
 for c in claims_data.get('items', []):
     reserved = c.get('status', {}).get('reservedFor', [])
     pod_name = reserved[0]['name'] if reserved else ''
+    if not pod_name:
+        continue
     for r in c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', []):
         key = f'{r[\"driver\"]}/{r[\"device\"]}'
-        allocated[key] = pod_name
+        allocated[key].append(pod_name)
 
 # {driver: {numa: [devices]}}
 by_driver = defaultdict(lambda: defaultdict(list))
@@ -972,6 +974,7 @@ for rs in data.get('items', []):
         if 'dra.net/sriovVfs' in attrs:
             num_vfs = str(list(attrs['dra.net/sriovVfs'].values())[0])
         dev_key = f'{driver}/{dev[\"name\"]}'
+        pods = allocated.get(dev_key, [])
         by_driver[driver][numa].append({
             'name': dev['name'],
             'pci': pci,
@@ -979,7 +982,8 @@ for rs in data.get('items', []):
             'is_vf': is_vf,
             'has_sriov': has_sriov,
             'num_vfs': num_vfs,
-            'pod': allocated.get(dev_key, ''),
+            'pod': pods[0] if len(pods) == 1 else '',
+            'pods': pods,
         })
 
 for node in sorted(nodes):
@@ -989,7 +993,7 @@ for node in sorted(nodes):
 for driver in sorted(by_driver):
     numas = by_driver[driver]
     total = sum(len(devs) for devs in numas.values())
-    alloc_count = sum(1 for devs in numas.values() for d in devs if d['pod'])
+    alloc_count = sum(1 for devs in numas.values() for d in devs if d['pods'])
     free_count = total - alloc_count
     status = f'{total} devices'
     if alloc_count > 0:
@@ -999,7 +1003,7 @@ for driver in sorted(by_driver):
         devs = numas[numa]
         is_cpu = 'cpu' in driver.lower()
         if is_cpu and len(devs) > 8:
-            used = sum(1 for d in devs if d['pod'])
+            used = sum(1 for d in devs if d['pods'])
             free = len(devs) - used
             extra = ''
             if used > 0:
@@ -1023,9 +1027,11 @@ for driver in sorted(by_driver):
                 if tags:
                     tag_str = ', '.join(tags)
                     label += f' \033[33m[{tag_str}]\033[0m'
-                if d['pod']:
-                    pod_short = d['pod'][:30]
-                    label += f' \033[31m→{pod_short}\033[0m'
+                if d['pods']:
+                    if len(d['pods']) == 1:
+                        label += f' \033[31m→{d[\"pods\"][0][:30]}\033[0m'
+                    else:
+                        label += f' \033[31m→{len(d[\"pods\"])} pods\033[0m'
                 parts.append(label)
             line = ', '.join(parts)
             print(f'  \033[2mNUMA {numa}:\033[0m {line}')
