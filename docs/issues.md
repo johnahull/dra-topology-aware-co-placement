@@ -70,7 +70,7 @@ VEPs from the [KubeVirt 1.9 Enhancements Tracking](https://github.com/orgs/kubev
 | VEP | Title | Owner | Stage | Project Step | Comments |
 |-----|-------|-------|-------|-------------|----------|
 | [VEP 10](https://github.com/kubevirt/enhancements/issues/10) | Support GPU DRA devices in KubeVirt | @alaypatel07 | New | Step 5, 6 | GPU passthrough via DRA. Feature gate `GPUsWithDRA`. Underpins our XE8640/R760xa end-to-end demos. |
-| [VEP 115](https://github.com/kubevirt/enhancements/issues/115) | PCIe NUMA Topology Awareness | @mresvanis, @fanzhangio | New | Step 7 | `pxb-pcie` expander bus placement. Our KV-5 extends this to read NUMA from KEP-5304 metadata instead of sysfs only. |
+| [VEP 115](https://github.com/kubevirt/enhancements/issues/115) | PCIe NUMA Topology Awareness | @mresvanis, @fanzhangio | New | Step 7 | Guest NUMA topology construction already implemented. KV-5 Phase 1 (pciBusID → sysfs NUMA) resolved upstream via VEP-10. Phase 2: read numaNode directly from metadata (blocked on KEP-6072). |
 | [VEP 152](https://github.com/kubevirt/enhancements/issues/152) | Add support for CPU DRA Driver | @alaypatel07 | New | Step 3 | KubeVirt + DRA CPU driver integration. Feature gate `CPUsWithDRA`. Our KV-8 (skip cpumanager label) is a prerequisite. |
 | [VEP 174](https://github.com/kubevirt/enhancements/issues/174) | HostDevicesWithDRA | @alaypatel07 | New | Step 5, 6 | Generic host device passthrough via DRA. Feature gate already alpha in upstream. Our KV-7 (VFIO capabilities) and KV-9/KV-10 (NUMA overrides) relate. |
 | [VEP 183](https://github.com/kubevirt/enhancements/issues/183) | NetworkDevicesWithDRA | @oshoval | New | Step 5, 6 | NIC passthrough via DRA. Feature gate `NetworkDevicesWithDRA`. SR-IOV DRA driver KEP-5304 PR #92 (D-1) is a dependency. |
@@ -424,16 +424,16 @@ The kubelet fix K-3 ensures the cpuset is correct before the container starts, w
 
 ---
 
-#### KV-5: VEP 115 reads device NUMA from sysfs only, not from DRA KEP-5304 metadata
+#### KV-5: VEP 115 guest NUMA topology for DRA devices — read numaNode from KEP-5304 metadata
 
 **Repo:** `kubevirt/kubevirt`
-**Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.1`
+**Fix:** `johnahull/kubevirt` `feature/dra-all-patches`
 
-KubeVirt's PCI NUMA-Aware Topology feature (VEP 115) determines each passthrough device's NUMA node by reading the host's `/sys/bus/pci/devices/<BDF>/numa_node` file. This works for device-plugin devices where the PCI address is known from the device plugin API, but it doesn't work for DRA devices where the PCI address comes from KEP-5304 metadata files.
+~~**Phase 1 (pciBusID from metadata → sysfs NUMA lookup):**~~ Resolved upstream via VEP-10. The DRA host device creation code (`gpu_hostdev.go`, `generic_hostdev.go`) reads `resource.kubernetes.io/pciBusID` from KEP-5304 metadata and populates `Source.Address`. The existing `PlacePCIDevicesWithNUMAAlignment` → `LookupDevicesNumaNodes` → `GetDeviceNumaNode` sysfs path then works end-to-end for DRA devices.
 
-The patched KubeVirt reads `resource.kubernetes.io/pciBusID` and `numaNode` from the KEP-5304 metadata directory (`/var/run/kubernetes.io/dra-device-attributes/`) and uses those values to place devices on the correct guest NUMA node via `pxb-pcie` expander buses. This is the bridge between DRA's device metadata API and KubeVirt's guest topology construction.
+**Phase 2 (numaNode directly from metadata — not yet upstream):** Read `resource.kubernetes.io/numaNode` directly from KEP-5304 metadata instead of sysfs. This extends NUMA-aware guest topology to non-PCI devices (CPUs, memory) and avoids the sysfs dependency. The fork implements `GetNUMANodeForClaim()` in `pkg/dra/utils.go`, `buildDRANUMAOverrides()` in the converter (reads numaNode from metadata, falls back to sysfs), and `buildDRANUMACells()` which constructs guest NUMA cells from DRA metadata rather than the kubelet's cpuset. Phase 2 depends on KEP-6072 standardizing the `resource.kubernetes.io/numaNode` attribute name.
 
-This needs an upstream proposal to add DRA metadata support to VEP 115.
+**Upstream scope:** Phase 1 is done (VEP-10). Phase 2 is blocked on KEP-6072. The fork's `feature/dra-all-patches` branch has a working Phase 2 implementation tested on XE8640 and R760xa.
 
 ---
 
@@ -531,11 +531,11 @@ The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` 
 **Repo:** `kubevirt/kubevirt`
 **Fix:** `johnahull/kubevirt` `feature/dra-vfio-numa-passthrough-v1.8.2` commit `e246337`
 **Files:** `pkg/virt-launcher/virtwrap/converter/converter.go`
-**Status:** Fixed in fork. No upstream PR.
+**Status:** Fixed in fork. Not needed for upstream Phase 1 path — only affects fork's Phase 2 `buildDRANUMAOverrides`.
 
-`buildDRANUMAOverrides()` iterated only `vmi.Spec.Domain.Devices.HostDevices` to build PCI-to-NUMA override maps for `PlacePCIDevicesWithNUMAAlignment`. GPUs specified via `vmi.Spec.Domain.Devices.GPUs` were missed, so `PlacePCIDevicesWithNUMAAlignment` was never called for GPU devices. GPUs remained on the default PCI root bus and reported NUMA -1 inside the guest.
+**Not needed upstream.** The upstream `PlacePCIDevicesWithNUMAAlignment` operates on `domainSpec.Devices.HostDevices`, which already contains both GPU and generic DRA host devices — `HostDeviceDomainConfigurator` merges `GPUHostDevices` and `GenericHostDevices` into `domain.Spec.Devices.HostDevices` before the NUMA placement code runs. GPUs are handled without any override map.
 
-**Fix:** Iterate both `HostDevices` and `GPUs` to collect DRA claim references, reading PCI address and NUMA node from KEP-5304 metadata for each. This enables `pxb-pcie` expander bus placement for GPU devices with correct guest NUMA affinity.
+**Still needed in fork Phase 2.** The fork's `buildDRANUMAOverrides()` reads from the VMI spec (not the domain spec) to build a metadata-based NUMA override map. The original version iterated only `vmi.Spec.Domain.Devices.HostDevices`, missing GPUs in `vmi.Spec.Domain.Devices.GPUs`. Fixed in `feature/dra-all-patches` to iterate both.
 
 ---
 
