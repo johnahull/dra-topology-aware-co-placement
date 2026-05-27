@@ -2,7 +2,7 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-05-11)
+## Upstream PR Status (as of 2026-05-27)
 
 ### KubeVirt
 
@@ -572,10 +572,9 @@ The fix adds `resource.kubernetes.io/numaNode` and `cpuSocketID` to all GPU devi
 
 **Repo:** `NVIDIA/k8s-dra-driver-gpu`
 **Fix:** Upstream issue [#916](https://github.com/NVIDIA/k8s-dra-driver-gpu/issues/916), targeting v26.4.0.
+**Status:** Partially fixed — `EnableDeviceMetadata(true)` exists but is gated behind `featuregates.Enabled(featuregates.DeviceMetadata)` which defaults to off. Requires explicit opt-in via feature gate flag.
 
-The NVIDIA DRA driver doesn't yet publish KEP-5304 device metadata in `PrepareResult`. KubeVirt needs `resource.kubernetes.io/pciBusID` in the metadata to create VFIO passthrough entries. Without it, KubeVirt can't determine the PCI address of DRA-allocated GPUs.
-
-The NVIDIA driver currently publishes PCI addresses only in ResourceSlice attributes (which are visible to the scheduler but not to the pod). KEP-5304 bridges this gap by projecting device attributes into the pod as files.
+The NVIDIA DRA driver has KEP-5304 metadata support implemented behind a feature gate (`DeviceMetadata`). When enabled, it publishes device metadata in `PrepareResult` including `pciBusID`. The feature gate version has been lowered (commit `705878f5`) but is still not enabled by default. KubeVirt needs this metadata to create VFIO passthrough entries and determine NUMA topology.
 
 ---
 
@@ -585,6 +584,7 @@ The NVIDIA driver currently publishes PCI addresses only in ResourceSlice attrib
 
 **Repo:** `kubernetes-sigs/dranet`
 **Fix:** `johnahull/dranet` `feature/standardized-topology-attrs`
+**Status:** Still needed. Upstream publishes `dra.net/numaNode` (vendor-specific) but not `resource.kubernetes.io/numaNode` (standardized). Blocked on KEP-6072.
 
 dranet publishes NIC devices with vendor-specific topology attributes (`dra.net/numaNode`) but not the standardized `resource.kubernetes.io/numaNode`, `cpuSocketID`, `pciBusID`, or `pcieRoot` attributes needed for cross-driver `matchAttribute` constraints.
 
@@ -836,9 +836,9 @@ All five Kubernetes binaries (apiserver, scheduler, controller-manager, kubelet,
 
 Each DRA driver publishes NUMA information under its own vendor-specific attribute name (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`, etc.). For cross-driver `matchAttribute` constraints to work, all drivers must use the same attribute name.
 
-The proposal recommends `resource.kubernetes.io/numaNode` (int) as a standardized attribute, with a helper function in the `deviceattribute` library to derive the value from sysfs. The `resource.kubernetes.io/` prefix signals that this is a well-known attribute with defined semantics, not vendor-specific data. `cpuSocketID` is not part of the core proposal — it can be published by drivers independently if needed.
+The `deviceattribute` library already defines `resource.kubernetes.io/pciBusID` and `resource.kubernetes.io/pcieRoot` as standardized attributes, but `numaNode` is not yet included. KEP-6072 ([PR #6073](https://github.com/kubernetes/enhancements/pull/6073)) proposes adding `resource.kubernetes.io/numaNode` (int) with helper functions (`GetNUMANodeByPCIBusID`, `GetNUMANodeForCPU`) to derive the value from sysfs.
 
-Until this is agreed upstream, each driver fork publishes both the vendor-specific and standardized attributes.
+Until KEP-6072 merges, each driver fork publishes both the vendor-specific and standardized attributes.
 
 ---
 
@@ -860,13 +860,13 @@ This is needed for the distance hierarchy (U-1) where CPU and memory drivers nee
 **Repo:** `fabiendupont/k8s-dra-topology-coordinator`
 **Fix:** `johnahull/k8s-dra-topology-coordinator` branches: `fix/distance-based-fallback`, `fix/numanode-attribute-namespace`, `fix/pcieroot-constraint-non-pci-drivers`, `fix/per-driver-cel-selectors`, `fix/webhook-forward-cel-selectors`, `test/all-fixes-combined`
 
-Six independent bug fixes for the topology coordinator POC:
-1. **Label truncation** — DeviceClass names exceed 63-char label limit
-2. **Attribute namespace** — NUMA attribute uses wrong per-driver namespace in CEL selectors
-3. **CEL selector forwarding** — user-defined CEL selectors on the original DeviceClass not forwarded to partition sub-classes
-4. **pcieRoot filtering** — non-PCI drivers (CPU, memory) fail pcieRoot constraint evaluation
-5. **Distance-based fallback** — pcieRoot → numaNode fallback with `CouplingLevel` abstraction
-6. **Webhook CEL selectors** — webhook expansion doesn't pass CEL selectors from the original claim
+Six independent bug fixes for the topology coordinator POC. 1 of 6 merged upstream (pcieRoot filtering, commit `657d247`). Remaining 5 still needed:
+1. **Label truncation** — DeviceClass names exceed 63-char label limit — still needed
+2. **Attribute namespace** — NUMA attribute uses wrong per-driver namespace in CEL selectors — still needed
+3. **CEL selector forwarding** — user-defined CEL selectors on the original DeviceClass not forwarded to partition sub-classes — still needed
+4. ~~**pcieRoot filtering** — non-PCI drivers (CPU, memory) fail pcieRoot constraint evaluation~~ — **fixed upstream** (commit `657d247`)
+5. **Distance-based fallback** — pcieRoot → numaNode fallback with `CouplingLevel` abstraction — still needed
+6. **Webhook CEL selectors** — webhook expansion doesn't pass CEL selectors from the original claim — still needed
 
 All fixes are in separate branches for independent review. Combined branch `test/all-fixes-combined` passes all tests.
 
