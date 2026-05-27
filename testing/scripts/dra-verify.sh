@@ -353,7 +353,14 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         dev_key = f'{driver}/{device}'
         topo = device_attrs.get(dev_key, {})
 
-        numa = topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '-')))
+        numa_raw = topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '-')))
+        # numaNode may be a list (physical node first) or scalar
+        if isinstance(numa_raw, list):
+            numa = numa_raw[0] if numa_raw else '-'
+            numa_list = numa_raw
+        else:
+            numa = numa_raw
+            numa_list = [numa_raw] if numa_raw != '-' else []
         raw_root = topo.get('pcieRoot', '-')
         pci = topo.get('pciBusID', '-')
         product = str(topo.get('productName', '-'))[:28]
@@ -365,9 +372,18 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         else:
             root_lines = ['-']
 
+        # Consumed capacity (e.g., CPUs allocated from a consumable device)
+        consumed = r.get('consumedCapacity', {})
+        consumed_parts = []
+        for cap_name, cap_val in consumed.items():
+            short_cap = cap_name.split('/')[-1] if '/' in cap_name else cap_name
+            consumed_parts.append(f'{short_cap}={cap_val}')
+        consumed_str = ', '.join(consumed_parts) if consumed_parts else ''
+
         rows.append({'request': request, 'driver': driver, 'device': device,
-                     'numa': numa, 'raw_root': raw_root, 'root_lines': root_lines,
-                     'pci': pci, 'product': product})
+                     'numa': numa, 'numa_list': numa_list, 'raw_root': raw_root,
+                     'root_lines': root_lines, 'pci': pci, 'product': product,
+                     'consumed': consumed_str})
 
     # Compute intersection per constraint attribute
     matched_constraints = {}
@@ -386,14 +402,17 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
                 continue
             if attr_key == 'pcieRoot':
                 raw = row['raw_root']
+                if isinstance(raw, list):
+                    value_sets.append(set(str(v) for v in raw))
+                elif raw != '-':
+                    value_sets.append({str(raw)})
             elif attr_key in ('numaNode',):
-                raw = row['numa']
+                # Use full numa_list for intersection matching
+                nl = row.get('numa_list', [])
+                if nl:
+                    value_sets.append(set(str(v) for v in nl))
             else:
                 continue
-            if isinstance(raw, list):
-                value_sets.append(set(str(v) for v in raw))
-            elif raw != '-':
-                value_sets.append({str(raw)})
 
         if value_sets:
             common = value_sets[0]
@@ -411,8 +430,13 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         else:
             print(f'  \033[2m{line}\033[0m')
 
-    print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
-    print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
+    has_consumed = any(row['consumed'] for row in rows)
+    if has_consumed:
+        print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"Consumed\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
+        print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
+    else:
+        print(f'  {\"Request\":<32}{\"Driver\":<22}{\"Device\":<24}{\"NUMA\":<6}{\"pcieRoot\":<16}{\"PCI Bus ID\":<18}{\"Product\":<30}')
+        print(f'  {\"─\"*32}{\"─\"*22}{\"─\"*24}{\"─\"*6}{\"─\"*16}{\"─\"*18}{\"─\"*30}')
 
     # Print rows with constraint-aware coloring
     for row in rows:
@@ -439,7 +463,12 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         dev = row['device']
         pci_val = str(row['pci'])
         prod = row['product']
-        print(f'  {request_short:<32}{driver_short:<22}{dev:<24}{numa_col}{root_col}{pci_val:<18}{prod:<30}')
+        consumed = row['consumed']
+        if has_consumed:
+            consumed_col = f'\033[33m{consumed}\033[0m' + ' ' * max(0, 16 - len(consumed)) if consumed else f'{\"\":<16}'
+            print(f'  {request_short:<32}{driver_short:<22}{dev:<24}{numa_col}{root_col}{consumed_col}{pci_val:<18}{prod:<30}')
+        else:
+            print(f'  {request_short:<32}{driver_short:<22}{dev:<24}{numa_col}{root_col}{pci_val:<18}{prod:<30}')
 
         pad = ' ' * (32 + 22 + 24 + 6)
         for extra_root in row['root_lines'][1:]:
