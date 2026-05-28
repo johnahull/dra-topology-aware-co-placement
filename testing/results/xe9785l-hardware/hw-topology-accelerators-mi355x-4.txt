@@ -4,7 +4,7 @@
 [1m[0;36m║  NUMA Node 0  ·  Socket 0[0m
 [1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
   [1m[0;32mCPUs:[0m   0-63,128-191  [2m(AMD EPYC 9575F 64-Core Processor)[0m
-  [1m[0;32mMemory:[0m 1511.2 GB total, 1490.6 GB free
+  [1m[0;32mMemory:[0m 1511.2 GB total, 1490.8 GB free
   [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
 
   [2mPCIe topology:[0m
@@ -105,7 +105,7 @@
 [1m[0;36m║  NUMA Node 1  ·  Socket 1[0m
 [1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
   [1m[0;32mCPUs:[0m   64-127,192-255  [2m(AMD EPYC 9575F 64-Core Processor)[0m
-  [1m[0;32mMemory:[0m 1511.9 GB total, 1508.2 GB free
+  [1m[0;32mMemory:[0m 1511.9 GB total, 1508.3 GB free
   [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
 
   [2mPCIe topology:[0m
@@ -203,14 +203,23 @@
   [2mCurrent: NPS1 (4 GPU(s) per NUMA node)[0m
   [2mNPS4 would give: 1 GPU per NUMA node (= pcieRoot granularity)[0m
 
-  [1mivhd0[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 96, d0  [1m[0;33mGPU:[0m 0000:dc:00.0  [1m[0;35mNIC:[0m 0000:d5:00.0, 0000:d5:00.1, 0000:d9:00.0
-  [1mivhd1[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 98, a0  [1m[0;33mGPU:[0m 0000:a8:00.0  [1m[0;35mNIC:[0m 0000:ac:00.0  [1m[0;34mNVMe:[0m 0000:99:00.0, 0000:a4:00.0
-  [1mivhd2[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 00, 66  [1m[0;33mGPU:[0m 0000:0c:00.0  [1m[0;35mNIC:[0m 0000:06:00.0
-  [1mivhd3[0m  [2mSocket 0, NUMA 0[0m  [2mRoots:[0m 00, 32, 64  [1m[0;33mGPU:[0m 0000:3d:00.0  [1m[0;35mNIC:[0m 0000:3a:00.0  [1m[0;34mNVMe:[0m 0000:35:00.0
-  [1mivhd4[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m 68, d0  [1m[0;33mGPU:[0m 0001:dc:00.0  [1m[0;35mNIC:[0m 0001:d6:00.0
-  [1mivhd5[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m 98, a0  [1m[0;33mGPU:[0m 0001:a5:00.0  [1m[0;35mNIC:[0m 0001:a9:00.0  [1m[0;34mNVMe:[0m 0001:ab:00.0
-  [1mivhd6[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m 00, 66  [1m[0;33mGPU:[0m 0001:0d:00.0  [1m[0;35mNIC:[0m 0001:06:00.0, 0001:07:00.0, 0001:07:00.1
-  [1mivhd7[0m  [2mSocket 1, NUMA 1[0m  [2mRoots:[0m 00, 32, 64  [1m[0;33mGPU:[0m 0001:3d:00.0  [1m[0;35mNIC:[0m 0001:38:00.0  [1m[0;34mNVMe:[0m 0001:39:00.0
+  [1mivhd0[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:d0[0m  [1m[0;33mGPU:[0m 0000:dc:00.0  [1m[0;35mNIC:[0m 0000:d5:00.0, 0000:d5:00.1, 0000:d9:00.0
+  [1mivhd1[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:98[0m  [1m[0;34mNVMe:[0m 0000:99:00.0
+    [2mpcieRoot 0000:a0[0m  [1m[0;33mGPU:[0m 0000:a8:00.0  [1m[0;35mNIC:[0m 0000:ac:00.0  [1m[0;34mNVMe:[0m 0000:a4:00.0
+  [1mivhd2[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:00[0m  [1m[0;33mGPU:[0m 0000:0c:00.0  [1m[0;35mNIC:[0m 0000:06:00.0
+  [1mivhd3[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:32[0m  [1m[0;33mGPU:[0m 0000:3d:00.0  [1m[0;35mNIC:[0m 0000:3a:00.0  [1m[0;34mNVMe:[0m 0000:35:00.0
+  [1mivhd4[0m  [2mSocket 1, NUMA 1[0m
+    [2mpcieRoot 0001:d0[0m  [1m[0;33mGPU:[0m 0001:dc:00.0  [1m[0;35mNIC:[0m 0001:d6:00.0
+  [1mivhd5[0m  [2mSocket 1, NUMA 1[0m
+    [2mpcieRoot 0001:a0[0m  [1m[0;33mGPU:[0m 0001:a5:00.0  [1m[0;35mNIC:[0m 0001:a9:00.0  [1m[0;34mNVMe:[0m 0001:ab:00.0
+  [1mivhd6[0m  [2mSocket 1, NUMA 1[0m
+    [2mpcieRoot 0001:00[0m  [1m[0;33mGPU:[0m 0001:0d:00.0  [1m[0;35mNIC:[0m 0001:06:00.0, 0001:07:00.0, 0001:07:00.1
+  [1mivhd7[0m  [2mSocket 1, NUMA 1[0m
+    [2mpcieRoot 0001:32[0m  [1m[0;33mGPU:[0m 0001:3d:00.0  [1m[0;35mNIC:[0m 0001:38:00.0  [1m[0;34mNVMe:[0m 0001:39:00.0
 
 [1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
 [1m[0;36m║  No NUMA Affinity  (numa_node = -1)[0m

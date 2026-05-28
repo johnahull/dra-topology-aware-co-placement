@@ -1134,13 +1134,29 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
         echo ""
     fi
 
+    # Build per-device pcieRoot lookup (BDF → root bus ID like "00" or "d0")
+    declare -A DEV_PCIE_ROOT=()
+    for _bdf in "${!DEV_PARENT[@]}"; do
+        _cur="$_bdf"
+        while true; do
+            _par="${DEV_PARENT[$_cur]:-}"
+            [ -z "$_par" ] && break
+            if [[ "$_par" == root:* ]]; then
+                _rb="${_par#root:}"
+                _rb="${_rb#*:}"  # strip domain prefix
+                DEV_PCIE_ROOT["$_bdf"]="$_rb"
+                break
+            fi
+            _cur="$_par"
+        done
+    done
+
     for _iv in "${IVHD_LIST[@]}"; do
         _roots="${IVHD_ROOTS[$_iv]:-}"
         _roots="${_roots# }"
         _roots_sorted=$(echo "$_roots" | tr ' ' '\n' | sort | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
 
         # Determine socket and NUMA node from devices in this ivhd
-        # Priority: GPU → NIC → NVMe → any device with valid NUMA
         _iv_numa=""
         _iv_socket=""
         for _g in ${IVHD_GPUS[$_iv]:-}; do
@@ -1162,7 +1178,6 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
                 _iv_numa=""
             done
         fi
-        # Last resort: scan all devices owned by this ivhd
         if [ -z "$_iv_numa" ] && [ -d "/sys/class/iommu/${_iv}/devices" ]; then
             for _dev_link in "/sys/class/iommu/${_iv}/devices/"*/; do
                 _dbdf=$(basename "$_dev_link")
@@ -1190,44 +1205,88 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
 
         _line="  ${BOLD}${_iv}${RESET}"
         [ -n "$_loc" ] && _line+="  ${DIM}${_loc}${RESET}"
-        _line+="  ${DIM}Roots:${RESET} ${_roots_sorted}"
-
-        # GPU
-        _gpu_list=""
-        for _g in ${IVHD_GPUS[$_iv]:-}; do
-            [ -n "$_gpu_list" ] && _gpu_list+=", "
-            _gpu_list+="$_g"
-        done
-        if [ -n "$_gpu_list" ]; then
-            _line+="  ${BOLD}${YELLOW}GPU:${RESET} ${_gpu_list}"
-        fi
-
-        # NIC
-        _nic_list=""
-        for _n in ${IVHD_NICS[$_iv]:-}; do
-            [ -n "$_nic_list" ] && _nic_list+=", "
-            _nic_list+="$_n"
-        done
-        if [ -n "$_nic_list" ]; then
-            _line+="  ${BOLD}${MAGENTA}NIC:${RESET} ${_nic_list}"
-        fi
-
-        # NVMe
-        _nvme_list=""
-        for _v in ${IVHD_NVME[$_iv]:-}; do
-            [ -n "$_nvme_list" ] && _nvme_list+=", "
-            _nvme_list+="$_v"
-        done
-        if [ -n "$_nvme_list" ]; then
-            _line+="  ${BOLD}${BLUE}NVMe:${RESET} ${_nvme_list}"
-        fi
-
         echo -e "$_line"
+
+        # Collect all classified devices with their pcieRoot
+        declare -A _root_gpus=()
+        declare -A _root_nics=()
+        declare -A _root_nvme=()
+        declare -A _roots_seen=()
+
+        for _g in ${IVHD_GPUS[$_iv]:-}; do
+            _rb="${DEV_PCIE_ROOT[$_g]:-?}"
+            _root_gpus["$_rb"]+=" $_g"
+            _roots_seen["$_rb"]=1
+        done
+        for _n in ${IVHD_NICS[$_iv]:-}; do
+            _rb="${DEV_PCIE_ROOT[$_n]:-?}"
+            _root_nics["$_rb"]+=" $_n"
+            _roots_seen["$_rb"]=1
+        done
+        for _v in ${IVHD_NVME[$_iv]:-}; do
+            _rb="${DEV_PCIE_ROOT[$_v]:-?}"
+            _root_nvme["$_rb"]+=" $_v"
+            _roots_seen["$_rb"]=1
+        done
+
+        # Also include roots with no classified devices
+        for _rb in $(echo "$_roots" | tr ' ' '\n' | sort); do
+            _roots_seen["$_rb"]=1
+        done
+
+        # Print each pcieRoot within this quadrant
+        _sorted_roots=$(printf '%s\n' "${!_roots_seen[@]}" | sort)
+        for _rb in $_sorted_roots; do
+            # Get the domain prefix from this ivhd's devices
+            _domain=""
+            for _g in ${IVHD_GPUS[$_iv]:-}; do
+                _domain="${_g%%:*}"
+                break
+            done
+            [ -z "$_domain" ] && for _n in ${IVHD_NICS[$_iv]:-}; do
+                _domain="${_n%%:*}"
+                break
+            done
+            [ -z "$_domain" ] && _domain="0000"
+
+            _rline="    ${DIM}pcieRoot ${_domain}:${_rb}${RESET}"
+            _has_devs=0
+
+            _gpu_list=""
+            for _g in ${_root_gpus[$_rb]:-}; do
+                [ -n "$_gpu_list" ] && _gpu_list+=", "
+                _gpu_list+="$_g"
+                _has_devs=1
+            done
+            [ -n "$_gpu_list" ] && _rline+="  ${BOLD}${YELLOW}GPU:${RESET} ${_gpu_list}"
+
+            _nic_list=""
+            for _n in ${_root_nics[$_rb]:-}; do
+                [ -n "$_nic_list" ] && _nic_list+=", "
+                _nic_list+="$_n"
+                _has_devs=1
+            done
+            [ -n "$_nic_list" ] && _rline+="  ${BOLD}${MAGENTA}NIC:${RESET} ${_nic_list}"
+
+            _nvme_list=""
+            for _v in ${_root_nvme[$_rb]:-}; do
+                [ -n "$_nvme_list" ] && _nvme_list+=", "
+                _nvme_list+="$_v"
+                _has_devs=1
+            done
+            [ -n "$_nvme_list" ] && _rline+="  ${BOLD}${BLUE}NVMe:${RESET} ${_nvme_list}"
+
+            # Only print roots that have classified devices (skip infra-only roots)
+            [ "$_has_devs" = "1" ] && echo -e "$_rline"
+        done
+
+        unset _root_gpus _root_nics _root_nvme _roots_seen
     done
     echo ""
-    unset _iv _roots _roots_sorted _line _gpu_list _nic_list _nvme_list
-    unset _g _n _v _total_ivhd_gpus _gpu_ratio _gpus_per _gpus_per_numa
-    unset _iv_numa _iv_socket _first_cpu _loc
+    unset _iv _roots _roots_sorted _line _gpu_list _nic_list _nvme_list _rline
+    unset _g _n _v _rb _domain _has_devs _sorted_roots
+    unset _total_ivhd_gpus _gpu_ratio _gpus_per _gpus_per_numa
+    unset _iv_numa _iv_socket _first_cpu _loc DEV_PCIE_ROOT
 fi
 
 # Devices with no NUMA affinity
