@@ -364,6 +364,26 @@ for _bdf in "${!DEV_PARENT[@]}"; do
 done
 unset _bdf _cur _par _full _rb
 
+# ── SLIT distance matrix ────────────────────────────────────────────────────
+# Read NUMA inter-node distances from sysfs (one row per node).
+
+declare -A SLIT_DIST=()      # "src:dst" → distance (e.g. "0:1" → 32)
+SLIT_NODES=()                # sorted node IDs with distance data
+
+for _np in /sys/devices/system/node/node*/; do
+    _nid="${_np%/}"; _nid="${_nid##*/node}"
+    [ -f "${_np}distance" ] || continue
+    SLIT_NODES+=("$_nid")
+    _col=0
+    for _d in $(cat "${_np}distance"); do
+        SLIT_DIST["${_nid}:${_col}"]="$_d"
+        _col=$((_col + 1))
+    done
+done
+IFS=$'\n' SLIT_NODES=($(printf '%s\n' "${SLIT_NODES[@]}" | sort -n))
+IFS=$' \t\n'
+unset _np _nid _col _d
+
 # ── IOMMU instance (ivhd) to device mapping ──────────────────────────────────
 # On AMD systems, /sys/class/iommu/ivhd* maps each IOMMU hardware unit to its
 # owned devices. Each ivhd corresponds to one IOD quadrant.
@@ -440,6 +460,18 @@ if ls /sys/class/iommu/ivhd* &>/dev/null 2>&1; then
     IFS=$' \t\n'
     unset _iommu_path _ivhd _dev_link _dbdf _root_bus _cur _par
     unset _dclass _dclass_int _dtop _dsub _dev_path _drv
+
+    # Build reverse lookup: pcieRoot domain:bus → ivhd name
+    declare -A ROOT_TO_IVHD=()   # "0000:d0" → "ivhd0"
+    for _iv in "${IVHD_LIST[@]}"; do
+        for _g in ${IVHD_GPUS[$_iv]:-} ${IVHD_NICS[$_iv]:-} ${IVHD_NVME[$_iv]:-}; do
+            _rd="${DEV_PCIE_ROOT_DOMAIN[$_g]:-}"
+            if [ -n "$_rd" ] && [ -z "${ROOT_TO_IVHD[$_rd]+x}" ]; then
+                ROOT_TO_IVHD["$_rd"]="$_iv"
+            fi
+        done
+    done
+    unset _iv _g _rd
 fi
 
 # ── PCIe switch detection ────────────────────────────────────────────────────
@@ -929,7 +961,36 @@ print_simple_topology() {
 
             for root in $_sorted_roots; do
                 local key="${sock}:${numa}:${root}"
-                [ "$root" != "-" ] && echo -e "${DIM}║   pcieRoot: ${root}${RESET}"
+                if [ "$root" != "-" ]; then
+                    local _root_extra=""
+                    # Add ivhd quadrant name if available
+                    local _ivhd_name="${ROOT_TO_IVHD[$root]:-}"
+                    [ -n "$_ivhd_name" ] && _root_extra+="${_ivhd_name}"
+                    # Add SLIT distances to all NUMA nodes
+                    if [ ${#SLIT_NODES[@]} -gt 0 ] && [ "$numa" != "-1" ]; then
+                        local _dist_parts=()
+                        for _dn in "${SLIT_NODES[@]}"; do
+                            local _d="${SLIT_DIST[${numa}:${_dn}]:-?}"
+                            if [ "$_dn" = "$numa" ]; then
+                                _dist_parts+=("${BOLD}${_dn}=${_d}${RESET}${DIM}")
+                            else
+                                _dist_parts+=("${_dn}=${_d}")
+                            fi
+                        done
+                        local _dist_str
+                        _dist_str=$(IFS=','; echo "${_dist_parts[*]}" | sed 's/,/, /g')
+                        if [ -n "$_root_extra" ]; then
+                            _root_extra+=", dist: ${_dist_str}"
+                        else
+                            _root_extra="dist: ${_dist_str}"
+                        fi
+                    fi
+                    if [ -n "$_root_extra" ]; then
+                        echo -e "${DIM}║   pcieRoot: ${root}  (${_root_extra})${RESET}"
+                    else
+                        echo -e "${DIM}║   pcieRoot: ${root}${RESET}"
+                    fi
+                fi
 
                 # Group entries by type, then by driver+product
                 declare -A _type_bdfs=()   # "type::driver::product" → "bdf1 bdf2"
