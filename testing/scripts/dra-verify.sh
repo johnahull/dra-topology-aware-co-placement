@@ -1253,11 +1253,71 @@ def extract_numa_values(selectors):
     return numas
 
 by_profile = defaultdict(list)
+by_grouping = defaultdict(list)
 for dc in items:
     labels = dc.get("metadata", {}).get("labels", {})
-    profile = labels.get("nodepartition.dra.k8s.io/profile", "(unknown)")
-    by_profile[profile].append(dc)
+    grouping = labels.get("nodepartition.dra.k8s.io/grouping", "")
+    if grouping:
+        by_grouping[grouping].append(dc)
+    else:
+        profile = labels.get("nodepartition.dra.k8s.io/profile", "(unknown)")
+        by_profile[profile].append(dc)
 
+# Display custom groupings first
+for grouping_name in sorted(by_grouping):
+    print(f"\n\033[1mGrouping: {grouping_name}\033[0m")
+    classes = by_grouping[grouping_name]
+    classes.sort(key=lambda dc: (
+        dc["metadata"]["labels"].get("nodepartition.dra.k8s.io/alignment", ""),
+        dc["metadata"]["labels"].get("nodepartition.dra.k8s.io/numa", ""),
+    ))
+
+    for dc in classes:
+        labels = dc["metadata"]["labels"]
+        name = dc["metadata"]["name"]
+        alignment = labels.get("nodepartition.dra.k8s.io/alignment", "?")
+        numa_label = labels.get("nodepartition.dra.k8s.io/numa", "")
+
+        configs = dc.get("spec", {}).get("config", [])
+        config = None
+        for cfg in configs:
+            opaque = cfg.get("opaque", {})
+            params = opaque.get("parameters", {})
+            if isinstance(params, str):
+                try:
+                    params = json.loads(params)
+                except Exception:
+                    continue
+            if params.get("kind") == "PartitionConfig":
+                config = params
+                break
+
+        if not config:
+            continue
+
+        subs = config.get("subResources", [])
+
+        # Build sub-resource summary
+        sub_parts = []
+        for sr in subs:
+            dc_name = sr.get("deviceClass", "?")
+            dc_short = dc_name.split(".")[-1] if "." in dc_name else dc_name
+            count = sr.get("count", 1)
+            cap = sr.get("capacity", {})
+            cap_str = ""
+            if cap:
+                cap_vals = ", ".join(str(v) for v in cap.values())
+                cap_str = " (%s)" % cap_vals
+            sub_parts.append("%s: %d%s" % (dc_short, count, cap_str))
+        sub_summary = ", ".join(sub_parts)
+
+        numa_str = f"NUMA {numa_label}" if numa_label else ""
+        status = "\033[32mfree\033[0m"
+
+        print(f"  {alignment} \xb7 {numa_str} → {name}  {status}")
+        print(f"    {sub_summary}")
+
+# Display legacy partitions
 for profile in sorted(by_profile):
     print(f"\n\033[1mProfile: {profile}\033[0m")
     classes = by_profile[profile]
