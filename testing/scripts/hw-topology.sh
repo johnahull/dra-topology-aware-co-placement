@@ -7,6 +7,7 @@ set -uo pipefail
 PCIE_ONLY=0
 NO_DIMM=0
 FLAT=0
+SIMPLE=0
 
 # Device class filters (additive — if none set, show all)
 declare -A CLASS_FILTER=()
@@ -15,6 +16,7 @@ for arg in "$@"; do
     case "$arg" in
         -p|--pcie)          PCIE_ONLY=1 ;;
         -f|--flat)          FLAT=1 ;;
+        -t|--simple)        SIMPLE=1 ;;
         --no-dimm)          NO_DIMM=1 ;;
         -a|--accelerators)  CLASS_FILTER[18]=1; CLASS_FILTER[3]=1 ;;   # 0x12 = Processing accelerator + 0x03 = 3D/Display (GPUs)
         -n|--network)       CLASS_FILTER[2]=1 ;;    # 0x02 = Network
@@ -28,6 +30,7 @@ for arg in "$@"; do
             echo "Layout options:"
             echo "  -p, --pcie          Show only devices with an active PCIe link (skip on-die devices)"
             echo "  -f, --flat          List endpoint devices only, no bus/bridge hierarchy"
+            echo "  -t, --simple        Compact view: Socket → NUMA → pcieRoot → devices by type"
             echo "  --no-dimm           Skip DIMM info (no dmidecode; faster for non-root users)"
             echo ""
             echo "Device class filters (additive — combine to show multiple categories):"
@@ -338,6 +341,28 @@ for dev_path in /sys/bus/pci/devices/*/; do
     DEV_NUMA["$bdf"]="$numa_node"
     DEV_CLASS["$bdf"]=$(cat "${dev_path}class" 2>/dev/null || echo "0x000000")
 done
+
+# ── Per-device pcieRoot lookup ───────────────────────────────────────────────
+# Walk DEV_PARENT to find the root bus for every device (e.g. "00", "d0").
+
+declare -A DEV_PCIE_ROOT=()
+declare -A DEV_PCIE_ROOT_DOMAIN=()   # BDF → full domain:bus (e.g. "0000:d0")
+for _bdf in "${!DEV_PARENT[@]}"; do
+    _cur="$_bdf"
+    while true; do
+        _par="${DEV_PARENT[$_cur]:-}"
+        [ -z "$_par" ] && break
+        if [[ "$_par" == root:* ]]; then
+            _full="${_par#root:}"        # e.g. "0000:d0"
+            _rb="${_full#*:}"            # e.g. "d0"
+            DEV_PCIE_ROOT["$_bdf"]="$_rb"
+            DEV_PCIE_ROOT_DOMAIN["$_bdf"]="$_full"
+            break
+        fi
+        _cur="$_par"
+    done
+done
+unset _bdf _cur _par _full _rb
 
 # ── IOMMU instance (ivhd) to device mapping ──────────────────────────────────
 # On AMD systems, /sys/class/iommu/ivhd* maps each IOMMU hardware unit to its
@@ -780,6 +805,197 @@ print_numa_flat() {
     done
 }
 
+# ── Simple topology view (Socket → NUMA → pcieRoot → devices by type) ────────
+
+print_simple_topology() {
+    # Classify device type from PCI class + driver
+    _dev_type() {
+        local bdf="$1"
+        local class_hex="${DEV_CLASS[$bdf]:-0x000000}"
+        local class_int
+        class_int=$(printf '%d' "$class_hex" 2>/dev/null) || { echo "other"; return; }
+        local top=$(( class_int >> 16 ))
+        local sub=$(( (class_int >> 8) & 0xFF ))
+
+        case "$top" in
+            18|3)
+                local drv
+                drv=$(get_driver "/sys/bus/pci/devices/${bdf}/")
+                case "$drv" in
+                    amdgpu|nvidia|i915|xe) echo "gpu" ;;
+                    *) echo "accel" ;;
+                esac
+                ;;
+            2)  echo "nic" ;;
+            1)  [ "$sub" -eq 8 ] && echo "nvme" || echo "storage" ;;
+            12) echo "usb" ;;
+            4)  echo "multimedia" ;;
+            *)  echo "other" ;;
+        esac
+    }
+
+    # Short product label from lspci (truncated, strip redundant prefixes)
+    _product_label() {
+        local bdf="$1"
+        local name
+        name=$(short_name "$bdf")
+        # Strip class prefix (e.g. "Processing accelerators: " or "Ethernet controller: ")
+        name="${name#*: }"
+        # Strip vendor prefixes for brevity
+        name="${name#Advanced Micro Devices, Inc. }"
+        name="${name#Mellanox Technologies }"
+        name="${name#AMD Pensando Systems }"
+        name="${name#NVIDIA Corporation }"
+        name="${name#Intel Corporation }"
+        name="${name#Broadcom Inc. and subsidiaries }"
+        name="${name#Samsung Electronics Co Ltd }"
+        # Strip [AMD] or [AMD/ATI] bracketed vendor tags
+        name=$(echo "$name" | sed 's/\[AMD[^]]*\] //')
+        # Strip "(rev XX)" suffix
+        name="${name%%(*}"
+        # Trim trailing whitespace
+        name="${name%"${name##*[! ]}"}"
+        echo "${name:0:45}"
+    }
+
+    # Determine socket ID for a NUMA node
+    _socket_for_numa() {
+        local nid="$1"
+        local cpulist first_cpu
+        cpulist=$(cat "/sys/devices/system/node/node${nid}/cpulist" 2>/dev/null || echo "")
+        [ -z "$cpulist" ] && { echo "?"; return; }
+        first_cpu=$(echo "$cpulist" | tr ',' '\n' | head -1 | tr '-' '\n' | head -1)
+        cat "/sys/devices/system/cpu/cpu${first_cpu}/topology/physical_package_id" 2>/dev/null || echo "?"
+    }
+
+    # Collect all visible endpoints: "socket:numa:root" → list of "type|bdf|driver|product"
+    declare -A _topo_groups=()     # key → newline-separated device entries
+    declare -A _seen_sockets=()
+    declare -A _seen_numas=()
+    declare -A _seen_roots=()
+
+    for bdf in "${!DEV_NUMA[@]}"; do
+        local dev_path="/sys/bus/pci/devices/${bdf}/"
+        is_endpoint "$dev_path" || continue
+        if [ "$PCIE_ONLY" = "1" ] && ! has_link "$dev_path"; then continue; fi
+        local bdf_class="${DEV_CLASS[$bdf]:-0x000000}"
+        class_matches_filter "$bdf_class" || continue
+
+        local numa="${DEV_NUMA[$bdf]}"
+        local root_domain="${DEV_PCIE_ROOT_DOMAIN[$bdf]:-"-"}"
+        local dtype
+        dtype=$(_dev_type "$bdf")
+        local drv
+        drv=$(get_driver "$dev_path")
+        local product
+        product=$(_product_label "$bdf")
+        local link
+        link=$(get_link_info "$dev_path")
+
+        local socket
+        if [ "$numa" = "-1" ]; then
+            socket="?"
+        else
+            socket=$(_socket_for_numa "$numa")
+        fi
+
+        local key="${socket}:${numa}:${root_domain}"
+        _topo_groups["$key"]+="${dtype}|${bdf}|${drv}|${product}|${link}"$'\n'
+        _seen_sockets["$socket"]=1
+        _seen_numas["${socket}:${numa}"]=1
+        _seen_roots["$key"]=1
+    done
+
+    # Print hierarchy
+    local _sorted_sockets
+    _sorted_sockets=$(printf '%s\n' "${!_seen_sockets[@]}" | sort)
+
+    for sock in $_sorted_sockets; do
+        echo -e "${BOLD}${CYAN}╔══ Socket ${sock} ══╗${RESET}"
+
+        local _sorted_numas
+        _sorted_numas=$(printf '%s\n' "${!_seen_numas[@]}" | grep "^${sock}:" | sort | sed "s/^${sock}://")
+
+        for numa in $_sorted_numas; do
+            local mem_total="" mem_label=""
+            if [ "$numa" != "-1" ] && [ -f "/sys/devices/system/node/node${numa}/meminfo" ]; then
+                mem_total=$(awk '/MemTotal/ {printf "%.0f GB", $4/1024/1024}' "/sys/devices/system/node/node${numa}/meminfo" 2>/dev/null)
+                mem_label="  ${DIM}(${mem_total})${RESET}"
+            fi
+            echo -e "${BOLD}║ NUMA ${numa}${RESET}${mem_label}"
+
+            local _sorted_roots
+            _sorted_roots=$(printf '%s\n' "${!_seen_roots[@]}" | grep "^${sock}:${numa}:" | sort | sed "s/^${sock}:${numa}://")
+
+            for root in $_sorted_roots; do
+                local key="${sock}:${numa}:${root}"
+                [ "$root" != "-" ] && echo -e "${DIM}║   pcieRoot: ${root}${RESET}"
+
+                # Group entries by type, then by driver+product
+                declare -A _type_bdfs=()   # "type::driver::product" → "bdf1 bdf2"
+                declare -A _type_link=()   # same key → link info from first device
+                while IFS='|' read -r dtype dbdf ddrv dprod dlink; do
+                    [ -z "$dtype" ] && continue
+                    local group_key="${dtype}::${ddrv}::${dprod}"
+                    if [ -n "${_type_bdfs[$group_key]+x}" ]; then
+                        _type_bdfs["$group_key"]+=" ${dbdf}"
+                    else
+                        _type_bdfs["$group_key"]="${dbdf}"
+                        _type_link["$group_key"]="${dlink}"
+                    fi
+                done <<< "${_topo_groups[$key]:-}"
+
+                # Print in type order: gpu, nic, nvme, storage, accel, other
+                for dtype_order in gpu nic nvme storage accel usb multimedia other; do
+                    local _gk_list
+                    _gk_list=$(printf '%s\n' "${!_type_bdfs[@]}" 2>/dev/null | sort)
+                    [ -z "$_gk_list" ] && continue
+                    while IFS= read -r gk; do
+                        [ -z "$gk" ] && continue
+                        local gtype="${gk%%::*}"
+                        [ "$gtype" != "$dtype_order" ] && continue
+
+                        local grest="${gk#*::}"
+                        local gdrv="${grest%%::*}"
+                        local gprod="${grest#*::}"
+                        local bdfs="${_type_bdfs[$gk]}"
+                        local first_link="${_type_link[$gk]:-}"
+
+                        local first_bdf="${bdfs%% *}"
+                        local color
+                        color=$(device_color "${DEV_CLASS[$first_bdf]:-0x000000}")
+
+                        local bdf_count=0
+                        for _ in $bdfs; do bdf_count=$((bdf_count + 1)); done
+
+                        local bdf_str
+                        if [ "$bdf_count" -le 3 ]; then
+                            bdf_str=$(echo "$bdfs" | tr ' ' ', ')
+                        else
+                            bdf_str="${first_bdf} +$((bdf_count - 1)) more"
+                        fi
+
+                        local detail=""
+                        [ -n "$gprod" ] && detail+="${gprod}"
+                        [ -n "$gdrv" ] && [ "$gdrv" != "none" ] && detail+=", ${gdrv}"
+                        [ -n "$first_link" ] && detail+=", ${first_link}"
+
+                        if [ -n "$detail" ]; then
+                            echo -e "║     ${color}${gtype}:${RESET} ${bdf_str} ${DIM}(${detail})${RESET}"
+                        else
+                            echo -e "║     ${color}${gtype}:${RESET} ${bdf_str}"
+                        fi
+                    done <<< "$_gk_list"
+                done
+                unset _type_bdfs _type_link
+            done
+            echo "║"
+        done
+        echo -e "${CYAN}╚════════════════════╝${RESET}"
+        echo ""
+    done
+}
+
 # ── Hugepages per NUMA node ───────────────────────────────────────────────────
 
 print_hugepages() {
@@ -1028,6 +1244,10 @@ unset _nps_info
 unset _total_slots _empty_slots _populated_slots _slot_info
 echo ""
 
+if [ "$SIMPLE" = "1" ]; then
+    print_simple_topology
+else
+
 for node_path in /sys/devices/system/node/node*/; do
     node=$(basename "$node_path")
     node_id="${node#node}"
@@ -1100,6 +1320,8 @@ for node_path in /sys/devices/system/node/node*/; do
     fi
 done
 
+fi  # end if [ "$SIMPLE" != "1" ]
+
 # ── IOD Quadrant / IOMMU Instance Summary ────────────────────────────────────
 
 if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
@@ -1133,23 +1355,6 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
         fi
         echo ""
     fi
-
-    # Build per-device pcieRoot lookup (BDF → root bus ID like "00" or "d0")
-    declare -A DEV_PCIE_ROOT=()
-    for _bdf in "${!DEV_PARENT[@]}"; do
-        _cur="$_bdf"
-        while true; do
-            _par="${DEV_PARENT[$_cur]:-}"
-            [ -z "$_par" ] && break
-            if [[ "$_par" == root:* ]]; then
-                _rb="${_par#root:}"
-                _rb="${_rb#*:}"  # strip domain prefix
-                DEV_PCIE_ROOT["$_bdf"]="$_rb"
-                break
-            fi
-            _cur="$_par"
-        done
-    done
 
     for _iv in "${IVHD_LIST[@]}"; do
         _roots="${IVHD_ROOTS[$_iv]:-}"
@@ -1286,7 +1491,7 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
     unset _iv _roots _roots_sorted _line _gpu_list _nic_list _nvme_list _rline
     unset _g _n _v _rb _domain _has_devs _sorted_roots
     unset _total_ivhd_gpus _gpu_ratio _gpus_per _gpus_per_numa
-    unset _iv_numa _iv_socket _first_cpu _loc DEV_PCIE_ROOT
+    unset _iv_numa _iv_socket _first_cpu _loc
 fi
 
 # Devices with no NUMA affinity
