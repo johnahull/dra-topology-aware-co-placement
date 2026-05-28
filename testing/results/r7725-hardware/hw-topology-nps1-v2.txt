@@ -1,0 +1,114 @@
+[1mNUMA Topology[0m  (2 socket(s), 2 node(s), NPS1, 6/17 PCIe slots populated)
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 0  ·  Socket 0[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   0-143,288-431  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 377.1 GB total, 368.5 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m├── 0000:00:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   ├── [0;35m[1m0000:01:00.0[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 48][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  │   ├── [0;35m[1m0000:01:00.1[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 49][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  │   ├── [0;35m[1m0000:01:00.2[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 50][0m
+  │   │   [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  │   └── [0;35m[1m0000:01:00.3[0m  [0;35mEthernet controller: Broadcom Inc. and subsidiaries BCM57504 NetXtreme[0m [2m[IOMMU grp 51][0m
+  │       [2mdriver: [1mbnxt_en[0m[2m  |  link: [1mGen4 x16[0m
+  │       [2msubsystem: Broadcom Inc. and subsidiaries NetXtreme-E BCM57504 4x25G OCP3.0[0m
+  [2m├── 0000:00:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   └── [0;37m[1m0000:02:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 52][0m
+  │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:7a:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:7b:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 65][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Dell Device 0caf[0m
+  │   └── [0;36m[1m0000:7b:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 65][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI[0m
+  [2m├── 0000:80:03.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:81:00.0[0m  [0;34mNon-Volatile memory controller: Marvell Technology Group Ltd. 88NR2241[0m [2m[IOMMU grp 29][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen3 x4 (max: Gen3 x8)[0m
+  │       [2msubsystem: Dell BOSS-N1 DC-MHS[0m
+  [2m├── 0000:80:03.3[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   [2m└── 0000:82:00.0[0m  [2mPCI bridge: PLDA PCI Express Bridge (rev 02)[0m
+  │       └── [0;32m[1m0000:83:00.0[0m  [0;32mVGA compatible controller: Matrox Electronics Systems Ltd. Integrated [0m [2m[IOMMU grp 30][0m
+  │           [2mdriver: [1mmgag200[0m
+  │           [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:80:03.4[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;36m[1m0000:84:00.0[0m  [0;36mUSB controller: Renesas Electronics Corp. uPD720201 USB 3.0 Host Contr[0m [2m[IOMMU grp 31][0m
+  │       [2mdriver: [1mxhci-pci-renesas[0m[2m  |  link: [1mGen2 x1[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:80:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:85:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 32][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Dell Device 0caf[0m
+  │   └── [0;37m[1m0000:85:00.5[0m  [0;37mEncryption controller: Advanced Micro Devices, Inc. [AMD] Turin CCP/AS[0m [2m[IOMMU grp 32][0m
+  │       [2mdriver: [1mccp[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0000:c4:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c5:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 14][0m
+  │       [2mdriver: [1mnvme[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:01.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c6:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 15][0m
+  │       [2mdriver: [1mvfio-pci[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:01.3[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c7:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 16][0m
+  │       [2mdriver: [1mvfio-pci[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:01.4[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   └── [0;34m[1m0000:c8:00.0[0m  [0;34mNon-Volatile memory controller: Samsung Electronics Co Ltd NVMe SSD Co[0m [2m[IOMMU grp 17][0m
+  │       [2mdriver: [1mvfio-pci[0m[2m  |  link: [1mGen5 x4[0m
+  │       [2msubsystem: Dell NVMe PM1745 MU E3.S 3.2TB[0m
+  [2m├── 0000:c4:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   ├── [0;37m[1m0000:c9:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 18][0m
+  │   │   [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │   │   [2msubsystem: Dell Device 0caf[0m
+  │   └── [0;36m[1m0000:c9:00.4[0m  [0;36mUSB controller: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI [0m [2m[IOMMU grp 18][0m
+  │       [2mdriver: [1mxhci_hcd[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Advanced Micro Devices, Inc. [AMD] Turin USB 3.1 xHCI[0m
+  [2m└── 0000:c4:07.2[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+      ├── [0;34m[1m0000:ca:00.0[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 12][0m
+      │   [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+      │   [2msubsystem: Advanced Micro Devices, Inc. [AMD] FCH SATA Controller [AHCI mode][0m
+      └── [0;34m[1m0000:ca:00.1[0m  [0;34mSATA controller: Advanced Micro Devices, Inc. [AMD] FCH SATA Controlle[0m [2m[IOMMU grp 12][0m
+          [2mdriver: [1mahci[0m[2m  |  link: [1mGen5 x16[0m
+          [2msubsystem: Advanced Micro Devices, Inc. [AMD] FCH SATA Controller [AHCI mode][0m
+
+  [2mEmpty slots:[0m
+  [2m└── Slot 163  (0000:c7:00.0, root pci0000:c4)[0m
+  [2m└── Slot 6  (0000:80:03.0, root pci0000:80)[0m
+  [2m└── Slot 162  (0000:c8:00.0, root pci0000:c4)[0m
+  [2m└── Slot 7  (0000:88:01.0, root pci0000:88)[0m
+  [2m└── Slot 161  (0000:c5:00.0, root pci0000:c4)[0m
+  [2m└── Slot 9  (0000:3e:01.0, root pci0000:3e)[0m
+  [2m└── Slot 160  (0000:c6:00.0, root pci0000:c4)[0m
+  [2m└── Slot 10  (0000:00:01.0, root pci0000:00)[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  NUMA Node 1  ·  Socket 1[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [1m[0;32mCPUs:[0m   144-287,432-575  [2m(AMD EPYC 9825 144-Core Processor)[0m
+  [1m[0;32mMemory:[0m 377.8 GB total, 369.9 GB free
+  [1m[0;32mHugepages:[0m  [2m(none allocated)[0m
+
+  [2mPCIe topology:[0m
+
+  [2m├── 0001:00:07.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin Internal PCIe GPP[0m
+  │   └── [0;37m[1m0001:05:00.0[0m  [0;37mNon-Essential Instrumentation [1300]: Advanced Micro Devices, Inc. [AM[0m [2m[IOMMU grp 103][0m
+  │       [2mdriver: [1mnone[0m[2m  |  link: [1mGen5 x16[0m
+  │       [2msubsystem: Dell Device 0caf[0m
+  [2m├── 0001:3e:01.1[0m  [2mPCI bridge: Advanced Micro Devices, Inc. [AMD] Turin GPP Bridge[0m
+  │   ├── [0;35m[1m0001:3f:00.0[0m  [0;35mEthernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 D[0m [2m[SR-IOV 4/8 VFs][0m [2m[IOMMU grp 110][0m
+  │   │   [2mdriver: [1mmlx5_core[0m[2m  |  link: [1mGen4 x16[0m
+  │   │   [2msubsystem: Mellanox Technologies Device 0042[0m
+  │   ├── [0;35m[1m0001:3f:00.1[0m  [0;35mEthernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 D[0m [2m[SR-IOV 4/8 VFs][0m [2m[IOMMU grp 111][0m
