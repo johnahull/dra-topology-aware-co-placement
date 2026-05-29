@@ -57,3 +57,4 @@ Under NPS1, `pcieRoot` is strictly finer than `numaNode` (8 groups vs 2). Under 
 | [`iod-quadrants.svg`](iod-quadrants.svg) | Exported SVG of IOD quadrant diagram |
 | [`pcie-switch-detail.excalidraw`](pcie-switch-detail.excalidraw) | PCIe switch internal structure (root 0000:00 example) |
 | [`pcie-switch-detail.svg`](pcie-switch-detail.svg) | Exported SVG of PCIe switch detail |
+| [`vm-use-cases.md`](vm-use-cases.md) | VM use case configurations (inference, multi-tenant, developer, mixed) |
