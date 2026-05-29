@@ -4,6 +4,15 @@
 **NICs:** 8x AMD Pensando Pollara 400G (1:1 with GPU), 2x Mellanox ConnectX-6 Dx (dual-port)
 **Platform:** PCIe-only (no NVLink) — IOMMU hardware boundaries provide tenant isolation without a fabric manager
 
+## System Fit
+
+| Use Case | Fit | Why |
+|----------|-----|-----|
+| 2.1 Shared Inference | **Best** | 3 TB RAM + 128+ CX-6 Dx VFs = most VMs at useful sizes (32 QPX × 48 GB fits in memory) |
+| 2.2 Multi-Tenant | Good | Works well, but SMC6216GPU's DPX naturally matches its CX-7 VF count without reconfiguration |
+| 2.3 Developer Workbenches | **Best** | Most RAM and most NIC VFs — supports highest developer count |
+| 2.4 Mixed Training+Inference | **Best** | Dedicated Pollara PF per GPU for training RDMA (100% pcieRoot yield), CX-6 Dx VFs for inference |
+
 ## Hardware Capabilities
 
 | Resource | Partitioning | Modes |

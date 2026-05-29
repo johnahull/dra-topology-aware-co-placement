@@ -5,6 +5,15 @@
 **Storage:** 6x KIOXIA CD8P NVMe (roots 80/90 have no NVMe)
 **Platform:** PCIe-only (no NVLink) — IOMMU hardware boundaries provide tenant isolation without a fabric manager
 
+## System Fit
+
+| Use Case | Fit | Why |
+|----------|-----|-----|
+| 2.1 Shared Inference | Good | Works, but 1.5 TB RAM limits VM count/size vs XE9785L's 3 TB |
+| 2.2 Multi-Tenant | **Best** | DPX (16 partitions) naturally matches CX-7's 16 VFs — zero reconfiguration needed |
+| 2.3 Developer Workbenches | Good | Works, but single CX-7 card and 1.5 TB RAM limit scale vs XE9785L |
+| 2.4 Mixed Training+Inference | Good | 100% pcieRoot yield for training RDMA, CX-7 VFs for inference — works but fewer VFs than XE9785L |
+
 ## Hardware Capabilities
 
 | Resource | Partitioning | Notes |

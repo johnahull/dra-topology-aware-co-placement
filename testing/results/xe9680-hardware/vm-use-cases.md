@@ -5,6 +5,15 @@
 **Storage:** No local NVMe in PCIe topology
 **Platform:** PCIe-only (no NVLink), Intel SNC (Sub-NUMA Clustering) instead of AMD NPS
 
+## System Fit
+
+| Use Case | Fit | Why |
+|----------|-----|-----|
+| 2.1 Shared Inference | Good | No RDMA needed, CX-6 Dx VFs are plenty, 2 TB supports ~24-32 QPX VMs |
+| 2.2 Multi-Tenant | Good | numaNode constraint sufficient, all CX-6 Dx VFs support RDMA — simpler NIC config than AMD systems |
+| 2.3 Developer Workbenches | Good | 2 TB RAM adequate for dozens of small VMs, no topology constraints needed |
+| 2.4 Mixed Training+Inference | **Limited** | Only 25% pcieRoot GPU+NIC yield — NCCL proxy forced to 1 of 4 training GPUs per socket |
+
 ## Hardware Capabilities
 
 | Resource | Partitioning | Notes |
