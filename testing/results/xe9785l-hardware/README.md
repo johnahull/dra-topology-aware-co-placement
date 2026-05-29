@@ -62,3 +62,4 @@ NPS4 would expose 8 NUMA nodes (1 GPU per node), matching physical PCIe topology
 | [`lscpu-mi355x-4.txt`](lscpu-mi355x-4.txt) | CPU topology and features (mi355x-4) |
 | [`xe9785l-nps1.excalidraw`](xe9785l-nps1.excalidraw) | IOD quadrant diagram (editable, drag into excalidraw.com) |
 | [`xe9785l-nps1.svg`](xe9785l-nps1.svg) | IOD quadrant diagram (rendered SVG) |
+| [`vm-use-cases.md`](vm-use-cases.md) | VM use case configurations (inference, multi-tenant, developer, mixed) |
