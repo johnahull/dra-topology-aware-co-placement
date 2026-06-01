@@ -1,8 +1,8 @@
-[1mNUMA Topology[0m  (2 socket(s), 2 node(s), SNC off, 10/22 PCIe slots populated)
+[1mNUMA Topology[0m  (2 socket(s), 4 node(s), SNC-2, 10/22 PCIe slots populated)
 
 [1m[0;36m╔══ Socket 0 ══╗[0m
-[1m║ NUMA 0[0m  [2m(1007 GB)[0m
-[2m║   pcieRoot: 0000:00  (dist: [1m0=10[0m[2m, 1=21)[0m
+[1m║ NUMA 0[0m  [2m(503 GB)[0m
+[2m║   pcieRoot: 0000:00  (dmar13, dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [0;35mnic:[0m 0000:02:00.1,0000:02:00.0 [2m(NetXtreme BCM5720, tg3, Gen2 x1 (max: Gen2 x2))[0m
 ║     [0;34mnvme:[0m 0000:01:00.0 [2m(Marvell Technology Group Ltd. 88NR2241, nvme, Gen3 x4 (max: Gen3 x8))[0m
 ║     [0;34mstorage:[0m 0000:00:19.0,0000:00:18.0 [2m(Sapphire Rapids SATA AHCI Controlle, ahci)[0m
@@ -17,8 +17,9 @@
 ║     [0;37mother:[0m 0000:00:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:00:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:00:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:15  (dist: [1m0=10[0m[2m, 1=21)[0m
+[2m║   pcieRoot: 0000:15  (dmar7, dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [1m[0;33mgpu:[0m 0000:1b:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;35mnic:[0m 0000:1d:00.2 +7 more [2m(ConnectX Family mlx5Gen Vir, mlx5_core)[0m
 ║     [0;35mnic:[0m 0000:1d:00.0,0000:1d:00.1 [2m(MT2892 Family [ConnectX-6 D, mlx5_core, Gen4 x16)[0m
 ║     [0;34mnvme:[0m 0000:18:00.0 [2m(NVMe SSD Co, nvme, Gen4 x4)[0m
 ║     [0;34mstorage:[0m 0000:1e:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
@@ -26,28 +27,12 @@
 ║     [0;37mother:[0m 0000:15:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:15:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:15:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:26  (dist: [1m0=10[0m[2m, 1=21)[0m
+[2m║   pcieRoot: 0000:26  (dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [0;37mother:[0m 0000:26:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
 ║     [0;37mother:[0m 0000:26:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:26:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:26:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:37  (dist: [1m0=10[0m[2m, 1=21)[0m
-║     [1m[0;33mgpu:[0m 0000:3d:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
-║     [0;34mnvme:[0m 0000:3a:00.0 [2m(NVMe SSD Co, nvme, Gen4 x4)[0m
-║     [0;34mstorage:[0m 0000:3f:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
-║     [0;37mother:[0m 0000:37:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
-║     [0;37mother:[0m 0000:37:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
-║     [0;37mother:[0m 0000:37:00.2 [2m(Ice Lake RAS)[0m
-║     [0;37mother:[0m 0000:37:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:48  (dist: [1m0=10[0m[2m, 1=21)[0m
-║     [1m[0;33mgpu:[0m 0000:4e:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
-║     [0;34mnvme:[0m 0000:4b:00.0 [2m(NVMe SSD Co, nvme, Gen4 x4)[0m
-║     [0;34mstorage:[0m 0000:50:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
-║     [0;37mother:[0m 0000:48:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
-║     [0;37mother:[0m 0000:48:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
-║     [0;37mother:[0m 0000:48:00.2 [2m(Ice Lake RAS)[0m
-║     [0;37mother:[0m 0000:48:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:59  (dist: [1m0=10[0m[2m, 1=21)[0m
+[2m║   pcieRoot: 0000:59  (dmar11, dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [1m[0;33mgpu:[0m 0000:5f:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
 ║     [0;34mnvme:[0m 0000:5c:00.0 [2m(NVMe SSD Co, nvme, Gen4 x4)[0m
 ║     [0;34mstorage:[0m 0000:61:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
@@ -55,7 +40,7 @@
 ║     [0;37mother:[0m 0000:59:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:59:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:59:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:75  (dist: [1m0=10[0m[2m, 1=21)[0m
+[2m║   pcieRoot: 0000:75  (dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [0;37mother:[0m 0000:75:01.0 [2m(Data Streaming Accelerator, idxd)[0m
 ║     [0;37mother:[0m 0000:75:03.1 [2m(Ice Lake PMON MSM, intel_vsec)[0m
 ║     [0;37mother:[0m 0000:75:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
@@ -63,7 +48,7 @@
 ║     [0;37mother:[0m 0000:75:03.0 [2m(Ice Lake MSM)[0m
 ║     [0;37mother:[0m 0000:75:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:75:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:7e  (dist: [1m0=10[0m[2m, 1=21)[0m
+[2m║   pcieRoot: 0000:7e  (dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [0;37mother:[0m 0000:7e:00.1 [2m(Device 3251, isst_if_pci)[0m
 ║     [0;37mother:[0m 0000:7e:01.0,0000:7e:02.0,0000:7e:03.0 [2m(Device 3240)[0m
 ║     [0;37mother:[0m 0000:7e:01.1,0000:7e:02.1,0000:7e:03.1 [2m(Device 3241)[0m
@@ -76,57 +61,62 @@
 ║     [0;37mother:[0m 0000:7e:1b.0 +3 more [2m(Ice Lake DDRIO Registers)[0m
 ║     [0;37mother:[0m 0000:7e:0c.0 +3 more [2m(Xeon IMC0 Mesh to Mem Register)[0m
 ║     [0;37mother:[0m 0000:7e:05.0,0000:7e:07.0,0000:7e:06.0 [2m(Xeon UPI Mesh Stop M2UPI Register)[0m
-[2m║   pcieRoot: 0000:7f  (dist: [1m0=10[0m[2m, 1=21)[0m
+[2m║   pcieRoot: 0000:7f  (dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
 ║     [0;37mother:[0m 0000:7f:1e.1 [2m(Power Control Unit, isst_if_mbox_pci)[0m
 ║     [0;37mother:[0m 0000:7f:1d.1,0000:7f:1d.0 [2m(Ice Lake CHA Registers)[0m
 ║     [0;37mother:[0m 0000:7f:1e.4 +6 more [2m(Power Control Unit)[0m
 ║     [0;37mother:[0m 0000:7f:0d.6 +31 more [2m(Xeon Unicast Group0 CHA Registers)[0m
 ║     [0;37mother:[0m 0000:7f:02.0 +31 more [2m(Xeon Unicast Group1 CHA Registers)[0m
 ║
+[1m║ NUMA 1[0m  [2m(504 GB)[0m
+[2m║   pcieRoot: 0000:37  (dmar9, dist: 0=12, [1m1=10[0m[2m, 2=21, 3=21)[0m
+║     [1m[0;33mgpu:[0m 0000:3d:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;34mnvme:[0m 0000:3a:00.0 [2m(NVMe SSD Co, nvme, Gen4 x4)[0m
+║     [0;34mstorage:[0m 0000:3f:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
+║     [0;37mother:[0m 0000:37:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
+║     [0;37mother:[0m 0000:37:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
+║     [0;37mother:[0m 0000:37:00.2 [2m(Ice Lake RAS)[0m
+║     [0;37mother:[0m 0000:37:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
+[2m║   pcieRoot: 0000:48  (dmar10, dist: 0=12, [1m1=10[0m[2m, 2=21, 3=21)[0m
+║     [1m[0;33mgpu:[0m 0000:4e:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;34mnvme:[0m 0000:4b:00.0 [2m(NVMe SSD Co, nvme, Gen4 x4)[0m
+║     [0;34mstorage:[0m 0000:50:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
+║     [0;37mother:[0m 0000:48:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
+║     [0;37mother:[0m 0000:48:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
+║     [0;37mother:[0m 0000:48:00.2 [2m(Ice Lake RAS)[0m
+║     [0;37mother:[0m 0000:48:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
+║
 [0;36m╚════════════════════╝[0m
 
 [1m[0;36m╔══ Socket 1 ══╗[0m
-[1m║ NUMA 1[0m  [2m(1008 GB)[0m
-[2m║   pcieRoot: 0000:80  (dist: 0=21, [1m1=10[0m[2m)[0m
+[1m║ NUMA 2[0m  [2m(504 GB)[0m
+[2m║   pcieRoot: 0000:80  (dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [0;37mother:[0m 0000:80:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
 ║     [0;37mother:[0m 0000:80:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:80:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:80:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:97  (dist: 0=21, [1m1=10[0m[2m)[0m
+[2m║   pcieRoot: 0000:97  (dmar0, dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [1m[0;33mgpu:[0m 0000:9d:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;35mnic:[0m 0000:9f:01.3 +7 more [2m(ConnectX Family mlx5Gen Vir, mlx5_core)[0m
 ║     [0;35mnic:[0m 0000:9f:00.0,0000:9f:00.1 [2m(MT2892 Family [ConnectX-6 D, mlx5_core, Gen4 x16)[0m
 ║     [0;34mstorage:[0m 0000:a0:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
 ║     [0;37mother:[0m 0000:97:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
 ║     [0;37mother:[0m 0000:97:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:97:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:97:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:a7  (dist: 0=21, [1m1=10[0m[2m)[0m
+[2m║   pcieRoot: 0000:a7  (dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [0;37mother:[0m 0000:a7:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
 ║     [0;37mother:[0m 0000:a7:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:a7:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:a7:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:b7  (dist: 0=21, [1m1=10[0m[2m)[0m
-║     [1m[0;33mgpu:[0m 0000:bd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
-║     [0;34mstorage:[0m 0000:bf:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
-║     [0;37mother:[0m 0000:b7:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
-║     [0;37mother:[0m 0000:b7:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
-║     [0;37mother:[0m 0000:b7:00.2 [2m(Ice Lake RAS)[0m
-║     [0;37mother:[0m 0000:b7:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:c7  (dist: 0=21, [1m1=10[0m[2m)[0m
-║     [1m[0;33mgpu:[0m 0000:cd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
-║     [0;34mstorage:[0m 0000:cf:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
-║     [0;37mother:[0m 0000:c7:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
-║     [0;37mother:[0m 0000:c7:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
-║     [0;37mother:[0m 0000:c7:00.2 [2m(Ice Lake RAS)[0m
-║     [0;37mother:[0m 0000:c7:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:d7  (dist: 0=21, [1m1=10[0m[2m)[0m
+[2m║   pcieRoot: 0000:d7  (dmar4, dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [1m[0;33mgpu:[0m 0000:dd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
 ║     [0;34mstorage:[0m 0000:df:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
 ║     [0;37mother:[0m 0000:d7:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
 ║     [0;37mother:[0m 0000:d7:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
 ║     [0;37mother:[0m 0000:d7:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:d7:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:f2  (dist: 0=21, [1m1=10[0m[2m)[0m
+[2m║   pcieRoot: 0000:f2  (dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [0;37mother:[0m 0000:f2:01.0 [2m(Data Streaming Accelerator, idxd)[0m
 ║     [0;37mother:[0m 0000:f2:03.1 [2m(Ice Lake PMON MSM, intel_vsec)[0m
 ║     [0;37mother:[0m 0000:f2:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
@@ -134,7 +124,7 @@
 ║     [0;37mother:[0m 0000:f2:03.0 [2m(Ice Lake MSM)[0m
 ║     [0;37mother:[0m 0000:f2:00.2 [2m(Ice Lake RAS)[0m
 ║     [0;37mother:[0m 0000:f2:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
-[2m║   pcieRoot: 0000:fe  (dist: 0=21, [1m1=10[0m[2m)[0m
+[2m║   pcieRoot: 0000:fe  (dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [0;37mother:[0m 0000:fe:00.1 [2m(Device 3251, isst_if_pci)[0m
 ║     [0;37mother:[0m 0000:fe:03.0,0000:fe:01.0,0000:fe:02.0 [2m(Device 3240)[0m
 ║     [0;37mother:[0m 0000:fe:03.1,0000:fe:01.1,0000:fe:02.1 [2m(Device 3241)[0m
@@ -147,14 +137,59 @@
 ║     [0;37mother:[0m 0000:fe:1b.0 +3 more [2m(Ice Lake DDRIO Registers)[0m
 ║     [0;37mother:[0m 0000:fe:0c.0 +3 more [2m(Xeon IMC0 Mesh to Mem Register)[0m
 ║     [0;37mother:[0m 0000:fe:05.0,0000:fe:07.0,0000:fe:06.0 [2m(Xeon UPI Mesh Stop M2UPI Register)[0m
-[2m║   pcieRoot: 0000:ff  (dist: 0=21, [1m1=10[0m[2m)[0m
+[2m║   pcieRoot: 0000:ff  (dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
 ║     [0;37mother:[0m 0000:ff:1e.1 [2m(Power Control Unit, isst_if_mbox_pci)[0m
 ║     [0;37mother:[0m 0000:ff:1d.0,0000:ff:1d.1 [2m(Ice Lake CHA Registers)[0m
 ║     [0;37mother:[0m 0000:ff:1e.0 +6 more [2m(Power Control Unit)[0m
 ║     [0;37mother:[0m 0000:ff:0c.4 +31 more [2m(Xeon Unicast Group0 CHA Registers)[0m
 ║     [0;37mother:[0m 0000:ff:01.6 +31 more [2m(Xeon Unicast Group1 CHA Registers)[0m
 ║
+[1m║ NUMA 3[0m  [2m(504 GB)[0m
+[2m║   pcieRoot: 0000:b7  (dmar2, dist: 0=21, 1=21, 2=12, [1m3=10[0m[2m)[0m
+║     [1m[0;33mgpu:[0m 0000:bd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;34mstorage:[0m 0000:bf:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
+║     [0;37mother:[0m 0000:b7:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
+║     [0;37mother:[0m 0000:b7:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
+║     [0;37mother:[0m 0000:b7:00.2 [2m(Ice Lake RAS)[0m
+║     [0;37mother:[0m 0000:b7:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
+[2m║   pcieRoot: 0000:c7  (dmar3, dist: 0=21, 1=21, 2=12, [1m3=10[0m[2m)[0m
+║     [1m[0;33mgpu:[0m 0000:cd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;34mstorage:[0m 0000:cf:00.0 [2m(Broadcom / LSI PCIe Switch management, mpt3sas, Gen5 x16)[0m
+║     [0;37mother:[0m 0000:c7:00.0 [2m(Ice Lake Memory Map/VT-d)[0m
+║     [0;37mother:[0m 0000:c7:00.1 [2m(Ice Lake Mesh 2 PCIe)[0m
+║     [0;37mother:[0m 0000:c7:00.2 [2m(Ice Lake RAS)[0m
+║     [0;37mother:[0m 0000:c7:00.4 [2m(Xeon Root Event Collec, pcieport)[0m
+║
 [0;36m╚════════════════════╝[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  DMAR Unit Mapping  (14 IOMMU instances, 1 GPU per unit)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2mCurrent: SNC-2 (2 GPU(s) per NUMA node)[0m
+
+  [1mdmar0[0m  [2mSocket 1, NUMA 2[0m
+    [2mpcieRoot 0000:97[0m  [1m[0;33mGPU:[0m 0000:9d:00.0  [1m[0;35mNIC:[0m 0000:9f:00.0, 0000:9f:00.1, 0000:9f:00.2, 0000:9f:00.3, 0000:9f:00.4, 0000:9f:00.5, 0000:9f:01.2, 0000:9f:01.3, 0000:9f:01.4, 0000:9f:01.5
+  [1mdmar1[0m  [2mSocket 1, NUMA 2[0m
+  [1mdmar10[0m  [2mSocket 0, NUMA 1[0m
+    [2mpcieRoot 0000:48[0m  [1m[0;33mGPU:[0m 0000:4e:00.0  [1m[0;34mNVMe:[0m 0000:4b:00.0
+  [1mdmar11[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:59[0m  [1m[0;33mGPU:[0m 0000:5f:00.0  [1m[0;34mNVMe:[0m 0000:5c:00.0
+  [1mdmar12[0m  [2mSocket 0, NUMA 0[0m
+  [1mdmar13[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:00[0m  [1m[0;35mNIC:[0m 0000:02:00.0, 0000:02:00.1  [1m[0;34mNVMe:[0m 0000:01:00.0
+  [1mdmar2[0m  [2mSocket 1, NUMA 3[0m
+    [2mpcieRoot 0000:b7[0m  [1m[0;33mGPU:[0m 0000:bd:00.0
+  [1mdmar3[0m  [2mSocket 1, NUMA 3[0m
+    [2mpcieRoot 0000:c7[0m  [1m[0;33mGPU:[0m 0000:cd:00.0
+  [1mdmar4[0m  [2mSocket 1, NUMA 2[0m
+    [2mpcieRoot 0000:d7[0m  [1m[0;33mGPU:[0m 0000:dd:00.0
+  [1mdmar5[0m  [2mSocket 1, NUMA 2[0m
+  [1mdmar6[0m  [2mSocket 1, NUMA 2[0m
+  [1mdmar7[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:15[0m  [1m[0;33mGPU:[0m 0000:1b:00.0  [1m[0;35mNIC:[0m 0000:1d:00.0, 0000:1d:00.1, 0000:1d:00.2, 0000:1d:00.3, 0000:1d:00.4, 0000:1d:00.5, 0000:1d:01.2, 0000:1d:01.3, 0000:1d:01.4, 0000:1d:01.5  [1m[0;34mNVMe:[0m 0000:18:00.0
+  [1mdmar8[0m  [2mSocket 0, NUMA 0[0m
+  [1mdmar9[0m  [2mSocket 0, NUMA 1[0m
+    [2mpcieRoot 0000:37[0m  [1m[0;33mGPU:[0m 0000:3d:00.0  [1m[0;34mNVMe:[0m 0000:3a:00.0
 
 [1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
 [1m[0;36m║  No NUMA Affinity  (numa_node = -1)[0m

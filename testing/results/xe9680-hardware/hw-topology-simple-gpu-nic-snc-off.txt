@@ -1,0 +1,77 @@
+[1mNUMA Topology[0m  (2 socket(s), 4 node(s), SNC-2, 10/22 PCIe slots populated)
+
+[1m[0;36m╔══ Socket 0 ══╗[0m
+[1m║ NUMA 0[0m  [2m(503 GB)[0m
+[2m║   pcieRoot: 0000:00  (dmar13, dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
+║     [0;35mnic:[0m 0000:02:00.1,0000:02:00.0 [2m(NetXtreme BCM5720, tg3, Gen2 x1 (max: Gen2 x2))[0m
+║     [0;32maccel:[0m 0000:04:00.0 [2m(Matrox Electronics Systems Ltd. Integrated, mgag200)[0m
+[2m║   pcieRoot: 0000:15  (dmar7, dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
+║     [1m[0;33mgpu:[0m 0000:1b:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;35mnic:[0m 0000:1d:00.2 +7 more [2m(ConnectX Family mlx5Gen Vir, mlx5_core)[0m
+║     [0;35mnic:[0m 0000:1d:00.0,0000:1d:00.1 [2m(MT2892 Family [ConnectX-6 D, mlx5_core, Gen4 x16)[0m
+[2m║   pcieRoot: 0000:59  (dmar11, dist: [1m0=10[0m[2m, 1=12, 2=21, 3=21)[0m
+║     [1m[0;33mgpu:[0m 0000:5f:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║
+[1m║ NUMA 1[0m  [2m(504 GB)[0m
+[2m║   pcieRoot: 0000:37  (dmar9, dist: 0=12, [1m1=10[0m[2m, 2=21, 3=21)[0m
+║     [1m[0;33mgpu:[0m 0000:3d:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+[2m║   pcieRoot: 0000:48  (dmar10, dist: 0=12, [1m1=10[0m[2m, 2=21, 3=21)[0m
+║     [1m[0;33mgpu:[0m 0000:4e:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║
+[0;36m╚════════════════════╝[0m
+
+[1m[0;36m╔══ Socket 1 ══╗[0m
+[1m║ NUMA 2[0m  [2m(504 GB)[0m
+[2m║   pcieRoot: 0000:97  (dmar0, dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
+║     [1m[0;33mgpu:[0m 0000:9d:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║     [0;35mnic:[0m 0000:9f:01.3 +7 more [2m(ConnectX Family mlx5Gen Vir, mlx5_core)[0m
+║     [0;35mnic:[0m 0000:9f:00.0,0000:9f:00.1 [2m(MT2892 Family [ConnectX-6 D, mlx5_core, Gen4 x16)[0m
+[2m║   pcieRoot: 0000:d7  (dmar4, dist: 0=21, 1=21, [1m2=10[0m[2m, 3=12)[0m
+║     [1m[0;33mgpu:[0m 0000:dd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║
+[1m║ NUMA 3[0m  [2m(504 GB)[0m
+[2m║   pcieRoot: 0000:b7  (dmar2, dist: 0=21, 1=21, 2=12, [1m3=10[0m[2m)[0m
+║     [1m[0;33mgpu:[0m 0000:bd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+[2m║   pcieRoot: 0000:c7  (dmar3, dist: 0=21, 1=21, 2=12, [1m3=10[0m[2m)[0m
+║     [1m[0;33mgpu:[0m 0000:cd:00.0 [2m(Aqua V, amdgpu, Gen5 x16, SPX/NPS1 (SPX, DPX, QPX, CPX))[0m
+║
+[0;36m╚════════════════════╝[0m
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  DMAR Unit Mapping  (14 IOMMU instances, 1 GPU per unit)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2mCurrent: SNC-2 (2 GPU(s) per NUMA node)[0m
+
+  [1mdmar0[0m  [2mSocket 1, NUMA 2[0m
+    [2mpcieRoot 0000:97[0m  [1m[0;33mGPU:[0m 0000:9d:00.0  [1m[0;35mNIC:[0m 0000:9f:00.0, 0000:9f:00.1, 0000:9f:00.2, 0000:9f:00.3, 0000:9f:00.4, 0000:9f:00.5, 0000:9f:01.2, 0000:9f:01.3, 0000:9f:01.4, 0000:9f:01.5
+  [1mdmar1[0m  [2mSocket 1, NUMA 2[0m
+  [1mdmar10[0m  [2mSocket 0, NUMA 1[0m
+    [2mpcieRoot 0000:48[0m  [1m[0;33mGPU:[0m 0000:4e:00.0  [1m[0;34mNVMe:[0m 0000:4b:00.0
+  [1mdmar11[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:59[0m  [1m[0;33mGPU:[0m 0000:5f:00.0  [1m[0;34mNVMe:[0m 0000:5c:00.0
+  [1mdmar12[0m  [2mSocket 0, NUMA 0[0m
+  [1mdmar13[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:00[0m  [1m[0;35mNIC:[0m 0000:02:00.0, 0000:02:00.1  [1m[0;34mNVMe:[0m 0000:01:00.0
+  [1mdmar2[0m  [2mSocket 1, NUMA 3[0m
+    [2mpcieRoot 0000:b7[0m  [1m[0;33mGPU:[0m 0000:bd:00.0
+  [1mdmar3[0m  [2mSocket 1, NUMA 3[0m
+    [2mpcieRoot 0000:c7[0m  [1m[0;33mGPU:[0m 0000:cd:00.0
+  [1mdmar4[0m  [2mSocket 1, NUMA 2[0m
+    [2mpcieRoot 0000:d7[0m  [1m[0;33mGPU:[0m 0000:dd:00.0
+  [1mdmar5[0m  [2mSocket 1, NUMA 2[0m
+  [1mdmar6[0m  [2mSocket 1, NUMA 2[0m
+  [1mdmar7[0m  [2mSocket 0, NUMA 0[0m
+    [2mpcieRoot 0000:15[0m  [1m[0;33mGPU:[0m 0000:1b:00.0  [1m[0;35mNIC:[0m 0000:1d:00.0, 0000:1d:00.1, 0000:1d:00.2, 0000:1d:00.3, 0000:1d:00.4, 0000:1d:00.5, 0000:1d:01.2, 0000:1d:01.3, 0000:1d:01.4, 0000:1d:01.5  [1m[0;34mNVMe:[0m 0000:18:00.0
+  [1mdmar8[0m  [2mSocket 0, NUMA 0[0m
+  [1mdmar9[0m  [2mSocket 0, NUMA 1[0m
+    [2mpcieRoot 0000:37[0m  [1m[0;33mGPU:[0m 0000:3d:00.0  [1m[0;34mNVMe:[0m 0000:3a:00.0
+
+[1m[0;36m╔══════════════════════════════════════════════════════════════╗[0m
+[1m[0;36m║  No NUMA Affinity  (numa_node = -1)[0m
+[1m[0;36m╚══════════════════════════════════════════════════════════════╝[0m
+  [2m(none)[0m
+
+[2mLegend:[0m
+  [1m[0;33m■[0m Processing Accelerator (GPU/NPU)   [1m[0;35m■[0m Network
+  [1m[0;34m■[0m Storage                             [1m[0;32m■[0m Display
+  [1m[0;36m■[0m Serial Bus (USB/TB)                 [2mdim = bridge/root port[0m
