@@ -384,15 +384,17 @@ IFS=$'\n' SLIT_NODES=($(printf '%s\n' "${SLIT_NODES[@]}" | sort -n))
 IFS=$' \t\n'
 unset _np _nid _col _d
 
-# ── GPU compute/memory partition modes ──────────────────────────────────────
-# AMD GPUs expose partition info via /sys/class/drm/card*/device/.
-# Map PCI BDF → current/available compute and memory partition modes.
+# ── GPU partition mode detection ─────────────────────────────────────────────
+# AMD: ROCm compute/memory partitions via /sys/class/drm/card*/device/
+# NVIDIA: MIG mode via nvidia-smi (if available)
+# Maps PCI BDF → current/available partition modes.
 
-declare -A GPU_COMPUTE_PART=()     # BDF → current mode (e.g. "SPX")
+declare -A GPU_COMPUTE_PART=()     # BDF → current mode (e.g. "SPX" or "MIG enabled")
 declare -A GPU_COMPUTE_AVAIL=()    # BDF → available modes (e.g. "SPX, DPX, QPX, CPX")
 declare -A GPU_MEMORY_PART=()      # BDF → current mode (e.g. "NPS1")
 declare -A GPU_MEMORY_AVAIL=()     # BDF → available modes (e.g. "NPS1, NPS2")
 
+# AMD GPU partitions (amdgpu driver)
 for _card in /sys/class/drm/card[0-9]*/; do
     [ -d "${_card}device" ] || continue
     _bdf=$(basename "$(readlink -f "${_card}device")" 2>/dev/null) || continue
@@ -410,6 +412,31 @@ for _card in /sys/class/drm/card[0-9]*/; do
     fi
 done
 unset _card _bdf _cp _ap _cm _am
+
+# NVIDIA MIG mode (nvidia driver)
+if command -v nvidia-smi &>/dev/null; then
+    while IFS=', ' read -r _bdf _mig_mode _mig_avail; do
+        [ -z "$_bdf" ] && continue
+        [[ "$_bdf" == *"."* ]] || continue
+        # nvidia-smi uses long BDF (e.g. "00000000:1B:00.0") — normalize to "0000:1b:00.0"
+        _bdf=$(echo "$_bdf" | tr '[:upper:]' '[:lower:]' | sed 's/^00000000:/0000:/')
+        [[ "$_bdf" == *:*:* ]] || _bdf="0000:${_bdf}"
+        _mig_mode=$(echo "$_mig_mode" | tr -d '[:space:]')
+        _mig_avail=$(echo "$_mig_avail" | tr -d '[:space:]')
+
+        if [ "$_mig_mode" = "Enabled" ]; then
+            GPU_COMPUTE_PART["$_bdf"]="MIG"
+            # Get MIG profiles if MIG is enabled
+            _profiles=$(nvidia-smi mig -lgip --id="$_bdf" 2>/dev/null | awk '/^[| ]*[0-9]/ {print $3}' | sort -u | tr '\n' ',' | sed 's/,$//')
+            GPU_COMPUTE_AVAIL["$_bdf"]="${_profiles:-MIG profiles available}"
+        elif [ "$_mig_avail" = "Enabled" ]; then
+            # MIG supported but not currently enabled
+            GPU_COMPUTE_PART["$_bdf"]="MIG off"
+            GPU_COMPUTE_AVAIL["$_bdf"]="MIG supported"
+        fi
+    done < <(nvidia-smi --query-gpu=pci.bus_id,mig.mode.current,mig.mode.pending --format=csv,noheader 2>/dev/null || true)
+    unset _bdf _mig_mode _mig_avail _profiles
+fi
 
 # ── IOMMU instance (ivhd) to device mapping ──────────────────────────────────
 # On AMD systems, /sys/class/iommu/ivhd* maps each IOMMU hardware unit to its
@@ -1215,14 +1242,21 @@ unset _line _phys_id _model
 
 NUM_SOCKETS=${#SOCKET_SET[@]}
 
-# ── NPS mode detection (AMD EPYC) ────────────────────────────────────────────
-# NPS (Nodes Per Socket) is inferred from NUMA-to-socket ratio on AMD CPUs.
+# ── Sub-NUMA clustering detection (AMD NPS / Intel SNC) ─────────────────────
+# Inferred from NUMA-to-socket ratio. AMD uses NPS (Nodes Per Socket),
+# Intel uses SNC (Sub-NUMA Clustering). Same mechanism, different labels.
 NPS_MODE=""
 IS_AMD=0
+IS_INTEL=0
 if grep -q 'AuthenticAMD' /proc/cpuinfo 2>/dev/null; then
     IS_AMD=1
-    if [ "$NUM_SOCKETS" -gt 0 ] && [ "$NUMA_NODES" -gt 0 ]; then
-        _nodes_per_socket=$(( NUMA_NODES / NUM_SOCKETS ))
+elif grep -q 'GenuineIntel' /proc/cpuinfo 2>/dev/null; then
+    IS_INTEL=1
+fi
+
+if [ "$NUM_SOCKETS" -gt 0 ] && [ "$NUMA_NODES" -gt 0 ]; then
+    _nodes_per_socket=$(( NUMA_NODES / NUM_SOCKETS ))
+    if [ "$IS_AMD" = "1" ]; then
         case "$_nodes_per_socket" in
             1)  NPS_MODE="NPS1" ;;
             2)  NPS_MODE="NPS2" ;;
@@ -1244,8 +1278,19 @@ if grep -q 'AuthenticAMD' /proc/cpuinfo 2>/dev/null; then
                 unset _l3_count _total_l3 _l3_per_cpu _l3_instances
                 ;;
         esac
-        unset _nodes_per_socket
+    elif [ "$IS_INTEL" = "1" ]; then
+        case "$_nodes_per_socket" in
+            1)  NPS_MODE="SNC off" ;;
+            2)  NPS_MODE="SNC-2" ;;
+            4)  NPS_MODE="SNC-4" ;;
+            *)  NPS_MODE="SNC? (${_nodes_per_socket} nodes/socket)" ;;
+        esac
+    else
+        if [ "$_nodes_per_socket" -gt 1 ]; then
+            NPS_MODE="${_nodes_per_socket} nodes/socket"
+        fi
     fi
+    unset _nodes_per_socket
 fi
 
 # ── DIMM-to-NUMA correlation ──────────────────────────────────────────────────
