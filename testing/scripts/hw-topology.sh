@@ -384,6 +384,33 @@ IFS=$'\n' SLIT_NODES=($(printf '%s\n' "${SLIT_NODES[@]}" | sort -n))
 IFS=$' \t\n'
 unset _np _nid _col _d
 
+# ── GPU compute/memory partition modes ──────────────────────────────────────
+# AMD GPUs expose partition info via /sys/class/drm/card*/device/.
+# Map PCI BDF → current/available compute and memory partition modes.
+
+declare -A GPU_COMPUTE_PART=()     # BDF → current mode (e.g. "SPX")
+declare -A GPU_COMPUTE_AVAIL=()    # BDF → available modes (e.g. "SPX, DPX, QPX, CPX")
+declare -A GPU_MEMORY_PART=()      # BDF → current mode (e.g. "NPS1")
+declare -A GPU_MEMORY_AVAIL=()     # BDF → available modes (e.g. "NPS1, NPS2")
+
+for _card in /sys/class/drm/card[0-9]*/; do
+    [ -d "${_card}device" ] || continue
+    _bdf=$(basename "$(readlink -f "${_card}device")" 2>/dev/null) || continue
+    _cp=$(cat "${_card}device/current_compute_partition" 2>/dev/null) || true
+    _ap=$(cat "${_card}device/available_compute_partition" 2>/dev/null) || true
+    _cm=$(cat "${_card}device/current_memory_partition" 2>/dev/null) || true
+    _am=$(cat "${_card}device/available_memory_partition" 2>/dev/null) || true
+    if [ -n "$_cp" ]; then
+        GPU_COMPUTE_PART["$_bdf"]="$_cp"
+        GPU_COMPUTE_AVAIL["$_bdf"]="$_ap"
+    fi
+    if [ -n "$_cm" ]; then
+        GPU_MEMORY_PART["$_bdf"]="$_cm"
+        GPU_MEMORY_AVAIL["$_bdf"]="$_am"
+    fi
+done
+unset _card _bdf _cp _ap _cm _am
+
 # ── IOMMU instance (ivhd) to device mapping ──────────────────────────────────
 # On AMD systems, /sys/class/iommu/ivhd* maps each IOMMU hardware unit to its
 # owned devices. Each ivhd corresponds to one IOD quadrant.
@@ -612,6 +639,9 @@ print_device() {
         grp=$(basename "$(readlink "${dev_path}iommu_group")")
         extras+=" ${DIM}[IOMMU grp ${grp}]${RESET}"
     fi
+    if [ -n "${GPU_COMPUTE_PART[$bdf]+x}" ]; then
+        extras+=" ${DIM}[${GPU_COMPUTE_PART[$bdf]}/${GPU_MEMORY_PART[$bdf]:-?} (${GPU_COMPUTE_AVAIL[$bdf]:-?})]${RESET}"
+    fi
 
     if is_bridge "$dev_path"; then
         # Bridge/root port: suppress if no visible descendants
@@ -812,6 +842,9 @@ print_numa_flat() {
         if [ -L "${dev_path}iommu_group" ]; then
             local grp; grp=$(basename "$(readlink "${dev_path}iommu_group")")
             extras+=" ${DIM}[IOMMU grp ${grp}]${RESET}"
+        fi
+        if [ -n "${GPU_COMPUTE_PART[$bdf]+x}" ]; then
+            extras+=" ${DIM}[${GPU_COMPUTE_PART[$bdf]}/${GPU_MEMORY_PART[$bdf]:-?} (${GPU_COMPUTE_AVAIL[$bdf]:-?})]${RESET}"
         fi
 
         echo -e "  ${color}${BOLD}${bdf}${RESET}  ${color}${name}${RESET}${extras}"
@@ -1040,6 +1073,9 @@ print_simple_topology() {
                         [ -n "$gprod" ] && detail+="${gprod}"
                         [ -n "$gdrv" ] && [ "$gdrv" != "none" ] && detail+=", ${gdrv}"
                         [ -n "$first_link" ] && detail+=", ${first_link}"
+                        if [ -n "${GPU_COMPUTE_PART[$first_bdf]+x}" ]; then
+                            detail+=", ${GPU_COMPUTE_PART[$first_bdf]}/${GPU_MEMORY_PART[$first_bdf]:-?} (${GPU_COMPUTE_AVAIL[$first_bdf]:-?})"
+                        fi
 
                         if [ -n "$detail" ]; then
                             echo -e "║     ${color}${gtype}:${RESET} ${bdf_str} ${DIM}(${detail})${RESET}"
