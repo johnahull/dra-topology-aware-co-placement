@@ -438,20 +438,31 @@ if command -v nvidia-smi &>/dev/null; then
     unset _bdf _mig_mode _mig_avail _profiles
 fi
 
-# ── IOMMU instance (ivhd) to device mapping ──────────────────────────────────
-# On AMD systems, /sys/class/iommu/ivhd* maps each IOMMU hardware unit to its
-# owned devices. Each ivhd corresponds to one IOD quadrant.
+# ── IOMMU instance to device mapping ─────────────────────────────────────────
+# AMD: /sys/class/iommu/ivhd* — each ivhd is one IOD quadrant
+# Intel: /sys/class/iommu/dmar* — each dmar is one DMAR hardware unit
+# Same data structures used for both; IOMMU_TYPE tracks which.
 
-declare -A IVHD_ROOTS=()     # ivhd name → space-separated root bus IDs (e.g. "00 10")
-declare -A IVHD_GPUS=()      # ivhd name → space-separated GPU BDFs
-declare -A IVHD_NICS=()      # ivhd name → space-separated NIC BDFs
-declare -A IVHD_NVME=()      # ivhd name → space-separated NVMe BDFs
-declare -a IVHD_LIST=()      # sorted ivhd names
+declare -A IVHD_ROOTS=()     # iommu name → space-separated root bus IDs (e.g. "00 10")
+declare -A IVHD_GPUS=()      # iommu name → space-separated GPU BDFs
+declare -A IVHD_NICS=()      # iommu name → space-separated NIC BDFs
+declare -A IVHD_NVME=()      # iommu name → space-separated NVMe BDFs
+declare -a IVHD_LIST=()      # sorted iommu names
 IVHD_AVAILABLE=0
+IOMMU_TYPE=""                # "ivhd" (AMD) or "dmar" (Intel)
 
+_iommu_glob=""
 if ls /sys/class/iommu/ivhd* &>/dev/null 2>&1; then
+    _iommu_glob="/sys/class/iommu/ivhd*/"
+    IOMMU_TYPE="ivhd"
+elif ls /sys/class/iommu/dmar* &>/dev/null 2>&1; then
+    _iommu_glob="/sys/class/iommu/dmar*/"
+    IOMMU_TYPE="dmar"
+fi
+
+if [ -n "$_iommu_glob" ]; then
     IVHD_AVAILABLE=1
-    for _iommu_path in /sys/class/iommu/ivhd*/; do
+    for _iommu_path in $_iommu_glob; do
         _ivhd=$(basename "$_iommu_path")
         IVHD_LIST+=("$_ivhd")
         [ -d "${_iommu_path}devices" ] || continue
@@ -527,6 +538,7 @@ if ls /sys/class/iommu/ivhd* &>/dev/null 2>&1; then
     done
     unset _iv _g _rd
 fi
+unset _iommu_glob
 
 # ── PCIe switch detection ────────────────────────────────────────────────────
 # Detect PCIe switch ports from lspci device names (single call).
@@ -1476,23 +1488,31 @@ if [ "$IVHD_AVAILABLE" = "1" ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
     done
 
     _gpu_ratio=""
+    _unit_label="unit"
+    if [ "$IOMMU_TYPE" = "ivhd" ]; then
+        _unit_label="quadrant"
+    fi
     if [ "$_total_ivhd_gpus" -gt 0 ] && [ ${#IVHD_LIST[@]} -gt 0 ]; then
         _gpus_per=$(( _total_ivhd_gpus / ${#IVHD_LIST[@]} ))
         if [ "$_gpus_per" -le 1 ]; then
-            _gpu_ratio=", 1 GPU per quadrant"
+            _gpu_ratio=", 1 GPU per ${_unit_label}"
         else
-            _gpu_ratio=", ${_gpus_per} GPUs per quadrant"
+            _gpu_ratio=", ${_gpus_per} GPUs per ${_unit_label}"
         fi
     fi
 
+    _section_title="IOMMU Instance Mapping"
+    [ "$IOMMU_TYPE" = "ivhd" ] && _section_title="IOD Quadrant Mapping"
+    [ "$IOMMU_TYPE" = "dmar" ] && _section_title="DMAR Unit Mapping"
+
     echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${BOLD}${CYAN}║  IOD Quadrant Mapping  (${#IVHD_LIST[@]} IOMMU instances${_gpu_ratio})${RESET}"
+    echo -e "${BOLD}${CYAN}║  ${_section_title}  (${#IVHD_LIST[@]} IOMMU instances${_gpu_ratio})${RESET}"
     echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
 
     if [ -n "$NPS_MODE" ]; then
         _gpus_per_numa=$(( _total_ivhd_gpus / NUMA_NODES ))
         echo -e "  ${DIM}Current: ${NPS_MODE} (${_gpus_per_numa} GPU(s) per NUMA node)${RESET}"
-        if [ "$NPS_MODE" != "NPS4" ] && [ "$_total_ivhd_gpus" -gt 0 ]; then
+        if [ "$IOMMU_TYPE" = "ivhd" ] && [ "$NPS_MODE" != "NPS4" ] && [ "$_total_ivhd_gpus" -gt 0 ]; then
             echo -e "  ${DIM}NPS4 would give: 1 GPU per NUMA node (= pcieRoot granularity)${RESET}"
         fi
         echo ""
