@@ -450,6 +450,7 @@ declare -A IVHD_NVME=()      # iommu name → space-separated NVMe BDFs
 declare -a IVHD_LIST=()      # sorted iommu names
 IVHD_AVAILABLE=0
 IOMMU_TYPE=""                # "ivhd" (AMD) or "dmar" (Intel)
+declare -A ROOT_TO_IVHD=()  # pcieRoot "0000:d0" → iommu name "ivhd0" or "dmar0"
 
 _iommu_glob=""
 if ls /sys/class/iommu/ivhd* &>/dev/null 2>&1; then
@@ -526,8 +527,7 @@ if [ -n "$_iommu_glob" ]; then
     unset _iommu_path _ivhd _dev_link _dbdf _root_bus _cur _par
     unset _dclass _dclass_int _dtop _dsub _dev_path _drv
 
-    # Build reverse lookup: pcieRoot domain:bus → ivhd name
-    declare -A ROOT_TO_IVHD=()   # "0000:d0" → "ivhd0"
+    # Build reverse lookup: pcieRoot domain:bus → iommu name
     for _iv in "${IVHD_LIST[@]}"; do
         for _g in ${IVHD_GPUS[$_iv]:-} ${IVHD_NICS[$_iv]:-} ${IVHD_NVME[$_iv]:-}; do
             _rd="${DEV_PCIE_ROOT_DOMAIN[$_g]:-}"
