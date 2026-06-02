@@ -1054,12 +1054,19 @@ data = json.load(sys.stdin)
 
 DRIVER_LABELS = {
     'gpu.nvidia.com': 'gpu',
-    'compute-domain.nvidia.com': 'compute-domain',
+    'compute-domain.nvidia.com': 'gpu-vfio',
     'dra.cpu': 'cpu',
     'dra.memory': 'memory',
     'dra.net': 'nic',
     'dra.nvme': 'nvme',
 }
+
+def parse_numa(numa_str):
+    if not numa_str or numa_str == '?':
+        return '?', []
+    cleaned = numa_str.strip('[] ')
+    parts = [p.strip() for p in cleaned.split(',') if p.strip()]
+    return (parts[0], parts) if parts else ('?', [])
 
 devices = []
 for rs in data.get('items', []):
@@ -1082,7 +1089,7 @@ for rs in data.get('items', []):
                     return v.get('bool', False)
             return False
 
-        numa = get_attr(['resource.kubernetes.io/numaNode', 'numaNode', 'numa',
+        numa_raw = get_attr(['resource.kubernetes.io/numaNode', 'numaNode', 'numa',
                          'dra.cpu/numaNodeID', 'dra.net/numaNode', 'dra.memory/numaNode'])
         socket = get_attr(['resource.kubernetes.io/cpuSocketID', 'cpuSocketID',
                            'dra.cpu/socketID'])
@@ -1095,13 +1102,15 @@ for rs in data.get('items', []):
 
         drv_label = DRIVER_LABELS.get(driver, driver.split('.')[-1] if '.' in driver else driver)
         is_cpu = 'cpu' in driver.lower()
+        primary_numa, all_numas = parse_numa(numa_raw or '?')
 
         devices.append({
             'name': dev['name'],
             'driver': driver,
             'label': drv_label,
-            'numa': numa or '?',
-            'socket': socket or '?',
+            'primary_numa': primary_numa,
+            'all_numas': all_numas,
+            'socket': socket,
             'root': root or '-',
             'pci': pci or '',
             'is_cpu': is_cpu,
@@ -1111,29 +1120,61 @@ for rs in data.get('items', []):
             'product': product or '',
         })
 
-# ── Group by Socket → NUMA → pcieRoot ──
+# ── Pass 2: infer socket from NUMA ──
+numa_to_socket = {}
+for d in devices:
+    if d['socket'] and d['primary_numa'] != '?':
+        numa_to_socket[d['primary_numa']] = d['socket']
+inferred = 0
+for d in devices:
+    if not d['socket'] and d['primary_numa'] in numa_to_socket:
+        d['socket'] = numa_to_socket[d['primary_numa']]
+        inferred += 1
+    elif not d['socket']:
+        d['socket'] = '?'
+if inferred and verbose:
+    print(f'\033[2m(inferred socket for {inferred} devices via NUMA mapping)\033[0m')
+
+# ── Group by Socket → primary NUMA → pcieRoot ──
 sockets = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 for d in devices:
-    sockets[d['socket']][d['numa']][d['root']].append(d)
+    sockets[d['socket']][d['primary_numa']][d['root']].append(d)
 
-for sock in sorted(sockets):
+def sock_key(s):
+    try: return (0, int(s))
+    except (ValueError, TypeError): return (1, s)
+
+for sock in sorted(sockets, key=sock_key):
     print(f'\033[1m\033[36m╔══ Socket {sock} ══╗\033[0m')
     numas = sockets[sock]
     for numa in sorted(numas):
         roots = numas[numa]
-        print(f'\033[1m║ NUMA {numa}\033[0m')
-        for root in sorted(roots):
+        secondary = set()
+        for root_devs in roots.values():
+            for d in root_devs:
+                for n in d['all_numas'][1:]:
+                    secondary.add(n)
+        numa_hdr = f'NUMA {numa}'
+        if secondary:
+            numa_hdr += f' \033[2m(+{chr(44).join(sorted(secondary))})\033[0m'
+        print(f'\033[1m║ {numa_hdr}\033[0m')
+        root_keys = sorted(roots)
+        for ri, root in enumerate(root_keys):
             devs = roots[root]
+            last_root = (ri == len(root_keys) - 1)
             if root != '-':
-                print(f'\033[2m║   pcieRoot: {root}\033[0m')
+                branch = '└─' if last_root else '├─'
+                print(f'\033[2m║   {branch} pcieRoot: {root}\033[0m')
             by_driver = defaultdict(list)
             for d in devs:
                 by_driver[d['driver']].append(d)
+            pipe = ' ' if last_root or root == '-' else '│'
+            indent = f'║   {pipe}  ' if root != '-' else '║    '
             for drv in sorted(by_driver):
                 dlist = by_driver[drv]
                 drv_label = dlist[0]['label']
                 if dlist[0]['is_cpu'] and len(dlist) > 8:
-                    print(f'║     {drv_label}: {len(dlist)} CPUs')
+                    print(f'{indent} {drv_label}: {len(dlist)} CPUs')
                 else:
                     names = []
                     for d in dlist:
@@ -1153,9 +1194,9 @@ for sock in sorted(sockets):
                             label += f' \033[33m[{\", \".join(tags)}]\033[0m'
                         names.append(label)
                     label_str = ', '.join(names)
-                    print(f'║     {drv_label}: {label_str}')
+                    print(f'{indent} {drv_label}: {label_str}')
         print('║')
-    print(f'\033[36m╚{\"═\" * 20}╝\033[0m')
+    print(f'\033[36m╚{chr(9552) * 20}╝\033[0m')
     print()
 " 2>/dev/null
 }
