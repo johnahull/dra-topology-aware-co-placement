@@ -2,13 +2,13 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-05-27)
+## Upstream PR Status (as of 2026-06-10)
 
 ### KubeVirt
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (draft) | KV-8 | Awaiting review |
+| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (draft) | KV-8 | Draft POC stopgap, blocked on `/ok-to-test` (untrusted user). Parked — real resolution via VEP-152 (KubeVirt 1.10+). Not an upstream deliverable. |
 | [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Closed | KV-7 | 0xFelix: /hold "don't want to elevate virt-launcher". mhenriks pointed to 1.9 plugin mechanism and [rawio-addon](https://github.com/openshift-cnv/kubevirt-rawio-addon). Resolution: enable `Root` feature gate globally instead. |
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Closed | KV-7 | Superseded by #17696. |
 | [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). |
@@ -18,42 +18,42 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Enhancement tracking issue. sig/node, wg/device-management. |
-| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | KEP PR. CLA ✅, tests ✅. ffromani, aojea, alaypatel07 cc'd. Awaiting review + lgtm + approve. |
+| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | KEP PR. Rewrote commit to drop Claude co-author (was failing CLA, per kannon92) — **verify CLA green**. Posted scalar-fallback follow-up to pohly (publish scalar `numaNode` when `DRAListTypeAttributes` off, list when on). Awaiting pohly/kannon92 review + lgtm + approve. |
 
 ### Kubernetes
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open | K-2, K-3 | No reviewer comments yet |
+| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open | K-2, K-3 | **Waiting on me.** ffromani (5-06) wary of the `context.TODO()` + lock/unlock dance, "took a step back." Feedback unanswered — needs response/revise. |
 
 ### NVIDIA GPU DRA Driver
 
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
-| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Reworked per varunrsekar feedback. Dropped issues 1,4. Kept issues 2,3. Awaiting re-review. |
+| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Reworked per varunrsekar feedback. Dropped issues 1,4. Kept issues 2,3. Awaiting re-review (no new activity since 5-11 — nudge candidate). |
 | [#1099](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1099) | Support GPUs pre-bound to vfio-pci via kernel cmdline | Open (feature request) | Filed per varunrsekar request to split from #1090. PR pending — waiting for #1090 acceptance first. |
 | [#1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089) | VFIO discovery advertises non-vfio GPUs and Unconfigure rebinds pre-bound GPUs | Open (bug) | Responded with logs and repro steps. Issues 1,4 resolved via config/helm. |
-| [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | shivamerla assigned varunrsekar |
+| [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | **Waiting on me.** varunrsekar (6-10): "Can you confirm you don't hit this if you deploy through the helm chart? This change is unnecessary if that's the case." Need to confirm whether the bug reproduces with the helm chart. |
 
 ### AMD GPU DRA Driver
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open | — | No reviewer comments yet |
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open | — | yansun1996 CHANGES_REQUESTED (5-20, 14 items). All addressed across 4 commits (5-26); yansun1996 left empty COMMENTED review (5-27), no new inline comments. **`CHANGES_REQUESTED` flag stale** — nudge to re-review/clear (now unblocked by #45 merge). |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Open | — | No reviewer comments yet |
-| [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Open | — | No reviewer comments yet |
+| [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | **Merged** (2026-06-10) | — | Approved and merged. |
 
 ### SR-IOV DRA Driver
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) | Add downward API Metadata support (KEP-5304) | Open | D-1 | By oshoval. Cherry-picks #98. Feature-gated `enable-device-metadata`, targets K8s 1.36+. Coordinating with oshoval. |
+| [#92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) | Add downward API Metadata support (KEP-5304) | Open | D-1 | By oshoval. Cherry-picks #98. Feature-gated `enable-device-metadata`, targets K8s 1.36+. oshoval ran KubeVirt e2e + MAC PR (5-19). Reviewer wait — not my action; coordinating with oshoval. |
 
 ### DRA CPU Driver
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) | Skip CPU allocation when available CPU pool is empty | Open | — | pravk03 commented on docs gap; active discussion |
+| [#135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) | Skip CPU allocation when available CPU pool is empty | Open | — | **Waiting on me.** k8s-ci-robot: "PR needs rebase" (5-18). pravk03 raised docs gap. Rebase + address docs comment. |
 
 ### dranet
 
