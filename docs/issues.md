@@ -2,7 +2,7 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-06-10)
+## Upstream PR Status (as of 2026-06-13)
 
 ### KubeVirt
 
@@ -18,7 +18,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Enhancement tracking issue. sig/node, wg/device-management. |
-| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | KEP PR. Rewrote commit to drop Claude co-author (was failing CLA, per kannon92) — **verify CLA green**. Posted scalar-fallback follow-up to pohly (publish scalar `numaNode` when `DRAListTypeAttributes` off, list when on). Awaiting pohly/kannon92 review + lgtm + approve. |
+| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | CLA ✅, tests ✅. Design converged: no feature gate (drivers decide what they publish). kannon92 lifted `/hold` and **approved** (6-12); reworked **direct-to-stable** (`stage: stable`, milestone v1.37, PRR filled). Now needs **`lgtm` label + final SIG-node/PRR approver** (mrunalp…). Reviewer wait — nudge candidate. |
 
 ### Kubernetes
 
@@ -47,13 +47,13 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) | Add downward API Metadata support (KEP-5304) | Open | D-1 | By oshoval. Cherry-picks #98. Feature-gated `enable-device-metadata`, targets K8s 1.36+. oshoval ran KubeVirt e2e + MAC PR (5-19). Reviewer wait — not my action; coordinating with oshoval. |
+| [#92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) | Add downward API Metadata support (KEP-5304) | **Merged** (2026-06-11) | D-1 | By oshoval. Approved and merged — resolves the D-1 dependency. Cherry-picked #98; feature-gated `enable-device-metadata`, K8s 1.36+. |
 
 ### DRA CPU Driver
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) | Skip CPU allocation when available CPU pool is empty | Open | — | **Waiting on me.** k8s-ci-robot: "PR needs rebase" (5-18). pravk03 raised docs gap. Rebase + address docs comment. |
+| [#135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) | Skip CPU allocation when available CPU pool is empty | **Closed** (2026-06-11) | — | Closed by ffromani: "not much else we can do here." Reopen/file a new bug only with a more detailed use case or new evidence. |
 
 ### dranet
 
@@ -544,7 +544,8 @@ The DRA-based NUMA cell building code (`buildDRANUMACells`) was in an `else if` 
 #### D-1: SR-IOV DRA driver has no KEP-5304 `pciBusID` metadata
 
 **Repo:** `k8snetworkplumbingwg/dra-driver-sriov`
-**Fix:** Upstream [PR #92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) by oshoval (open, last updated 2026-05-06). Local branch: `fix/kep5304-metadata`.
+**Fix:** Upstream [PR #92](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/92) by oshoval — **merged 2026-06-11**. Local branch: `fix/kep5304-metadata`.
+**Status:** Resolved upstream via #92.
 **Coordination:** Coordinating with oshoval on PR #92 to avoid duplicate work. Upstream approach uses feature-gated `enable-device-metadata` CLI flag and targets K8s 1.36+. Local branch bakes it in without a feature gate and stays on current K8s version.
 
 The SR-IOV DRA driver (`sriovnetwork.k8snetworkplumbingwg.io`) publishes device attributes in ResourceSlices but doesn't set `Device.Metadata` in `PrepareResult` with KEP-5304 device metadata. KubeVirt's virt-launcher needs `resource.kubernetes.io/pciBusID` in the metadata to create VFIO passthrough entries in the VM's domain XML.
