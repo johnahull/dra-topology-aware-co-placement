@@ -2,7 +2,7 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-06-13)
+## Upstream PR Status (as of 2026-06-15)
 
 ### KubeVirt
 
@@ -18,7 +18,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Enhancement tracking issue. sig/node, wg/device-management. |
-| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | CLA ✅, tests ✅. Design converged: no feature gate (drivers decide what they publish). kannon92 lifted `/hold` and **approved** (6-12); reworked **direct-to-stable** (`stage: stable`, milestone v1.37, PRR filled). Now needs **`lgtm` label + final SIG-node/PRR approver** (mrunalp…). Reviewer wait — nudge candidate. |
+| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | CLA ✅, tests ✅, **`approved` label set** (kannon92 + mrunalp approved, 6-15). Direct-to-stable (`stage: stable`, milestone v1.37, PRR filled). Merge **BLOCKED only on missing `lgtm` label** — one `/lgtm` and tide merges. Reviewer wait — nudge candidate. |
 
 ### Kubernetes
 
