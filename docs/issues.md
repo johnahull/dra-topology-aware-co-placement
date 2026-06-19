@@ -2,13 +2,13 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-06-15)
+## Upstream PR Status (as of 2026-06-20)
 
 ### KubeVirt
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (draft) | KV-8 | Draft POC stopgap, blocked on `/ok-to-test` (untrusted user). Parked — real resolution via VEP-152 (KubeVirt 1.10+). Not an upstream deliverable. |
+| [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (draft, `lifecycle/stale`) | KV-8 | Draft POC stopgap, blocked on `/ok-to-test`. Auto-labeled `lifecycle/stale` (6-19, 45 days idle) — will auto-close unless `/remove-lifecycle stale`. Fine to let close; real resolution via VEP-152 (KubeVirt 1.10+). |
 | [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Closed | KV-7 | 0xFelix: /hold "don't want to elevate virt-launcher". mhenriks pointed to 1.9 plugin mechanism and [rawio-addon](https://github.com/openshift-cnv/kubevirt-rawio-addon). Resolution: enable `Root` feature gate globally instead. |
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Closed | KV-7 | Superseded by #17696. |
 | [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). |
@@ -18,7 +18,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Enhancement tracking issue. sig/node, wg/device-management. |
-| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Open (PR) | CLA ✅, tests ✅, **`approved` label set** (kannon92 + mrunalp approved, 6-15). Direct-to-stable (`stage: stable`, milestone v1.37, PRR filled). Merge **BLOCKED only on missing `lgtm` label** — one `/lgtm` and tide merges. Reviewer wait — nudge candidate. |
+| [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | **Merged** (2026-06-17) | KEP merged direct-to-stable (v1.37). Approved by kannon92 + mrunalp; release team marked tracking, no exception needed. **Unblocks Upstream Sequencing Step 1** → drivers can publish `resource.kubernetes.io/numaNode` and KubeVirt KV-5 Phase 2 can proceed. |
 
 ### Kubernetes
 
@@ -82,12 +82,12 @@ VEPs from the [KubeVirt 1.9 Enhancements Tracking](https://github.com/orgs/kubev
 
 ## Upstream Sequencing
 
-The following work is sequenced behind [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) (standardize `resource.kubernetes.io/numaNode`). Hold until the KEP merges.
+The following work is sequenced behind [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) (standardize `resource.kubernetes.io/numaNode`). **Step 1 done — KEP-6072 merged 2026-06-17 (direct-to-stable, v1.37). Step 2 is now unblocked.**
 
 | Step | What | Repo | Blocked on |
 |------|------|------|------------|
-| 1 | **KEP-6072 merges** | kubernetes/enhancements | PR [#6073](https://github.com/kubernetes/enhancements/pull/6073) — waiting for review |
-| 2 | Helper functions (`GetNUMANodeByPCIBusID`, `GetNUMANodeForCPU`) | kubernetes/kubernetes | KEP-6072 |
+| 1 | ✅ **KEP-6072 merged** (2026-06-17, stable v1.37) | kubernetes/enhancements | PR [#6073](https://github.com/kubernetes/enhancements/pull/6073) — **merged** |
+| 2 | Helper functions (`GetNUMANodeByPCIBusID`, `GetNUMANodeForCPU`) | kubernetes/kubernetes | **Unblocked** (KEP-6072 merged) — next action |
 | 3 | NVIDIA GPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-nvidia-gpu | Step 2 (helper) |
 | 3 | AMD GPU driver publishes `resource.kubernetes.io/numaNode` | ROCm/k8s-gpu-dra-driver | Step 2 (helper) |
 | 3 | dranet publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dranet | Step 2 (helper) |
