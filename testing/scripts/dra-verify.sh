@@ -179,15 +179,15 @@ for rs in data.get('items', []):
         for key in TOPO_ATTRS:
             if key in attrs:
                 val = attrs[key]
-                topo[key.split('/')[-1]] = list(val.values())[0]
+                topo[key] = list(val.values())[0]
 
-        # Check vendor NUMA
+        # Check vendor NUMA (skip if already covered by TOPO_ATTRS)
+        topo_bare = {k.split('/')[-1] for k in topo}
         for vk in NUMA_VENDOR:
             for ak, av in attrs.items():
                 aname = ak.split('/')[-1] if '/' in ak else ak
-                if aname == vk and vk not in [k.split('/')[-1] for k in TOPO_ATTRS]:
-                    domain = ak.split('/')[0] if '/' in ak else ''
-                    topo[f'{domain}/{vk}' if domain else vk] = list(av.values())[0]
+                if aname == vk and aname not in topo_bare:
+                    topo[ak] = list(av.values())[0]
 
         if driver not in drivers:
             drivers[driver] = []
@@ -197,29 +197,35 @@ for driver in sorted(drivers):
     devs = drivers[driver]
     print(f'\033[1m{driver}\033[0m ({len(devs)} devices):')
 
-    # Header
+    # Header — compute column widths from keys and values
     all_keys = set()
     for d in devs:
         all_keys.update(d['topo'].keys())
     keys = sorted(all_keys)
 
-    hdr = f'  {\"Device\":<20}'
+    dev_w = max(len('Device'), max((len(d['name']) for d in devs), default=6)) + 2
+    col_w = {}
     for k in keys:
-        hdr += f'{k:<16}'
+        vals = [str(d['topo'].get(k, '-')) for d in devs]
+        col_w[k] = max(len(k), max((len(v) for v in vals), default=1)) + 2
+
+    hdr = f'  {\"Device\":<{dev_w}}'
+    for k in keys:
+        hdr += f'{k:<{col_w[k]}}'
     print(f'\033[2m{hdr}\033[0m')
 
     for d in sorted(devs, key=lambda x: x['name']):
-        line = f'  {d[\"name\"]:<20}'
+        line = f'  {d[\"name\"]:<{dev_w}}'
         for k in keys:
             v = d['topo'].get(k, '-')
-            line += f'{str(v):<16}'
+            line += f'{str(v):<{col_w[k]}}'
 
         # Check for missing standard attrs
         missing = []
-        if 'numaNode' not in d['topo']:
+        topo_bare = {tk.split(\"/\")[-1] for tk in d['topo']}
+        if 'numaNode' not in topo_bare:
             missing.append('numaNode')
-        if 'pciBusID' not in d['topo'] and 'cpuSocketID' not in d['topo']:
-            # PCI devices need pciBusID, non-PCI need cpuSocketID
+        if 'pciBusID' not in topo_bare and 'cpuSocketID' not in topo_bare:
             pass
 
         if missing:
