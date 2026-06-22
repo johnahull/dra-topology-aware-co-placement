@@ -197,21 +197,39 @@ for driver in sorted(drivers):
     devs = drivers[driver]
     print(f'\033[1m{driver}\033[0m ({len(devs)} devices):')
 
-    # Header — compute column widths from keys and values
     all_keys = set()
     for d in devs:
         all_keys.update(d['topo'].keys())
     keys = sorted(all_keys)
 
+    # Short display names for columns; track legend for qualified keys
+    legend = {}
+    short = {}
+    # First pass: detect bare-name collisions
+    bare_count = {}
+    for k in keys:
+        bare = k.split('/')[-1] if '/' in k else k
+        bare_count[bare] = bare_count.get(bare, 0) + 1
+    for k in keys:
+        bare = k.split('/')[-1] if '/' in k else k
+        if bare_count[bare] > 1 and '/' in k:
+            dom = k.split('/')[0]
+            display = f'{dom.split(\".\")[0]}/{bare}'
+        else:
+            display = bare
+        short[k] = display
+        if '/' in k:
+            legend[display] = k
+
     dev_w = max(len('Device'), max((len(d['name']) for d in devs), default=6)) + 2
     col_w = {}
     for k in keys:
         vals = [str(d['topo'].get(k, '-')) for d in devs]
-        col_w[k] = max(len(k), max((len(v) for v in vals), default=1)) + 2
+        col_w[k] = max(len(short[k]), max((len(v) for v in vals), default=1)) + 2
 
     hdr = f'  {\"Device\":<{dev_w}}'
     for k in keys:
-        hdr += f'{k:<{col_w[k]}}'
+        hdr += f'{short[k]:<{col_w[k]}}'
     print(f'\033[2m{hdr}\033[0m')
 
     for d in sorted(devs, key=lambda x: x['name']):
@@ -222,7 +240,7 @@ for driver in sorted(drivers):
 
         # Check for missing standard attrs
         missing = []
-        topo_bare = {tk.split(\"/\")[-1] for tk in d['topo']}
+        topo_bare = {tk.split('/')[-1] for tk in d['topo']}
         if 'numaNode' not in topo_bare:
             missing.append('numaNode')
         if 'pciBusID' not in topo_bare and 'cpuSocketID' not in topo_bare:
@@ -231,6 +249,10 @@ for driver in sorted(drivers):
         if missing:
             line += f'  \033[33m(missing: {\", \".join(missing)})\033[0m'
         print(line)
+
+    if legend:
+        parts = [f'{disp} = {full}' for disp, full in sorted(legend.items())]
+        print(f'  \033[2m[{\", \".join(parts)}]\033[0m')
     print()
 " 2>/dev/null
 }
