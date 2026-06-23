@@ -795,18 +795,37 @@ cmd_vfio() {
     fi
     echo ""
 
-    echo -e "${BOLD}CDI Specs (/var/run/cdi):${NC}"
-    if [[ -d /var/run/cdi ]]; then
+    echo -e "${BOLD}CDI Specs (VFIO devices):${NC}"
+    local found_vfio=0
+    local _sudo=""
+    [[ $(id -u) -ne 0 ]] && _sudo="sudo"
+    for cdi_dir in /var/run/cdi /etc/cdi; do
+        $_sudo test -d "$cdi_dir" 2>/dev/null || continue
         local cdi_files
-        cdi_files=$(ls /var/run/cdi/*.json 2>/dev/null)
-        if [[ -n "$cdi_files" ]]; then
-            for f in $cdi_files; do
-                local fname
-                fname=$(basename "$f")
-                local devices
-                devices=$(python3 -c "
-import json
-d = json.load(open('$f'))
+        cdi_files=$($_sudo find "$cdi_dir" -maxdepth 1 \( -name '*.json' -o -name '*.yaml' \) 2>/dev/null)
+        [[ -z "$cdi_files" ]] && continue
+        for f in $cdi_files; do
+            local fname
+            fname=$(basename "$f")
+            local devices
+            devices=$($_sudo python3 -c "
+import json, sys
+try:
+    import yaml
+    loader = yaml
+except ImportError:
+    loader = None
+with open('$f') as fh:
+    raw = fh.read()
+try:
+    d = json.loads(raw)
+except:
+    if loader:
+        d = loader.safe_load(raw)
+    else:
+        sys.exit(0)
+if not d or not isinstance(d, dict):
+    sys.exit(0)
 devs = d.get('devices', [])
 for dev in devs:
     nodes = dev.get('containerEdits', {}).get('deviceNodes', [])
@@ -814,16 +833,15 @@ for dev in devs:
     if paths:
         print(f'  {dev[\"name\"]}: {\", \".join(paths)}')
 " 2>/dev/null)
-                if [[ -n "$devices" ]]; then
-                    echo -e "  ${DIM}$fname:${NC}"
-                    echo "$devices"
-                fi
-            done
-        else
-            echo -e "  ${DIM}(no CDI spec files)${NC}"
-        fi
-    else
-        echo -e "  ${DIM}(/var/run/cdi not found — run on the node)${NC}"
+            if [[ -n "$devices" ]]; then
+                echo -e "  ${DIM}$cdi_dir/$fname:${NC}"
+                echo "$devices"
+                found_vfio=1
+            fi
+        done
+    done
+    if [[ "$found_vfio" -eq 0 ]]; then
+        echo -e "  ${DIM}(no VFIO CDI specs found)${NC}"
     fi
 }
 
