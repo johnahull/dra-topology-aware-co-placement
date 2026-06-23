@@ -816,23 +816,33 @@ print_numa_tree() {
         done
     done
 
-    # Print each root subtree that contains devices on this node
+    # Print each root subtree grouped by pcieRoot
     local root_list=("${!roots_to_show[@]}")
-    # Sort
     IFS=$'\n' root_list=($(printf '%s\n' "${root_list[@]}" | sort))
-    IFS=' 	
-'
-    local total=${#root_list[@]}
-    local idx=0
+    IFS=$' \t\n'
 
     echo -e "  ${DIM}PCIe topology:${RESET}"
     echo ""
 
+    # Build sorted unique pcieRoot list and print grouped
+    local prev_root=""
     for root_bdf in "${root_list[@]}"; do
-        idx=$(( idx + 1 ))
-        local is_last=0
-        [ "$idx" -eq "$total" ] && is_last=1
-        print_device "$root_bdf" "  " "$is_last"
+        local pcie_root="${DEV_PCIE_ROOT_DOMAIN[$root_bdf]:-${DEV_PCIE_ROOT_DOMAIN[${root_bdf}]:-}}"
+        # Fallback: derive from DEV_PARENT if not in lookup table
+        if [ -z "$pcie_root" ]; then
+            local _par="${DEV_PARENT[$root_bdf]:-}"
+            if [[ "$_par" == root:* ]]; then
+                pcie_root="${_par#root:}"
+            fi
+        fi
+        if [ -n "$pcie_root" ] && [ "$pcie_root" != "$prev_root" ]; then
+            local iommu_name="${ROOT_TO_IVHD[${pcie_root}]:-}"
+            local root_label="pci${pcie_root}"
+            [ -n "$iommu_name" ] && root_label+=" (${iommu_name})"
+            echo -e "  ${DIM}pcieRoot: ${BOLD}${root_label}${RESET}"
+            prev_root="$pcie_root"
+        fi
+        print_device "$root_bdf" "  " "0"
     done
 }
 
