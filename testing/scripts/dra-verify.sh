@@ -1149,10 +1149,25 @@ for rs in data.get('items', []):
         })
 
 # ── Pass 2: infer socket from NUMA ──
+# Step 1: collect explicit cpuSocketID mappings
 numa_to_socket = {}
 for d in devices:
     if d['socket'] and d['primary_numa'] != '?':
         numa_to_socket[d['primary_numa']] = d['socket']
+
+# Step 2: if no cpuSocketID at all, derive socket from NUMA list grouping.
+# Devices sharing the same set of equidistant NUMA nodes are on the same socket.
+if not numa_to_socket:
+    socket_groups = {}  # frozenset(all_numas) -> socket_id
+    next_socket = 0
+    for d in devices:
+        if len(d['all_numas']) > 1:
+            key = frozenset(d['all_numas'])
+            if key not in socket_groups:
+                socket_groups[key] = str(next_socket)
+                next_socket += 1
+            numa_to_socket[d['primary_numa']] = socket_groups[key]
+
 inferred = 0
 for d in devices:
     if not d['socket'] and d['primary_numa'] in numa_to_socket:
@@ -1161,7 +1176,7 @@ for d in devices:
     elif not d['socket']:
         d['socket'] = '?'
 if inferred and verbose:
-    print(f'\033[2m(inferred socket for {inferred} devices via NUMA mapping)\033[0m')
+    print(f'\033[2m(inferred socket for {inferred} devices via NUMA list grouping)\033[0m')
 
 # ── Group by Socket → primary NUMA → pcieRoot ──
 sockets = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
