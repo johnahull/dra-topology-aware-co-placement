@@ -1295,7 +1295,18 @@ def get_attr(dev, attr_list):
     return None
 
 def get_numa(dev):
-    return get_attr(dev, NUMA_ATTRS)
+    attrs = dev.get("attributes", {})
+    for attr_name in NUMA_ATTRS:
+        if attr_name in attrs:
+            val = attrs[attr_name]
+            if isinstance(val, dict):
+                if "int" in val:
+                    return val["int"]
+                if "ints" in val and val["ints"]:
+                    return val["ints"][0]
+                return val.get("string")
+            return val
+    return None
 
 def get_pcie(dev):
     return get_attr(dev, PCIE_ATTRS)
@@ -1342,6 +1353,8 @@ def extract_numa_values(selectors):
     numas = set()
     for sel in (selectors or []):
         for m in re.findall(r"numaNode\w*\s*==\s*(\d+)", sel):
+            numas.add(int(m))
+        for m in re.findall(r"numaNode\w*\.includes\(\s*(\d+)\s*\)", sel):
             numas.add(int(m))
     return numas
 
@@ -1557,10 +1570,11 @@ for profile in sorted(by_profile):
         header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
 
         # Check allocation status for this partition.
-        # Only show a consumer if a device was allocated through a claim
-        # that references THIS specific DeviceClass (not just any claim
-        # that allocated a device from the same driver on the same NUMA).
+        # A partition is in-use if any device on its NUMA nodes from a
+        # matching driver is allocated -- the hardware is unavailable
+        # regardless of which DeviceClass name the claim used.
         partition_consumers = set()
+        partition_drivers = set(sr.get("deviceClass", "") for sr in subs)
         for sr in subs:
             drv = sr.get("deviceClass", "")
             tree_drv = drv
@@ -1572,9 +1586,8 @@ for profile in sorted(by_profile):
             for numa_val in (sorted(target_numas) if target_numas else [None]):
                 for pcie_key in dev_tree[tree_drv].get(numa_val, {}):
                     for d in dev_tree[tree_drv][numa_val][pcie_key]:
-                        dev_key = (d["driver"], d["name"])
-                        c = allocated.get(dev_key)
-                        if c and name in allocated_dc.get(dev_key, set()):
+                        c = allocated.get((d["driver"], d["name"]))
+                        if c:
                             partition_consumers.add(c)
 
         if partition_consumers:
