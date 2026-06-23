@@ -1006,12 +1006,11 @@ print_simple_topology() {
         local link
         link=$(get_link_info "$dev_path")
 
+        # Skip no-NUMA devices — they appear in the "No NUMA Affinity" section
+        [ "$numa" = "-1" ] && continue
+
         local socket
-        if [ "$numa" = "-1" ]; then
-            socket="?"
-        else
-            socket=$(_socket_for_numa "$numa")
-        fi
+        socket=$(_socket_for_numa "$numa")
 
         local key="${socket}:${numa}:${root_domain}"
         _topo_groups["$key"]+="${dtype}|${bdf}|${drv}|${product}|${link}"$'\n'
