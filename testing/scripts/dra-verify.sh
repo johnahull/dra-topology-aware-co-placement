@@ -1311,17 +1311,45 @@ def get_numa(dev):
 def get_pcie(dev):
     return get_attr(dev, PCIE_ATTRS)
 
+def humanize_quantity(val_str):
+    if not val_str:
+        return val_str
+    import re
+    m = re.match(r"^(\d+)(Ki|Mi|Gi|Ti)?$", str(val_str))
+    if not m:
+        return val_str
+    num = int(m.group(1))
+    suffix = m.group(2) or ""
+    if suffix == "Ki":
+        if num >= 1024*1024:
+            return f"{num/(1024*1024):.0f}Gi"
+        if num >= 1024:
+            return f"{num/1024:.0f}Mi"
+        return f"{num}Ki"
+    if suffix == "Mi":
+        if num >= 1024:
+            return f"{num/1024:.0f}Gi"
+        return f"{num}Mi"
+    return val_str
+
 # Build device index: driver -> {name, numa, pcie}
 all_devices = []
 for s in slice_data.get("items", []):
     driver = s["spec"]["driver"]
     for d in s["spec"].get("devices", []):
+        dev_capacity = {}
+        for cap_name, cap_val in d.get("capacity", {}).items():
+            if isinstance(cap_val, dict):
+                dev_capacity[cap_name] = cap_val.get("value", "")
+            else:
+                dev_capacity[cap_name] = str(cap_val)
         all_devices.append({
             "name": d["name"],
             "driver": driver,
             "numa": get_numa(d),
             "pcie": get_pcie(d),
             "attrs": d.get("attributes", {}),
+            "capacity": dev_capacity,
         })
 
 # Build allocated device set: (driver, device_name) -> consumer name
@@ -1607,7 +1635,32 @@ for profile in sorted(by_profile):
                 cap_str = ", ".join(cap_parts)
                 slot_parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
             else:
-                slot_parts.append(f"\033[36m{drv}\033[0m: {count}")
+                # Look up device capacity from ResourceSlice for matching devices
+                tree_drv = drv
+                if drv not in dev_tree:
+                    for td in dev_tree:
+                        if td in drv or drv in td:
+                            tree_drv = td
+                            break
+                dev_cap_str = ""
+                for numa_val in (sorted(target_numas) if target_numas else [None]):
+                    for pcie_key in dev_tree.get(tree_drv, {}).get(numa_val, {}):
+                        for d in dev_tree[tree_drv][numa_val][pcie_key]:
+                            if d.get("capacity"):
+                                cap_parts = []
+                                for cn, cv in sorted(d["capacity"].items()):
+                                    short_name = cn.split("/")[-1] if "/" in cn else cn
+                                    cap_parts.append(f"{humanize_quantity(cv)} {short_name}")
+                                dev_cap_str = ", ".join(cap_parts)
+                                break
+                        if dev_cap_str:
+                            break
+                    if dev_cap_str:
+                        break
+                if dev_cap_str:
+                    slot_parts.append(f"\033[36m{drv}\033[0m: {count} \033[2m({dev_cap_str} each)\033[0m")
+                else:
+                    slot_parts.append(f"\033[36m{drv}\033[0m: {count}")
         if slot_parts:
             line = ", ".join(slot_parts)
             print(f"    {line}")
