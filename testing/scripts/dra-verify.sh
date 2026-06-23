@@ -1314,15 +1314,24 @@ for s in slice_data.get("items", []):
         })
 
 # Build allocated device set: (driver, device_name) -> consumer name
+# Also track which DeviceClass each claim used
 allocated = {}
+allocated_dc = {}  # (driver, device_name) -> set of DeviceClass names from the claim requests
 for c in claim_data.get("items", []):
     consumers = c.get("status", {}).get("reservedFor", [])
     consumer = consumers[0]["name"] if consumers else None
     if not consumer:
         continue
+    # Collect DeviceClass names from the claim requests
+    claim_dcs = set()
+    for req in c.get("spec", {}).get("devices", {}).get("requests", []):
+        exactly = req.get("exactly", {})
+        if exactly and exactly.get("deviceClassName"):
+            claim_dcs.add(exactly["deviceClassName"])
     for r in c.get("status", {}).get("allocation", {}).get("devices", {}).get("results", []):
         key = (r.get("driver", ""), r.get("device", ""))
         allocated[key] = consumer
+        allocated_dc[key] = claim_dcs
 
 # Group devices by driver -> numa -> pcie_root -> [devices]
 dev_tree = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -1547,7 +1556,10 @@ for profile in sorted(by_profile):
             header += f" \033[2m\xb7\033[0m {coupling}"
         header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
 
-        # Check allocation status for this partition — collect all consumers
+        # Check allocation status for this partition.
+        # Only show a consumer if a device was allocated through a claim
+        # that references THIS specific DeviceClass (not just any claim
+        # that allocated a device from the same driver on the same NUMA).
         partition_consumers = set()
         for sr in subs:
             drv = sr.get("deviceClass", "")
@@ -1560,8 +1572,9 @@ for profile in sorted(by_profile):
             for numa_val in (sorted(target_numas) if target_numas else [None]):
                 for pcie_key in dev_tree[tree_drv].get(numa_val, {}):
                     for d in dev_tree[tree_drv][numa_val][pcie_key]:
-                        c = allocated.get((d["driver"], d["name"]))
-                        if c:
+                        dev_key = (d["driver"], d["name"])
+                        c = allocated.get(dev_key)
+                        if c and name in allocated_dc.get(dev_key, set()):
                             partition_consumers.add(c)
 
         if partition_consumers:
