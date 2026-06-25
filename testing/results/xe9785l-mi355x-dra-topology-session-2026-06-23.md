@@ -197,3 +197,95 @@ config:
 
 - `testing/scripts/dra-verify.sh` — Infer socket from SLIT numaNode lists
 - `testing/scripts/hw-topology.sh` — pcieRoot header in tree view, skip numa=-1 in simple view
+
+## PF Passthrough Root Cause Analysis (2026-06-25)
+
+### Problem
+
+MI355X PF passthrough to KubeVirt VMs fails. After VFIO binds the PF and QEMU
+opens the device, the PCI config space returns all 0xFF and the device becomes
+permanently inaccessible until reboot.
+
+### Root Cause
+
+PCI bus reset on MI355X PFs causes the device to enter D3cold and never recover.
+The kernel's only available reset method for this device is `bus` (no FLR). When
+VFIO issues the bus reset during `vfio_pci_open_device()`, the GPU firmware does
+not handle it correctly.
+
+**Diagnostic steps that confirmed the cause:**
+
+1. Config space healthy before reset: `02 10 a3 75`
+2. `echo 1 > /sys/bus/pci/devices/<addr>/reset` triggers bus reset
+3. Config space after reset: `ff ff ff ff ff ff ff ff`
+4. dmesg: `Unable to change power state from D0 to D3hot, device inaccessible`
+5. PCI remove/rescan does not recover the device
+
+GIM SR-IOV VFs are unaffected because VF reset is handled by the GIM hypervisor
+firmware, not a PCI bus reset.
+
+### Fix: PCI_DEV_FLAGS_NO_BUS_RESET Quirk
+
+Setting `PCI_DEV_FLAGS_NO_BUS_RESET` on the device prevents VFIO from issuing
+the bus reset. With the flag set:
+
+- VFIO bind succeeds
+- Config space survives open/close
+- Device remains accessible
+
+**Test module (standalone workaround):**
+
+```c
+#include <linux/module.h>
+#include <linux/pci.h>
+
+#define MI355X_DEVICE_ID 0x75a3
+#define AMD_VENDOR_ID 0x1002
+
+static int __init no_bus_reset_init(void)
+{
+    struct pci_dev *dev = NULL;
+    while ((dev = pci_get_device(AMD_VENDOR_ID, MI355X_DEVICE_ID, dev)) != NULL) {
+        dev->dev_flags |= PCI_DEV_FLAGS_NO_BUS_RESET;
+        pr_info("no_bus_reset_mi355x: disabled bus reset for %s\n",
+                pci_name(dev));
+    }
+    return 0;
+}
+
+static void __exit no_bus_reset_exit(void)
+{
+    struct pci_dev *dev = NULL;
+    while ((dev = pci_get_device(AMD_VENDOR_ID, MI355X_DEVICE_ID, dev)) != NULL) {
+        dev->dev_flags &= ~PCI_DEV_FLAGS_NO_BUS_RESET;
+        pr_info("no_bus_reset_mi355x: re-enabled bus reset for %s\n",
+                pci_name(dev));
+    }
+}
+
+module_init(no_bus_reset_init);
+module_exit(no_bus_reset_exit);
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Disable PCI bus reset for AMD MI355X GPUs");
+```
+
+**Upstream kernel patch (proper fix):**
+
+Add to `drivers/pci/quirks.c`:
+
+```c
+/*
+ * AMD Instinct MI355X and MI300X GPUs do not recover from a PCI bus
+ * reset. The device becomes permanently inaccessible (config space
+ * reads return 0xFF). Disable bus reset for VFIO PF passthrough.
+ */
+DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_ATI, 0x75a3, quirk_no_bus_reset);
+DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_ATI, 0x740f, quirk_no_bus_reset);
+```
+
+### Affected Device IDs
+
+| Device | PCI ID | Status |
+|--------|--------|--------|
+| MI355X | 1002:75a3 | Confirmed broken, quirk fixes it |
+| MI300X | 1002:740f | Same behavior reported, needs verification |
