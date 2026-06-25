@@ -5,7 +5,8 @@
 #   dra-verify.sh slices                     Show hardware summary from ResourceSlices
 #   dra-verify.sh topology                   Show devices grouped by pcieRoot, numaNode, cpuSocketID
 #   dra-verify.sh drivers                    Show DRA driver status
-#   dra-verify.sh attributes                 Show ResourceSlice topology attributes
+#   dra-verify.sh attributes [-a]             Show ResourceSlice topology attributes (-a for all)
+#   dra-verify.sh driverinfo                  Show published attributes/capacities per driver
 #   dra-verify.sh deviceclasses               Show topology coordinator device classes
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
 #   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
@@ -23,8 +24,8 @@ _dra_verify() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cmds="slices topology drivers attributes deviceclasses claims alignment cpupinning vfio metadata guest all help completions"
-    opts="-n --namespace -v --verbose -h --help"
+    cmds="slices topology drivers attributes driverinfo deviceclasses claims alignment cpupinning vfio metadata guest all help completions"
+    opts="-n --namespace -v --verbose -a --all -h --help"
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
         COMPREPLY=( $(compgen -W "${cmds}" -- "${cur}") )
@@ -74,11 +75,13 @@ shift || true
 NAMESPACE=""
 TARGET=""
 VERBOSE=""
+SHOW_ALL=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -n|--namespace) NAMESPACE="$2"; shift 2 ;;
         -v|--verbose) VERBOSE="1"; shift ;;
+        -a|--all) SHOW_ALL="1"; shift ;;
         -h|--help) CMD="help"; shift ;;
         *) TARGET="$1"; shift ;;
     esac
@@ -205,10 +208,16 @@ for ds in data.get('items', []):
 # ── attributes ────────────────────────────────────────────────────────────────
 
 cmd_attributes() {
-    section "ResourceSlice Topology Attributes"
+    if [[ "$SHOW_ALL" == "1" ]]; then
+        section "ResourceSlice Device Attributes (all)"
+    else
+        section "ResourceSlice Topology Attributes"
+    fi
 
-    kubectl get resourceslices -o json 2>/dev/null | python3 -c "
-import json, sys
+    kubectl get resourceslices -o json 2>/dev/null | SHOW_ALL="$SHOW_ALL" python3 -c "
+import json, sys, os
+
+show_all = os.environ.get('SHOW_ALL', '') == '1'
 
 data = json.load(sys.stdin)
 TOPO_ATTRS = [
@@ -217,8 +226,30 @@ TOPO_ATTRS = [
     'resource.kubernetes.io/pcieRoot',
     'resource.kubernetes.io/pciBusID',
 ]
-# Also check vendor-specific NUMA attrs
 NUMA_VENDOR = ['numaNode', 'numa', 'numaNodeID']
+
+def extract_value(val):
+    \"\"\"Extract display value from a typed attribute or capacity dict.\"\"\"
+    for t in ('string', 'int', 'bool', 'stringSlice', 'intSlice'):
+        if t in val:
+            v = val[t]
+            if isinstance(v, list):
+                return ','.join(str(x) for x in v)
+            return v
+    if 'value' in val:
+        return val['value']
+    if 'quantity' in val:
+        return val['quantity']
+    return list(val.values())[0] if val else '-'
+
+def attr_type_tag(val):
+    \"\"\"Return short type indicator for an attribute value dict.\"\"\"
+    for t, tag in [('string','str'), ('int','int'), ('bool','bool'),
+                   ('stringSlice','str[]'), ('intSlice','int[]'),
+                   ('value','cap'), ('quantity','qty')]:
+        if t in val:
+            return tag
+    return ''
 
 drivers = {}
 for rs in data.get('items', []):
@@ -226,21 +257,27 @@ for rs in data.get('items', []):
     for dev in rs['spec'].get('devices', []) or []:
         name = dev['name']
         attrs = dev.get('attributes', {})
+        caps = dev.get('capacity', {})
 
-        # Extract topology values
-        topo = {}
-        for key in TOPO_ATTRS:
-            if key in attrs:
-                val = attrs[key]
-                topo[key] = list(val.values())[0]
-
-        # Check vendor NUMA (skip if already covered by TOPO_ATTRS)
-        topo_bare = {k.split('/')[-1] for k in topo}
-        for vk in NUMA_VENDOR:
+        if show_all:
+            topo = {}
             for ak, av in attrs.items():
-                aname = ak.split('/')[-1] if '/' in ak else ak
-                if aname == vk and aname not in topo_bare:
-                    topo[ak] = list(av.values())[0]
+                topo[ak] = extract_value(av)
+            for ck, cv in caps.items():
+                key = f'{ck} [capacity]'
+                topo[key] = extract_value(cv)
+        else:
+            topo = {}
+            for key in TOPO_ATTRS:
+                if key in attrs:
+                    topo[key] = extract_value(attrs[key])
+
+            topo_bare = {k.split('/')[-1] for k in topo}
+            for vk in NUMA_VENDOR:
+                for ak, av in attrs.items():
+                    aname = ak.split('/')[-1] if '/' in ak else ak
+                    if aname == vk and aname not in topo_bare:
+                        topo[ak] = extract_value(av)
 
         if driver not in drivers:
             drivers[driver] = []
@@ -271,12 +308,20 @@ for driver in sorted(drivers):
     all_keys = set()
     for d in devs:
         all_keys.update(d['topo'].keys())
-    keys = sorted(all_keys)
+
+    # Sort: topology attrs first, then remaining alphabetically
+    topo_order = {a: i for i, a in enumerate(TOPO_ATTRS)}
+    def sort_key(k):
+        if k in topo_order:
+            return (0, topo_order[k], k)
+        if '[capacity]' in k:
+            return (2, 0, k)
+        return (1, 0, k)
+    keys = sorted(all_keys, key=sort_key)
 
     # Short display names for columns; track legend for qualified keys
     legend = {}
     short = {}
-    # First pass: detect bare-name collisions
     bare_count = {}
     for k in keys:
         bare = k.split('/')[-1] if '/' in k else k
@@ -291,6 +336,11 @@ for driver in sorted(drivers):
         short[k] = display
         if '/' in k:
             legend[display] = k
+
+    if not keys:
+        print(f'  \033[2m(no attributes)\033[0m')
+        print()
+        continue
 
     dev_w = max(len('Device'), max((len(d['name']) for d in devs), default=6)) + 2
     col_w = {}
@@ -309,21 +359,120 @@ for driver in sorted(drivers):
             v = d['topo'].get(k, '-')
             line += f'{str(v):<{col_w[k]}}'
 
-        # Check for missing standard attrs
-        missing = []
-        topo_bare = {tk.split('/')[-1] for tk in d['topo']}
-        if 'numaNode' not in topo_bare:
-            missing.append('numaNode')
-        if 'pciBusID' not in topo_bare and 'cpuSocketID' not in topo_bare:
-            pass
-
-        if missing:
-            line += f'  \033[33m(missing: {\", \".join(missing)})\033[0m'
+        if not show_all:
+            missing = []
+            topo_bare = {tk.split('/')[-1] for tk in d['topo']}
+            if 'numaNode' not in topo_bare:
+                missing.append('numaNode')
+            if missing:
+                line += f'  \033[33m(missing: {\", \".join(missing)})\033[0m'
         print(line)
 
     if legend:
         parts = [f'{disp} = {full}' for disp, full in sorted(legend.items())]
         print(f'  \033[2m[{\", \".join(parts)}]\033[0m')
+    print()
+" 2>/dev/null
+}
+
+# ── driverinfo ────────────────────────────────────────────────────────────────
+
+cmd_driverinfo() {
+    section "DRA Driver Published Attributes"
+
+    kubectl get resourceslices -o json 2>/dev/null | python3 -c "
+import json, sys
+from collections import defaultdict
+
+data = json.load(sys.stdin)
+
+drivers = {}
+for rs in data.get('items', []):
+    driver = rs['spec']['driver']
+    node = rs['spec'].get('nodeName', '(cluster)')
+    if driver not in drivers:
+        drivers[driver] = {'slices': 0, 'devices': 0, 'nodes': set(), 'attrs': {}, 'caps': {}}
+    info = drivers[driver]
+    info['slices'] += 1
+    info['nodes'].add(node)
+    for dev in rs['spec'].get('devices', []) or []:
+        info['devices'] += 1
+        for ak, av in dev.get('attributes', {}).items():
+            atype = next((t for t in ('string','int','bool','stringSlice','intSlice') if t in av), '?')
+            if ak not in info['attrs']:
+                info['attrs'][ak] = {'type': atype, 'count': 0, 'sample': None}
+            info['attrs'][ak]['count'] += 1
+            if info['attrs'][ak]['sample'] is None:
+                val = av.get(atype)
+                if isinstance(val, list):
+                    info['attrs'][ak]['sample'] = ','.join(str(x) for x in val)
+                else:
+                    info['attrs'][ak]['sample'] = str(val) if val is not None else '-'
+        for ck, cv in dev.get('capacity', {}).items():
+            ctype = 'quantity' if 'quantity' in cv else 'counter' if 'value' in cv else '?'
+            if ck not in info['caps']:
+                info['caps'][ck] = {'type': ctype, 'count': 0, 'sample': None}
+            info['caps'][ck]['count'] += 1
+            if info['caps'][ck]['sample'] is None:
+                info['caps'][ck]['sample'] = str(cv.get('value', cv.get('quantity', '-')))
+
+TYPE_COLORS = {
+    'int': '\033[36m', 'string': '\033[32m', 'bool': '\033[33m',
+    'intSlice': '\033[36m', 'stringSlice': '\033[32m',
+    'counter': '\033[35m', 'quantity': '\033[35m',
+}
+NC = '\033[0m'
+DIM = '\033[2m'
+BOLD = '\033[1m'
+
+for driver in sorted(drivers):
+    info = drivers[driver]
+    nodes_str = ', '.join(sorted(info['nodes']))
+    print(f'{BOLD}{driver}{NC}')
+    print(f'  {info[\"slices\"]} slices, {info[\"devices\"]} devices on: {nodes_str}')
+    print()
+
+    std_attrs = {}
+    vendor_attrs = {}
+    for ak, av in info['attrs'].items():
+        if 'kubernetes.io/' in ak:
+            std_attrs[ak] = av
+        else:
+            vendor_attrs[ak] = av
+
+    if std_attrs:
+        print(f'  {BOLD}Standard attributes:{NC}')
+        for ak in sorted(std_attrs):
+            av = std_attrs[ak]
+            tc = TYPE_COLORS.get(av['type'], '')
+            coverage = f'{av[\"count\"]}/{info[\"devices\"]}'
+            sample = av['sample'] or '-'
+            if len(str(sample)) > 40:
+                sample = str(sample)[:37] + '...'
+            print(f'    {ak:<50s} {tc}{av[\"type\"]:>11s}{NC}  {DIM}{coverage:>7s}  sample: {sample}{NC}')
+
+    if vendor_attrs:
+        print(f'  {BOLD}Vendor attributes:{NC}')
+        for ak in sorted(vendor_attrs):
+            av = vendor_attrs[ak]
+            tc = TYPE_COLORS.get(av['type'], '')
+            coverage = f'{av[\"count\"]}/{info[\"devices\"]}'
+            sample = av['sample'] or '-'
+            if len(str(sample)) > 40:
+                sample = str(sample)[:37] + '...'
+            print(f'    {ak:<50s} {tc}{av[\"type\"]:>11s}{NC}  {DIM}{coverage:>7s}  sample: {sample}{NC}')
+
+    if info['caps']:
+        print(f'  {BOLD}Capacity:{NC}')
+        for ck in sorted(info['caps']):
+            cv = info['caps'][ck]
+            tc = TYPE_COLORS.get(cv['type'], '')
+            coverage = f'{cv[\"count\"]}/{info[\"devices\"]}'
+            sample = cv['sample'] or '-'
+            print(f'    {ck:<50s} {tc}{cv[\"type\"]:>11s}{NC}  {DIM}{coverage:>7s}  sample: {sample}{NC}')
+
+    if not std_attrs and not vendor_attrs and not info['caps']:
+        print(f'  {DIM}(no attributes published){NC}')
     print()
 " 2>/dev/null
 }
@@ -1805,7 +1954,8 @@ cmd_help() {
     echo "  slices                     Show hardware summary from ResourceSlices"
     echo "  topology                   Show devices grouped by socket, NUMA, pcieRoot"
     echo "  drivers                    Show DRA driver DaemonSets, pods, registration"
-    echo "  attributes                 Show ResourceSlice topology attributes per driver"
+    echo "  attributes [-a]            Show ResourceSlice topology attributes (-a for all)"
+    echo "  driverinfo                 Show published attributes/capacities per driver"
     echo "  deviceclasses              Show topology coordinator device classes"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
     echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
@@ -1818,6 +1968,7 @@ cmd_help() {
     echo ""
     echo "Options:"
     echo "  -n, --namespace NS         Kubernetes namespace"
+    echo "  -a, --all                  Show all attributes and capacities (attributes)"
     echo "  -v, --verbose              Show PCI device models (slices, topology)"
     echo ""
     echo "Examples:"
@@ -1844,6 +1995,7 @@ case "$CMD" in
     topology)   cmd_topology ;;
     drivers)    cmd_drivers ;;
     attributes) cmd_attributes ;;
+    driverinfo) cmd_driverinfo ;;
     deviceclasses) cmd_deviceclasses ;;
     claims)     cmd_claims ;;
     alignment)  cmd_alignment ;;
