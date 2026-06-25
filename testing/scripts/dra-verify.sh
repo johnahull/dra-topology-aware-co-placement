@@ -135,6 +135,59 @@ else:
 " 2>/dev/null
     echo ""
 
+    echo -e "${BOLD}Driver Configuration:${NC}"
+    kubectl get ds -A -o json 2>/dev/null | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+
+for ds in data.get('items', []):
+    name = ds['metadata']['name']
+    ns = ds['metadata']['namespace']
+    containers = ds['spec']['template']['spec'].get('containers', [])
+    for c in containers:
+        args = c.get('args', []) + c.get('command', [])
+        args_str = ' '.join(args)
+        # Only show DRA drivers
+        if 'dra' not in args_str and 'dra' not in name and 'gpu' not in name:
+            continue
+        mode = None
+        group_by = None
+        reserved = None
+        expose_pcie = None
+        numa_list = None
+        for a in args:
+            if a.startswith('--cpu-device-mode='):
+                mode = a.split('=', 1)[1]
+            elif a.startswith('--group-by='):
+                group_by = a.split('=', 1)[1]
+            elif a.startswith('--reserved-cpus='):
+                reserved = a.split('=', 1)[1]
+            elif a.startswith('--expose-pcie-roots='):
+                expose_pcie = a.split('=', 1)[1]
+            elif a.startswith('--expose-pcie-roots'):
+                expose_pcie = 'true'
+            elif a.startswith('--numa-list='):
+                numa_list = a.split('=', 1)[1]
+        if mode or group_by or reserved or expose_pcie or numa_list:
+            print(f'  \033[1m{ns}/{name}\033[0m ({c[\"name\"]}):')
+            if mode:
+                print(f'    cpu-device-mode = {mode}')
+            if group_by:
+                print(f'    group-by        = {group_by}')
+            else:
+                if mode == 'grouped' or (mode is None and group_by is None and any(a.startswith('--group-by') for a in args)):
+                    pass
+                elif mode == 'grouped' or mode is None:
+                    print(f'    group-by        = \033[2mnumanode (default)\033[0m')
+            if reserved:
+                print(f'    reserved-cpus   = {reserved}')
+            if expose_pcie:
+                print(f'    expose-pcie-roots = {expose_pcie}')
+            if numa_list:
+                print(f'    numa-list       = {numa_list}')
+" 2>/dev/null
+    echo ""
+
     echo -e "${BOLD}Kubelet Plugin Registration:${NC}"
     local reg_dir="/var/lib/kubelet/plugins_registry"
     if [[ -d "$reg_dir" ]]; then
@@ -195,7 +248,25 @@ for rs in data.get('items', []):
 
 for driver in sorted(drivers):
     devs = drivers[driver]
-    print(f'\033[1m{driver}\033[0m ({len(devs)} devices):')
+
+    # Infer cpu-device-mode and group-by from device name patterns
+    mode_info = ''
+    if 'cpu' in driver.lower():
+        names = [d['name'] for d in devs]
+        has_numa = any(n.startswith('cpudevnuma') for n in names)
+        has_socket = any(n.startswith('cpudevsocket') for n in names)
+        has_machine = any(n == 'cpudevmachine' for n in names)
+        has_individual = any(n.startswith('cpudev') and n[6:].isdigit() for n in names)
+        if has_machine:
+            mode_info = ' \033[33m[grouped/machine]\033[0m'
+        elif has_socket:
+            mode_info = ' \033[33m[grouped/socket]\033[0m'
+        elif has_numa:
+            mode_info = ' \033[33m[grouped/numanode]\033[0m'
+        elif has_individual:
+            mode_info = ' \033[33m[individual]\033[0m'
+
+    print(f'\033[1m{driver}\033[0m ({len(devs)} devices):{mode_info}')
 
     all_keys = set()
     for d in devs:
