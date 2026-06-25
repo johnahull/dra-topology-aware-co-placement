@@ -230,7 +230,7 @@ NUMA_VENDOR = ['numaNode', 'numa', 'numaNodeID']
 
 def extract_value(val):
     \"\"\"Extract display value from a typed attribute or capacity dict.\"\"\"
-    for t in ('string', 'int', 'bool', 'stringSlice', 'intSlice'):
+    for t in ('int', 'string', 'bool', 'ints', 'strings'):
         if t in val:
             v = val[t]
             if isinstance(v, list):
@@ -241,15 +241,6 @@ def extract_value(val):
     if 'quantity' in val:
         return val['quantity']
     return list(val.values())[0] if val else '-'
-
-def attr_type_tag(val):
-    \"\"\"Return short type indicator for an attribute value dict.\"\"\"
-    for t, tag in [('string','str'), ('int','int'), ('bool','bool'),
-                   ('stringSlice','str[]'), ('intSlice','int[]'),
-                   ('value','cap'), ('quantity','qty')]:
-        if t in val:
-            return tag
-    return ''
 
 drivers = {}
 for rs in data.get('items', []):
@@ -398,7 +389,7 @@ for rs in data.get('items', []):
     for dev in rs['spec'].get('devices', []) or []:
         info['devices'] += 1
         for ak, av in dev.get('attributes', {}).items():
-            atype = next((t for t in ('string','int','bool','stringSlice','intSlice') if t in av), '?')
+            atype = next((t for t in ('int','string','bool','ints','strings') if t in av), '?')
             if ak not in info['attrs']:
                 info['attrs'][ak] = {'type': atype, 'count': 0, 'sample': None}
             info['attrs'][ak]['count'] += 1
@@ -418,7 +409,7 @@ for rs in data.get('items', []):
 
 TYPE_COLORS = {
     'int': '\033[36m', 'string': '\033[32m', 'bool': '\033[33m',
-    'intSlice': '\033[36m', 'stringSlice': '\033[32m',
+    'ints': '\033[36m', 'strings': '\033[32m',
     'counter': '\033[35m', 'quantity': '\033[35m',
 }
 NC = '\033[0m'
