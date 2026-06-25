@@ -11,6 +11,7 @@
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
 #   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
 #   dra-verify.sh cpupinning [pod] [-n ns]   Show cpuset vs device NUMA
+#   dra-verify.sh counters                    Show KEP-4815 shared counter sets and consumption
 #   dra-verify.sh vfio                       Show VFIO-bound devices and CDI specs
 #   dra-verify.sh metadata [pod] [-n ns]     Show KEP-5304 metadata in pod
 #   dra-verify.sh guest [vm] [-n ns]         Show guest NUMA topology in VM
@@ -24,7 +25,7 @@ _dra_verify() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cmds="slices topology drivers attributes driverinfo deviceclasses claims alignment cpupinning vfio metadata guest all help completions"
+    cmds="slices topology drivers attributes driverinfo deviceclasses claims alignment cpupinning counters vfio metadata guest all help completions"
     opts="-n --namespace -v --verbose -a --all -h --help"
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
@@ -970,6 +971,164 @@ for pod in data.get('items', []):
                     print(f'  \033[33m! CPUs span NUMA nodes: {numa_str}\033[0m')
         else:
             print(f'  container {cname}: cpuset = \033[2m(run on node to read cgroup)\033[0m')
+    print()
+" 2>/dev/null
+}
+
+# ── counters ─────────────────────────────────────────────────────────────────
+
+cmd_counters() {
+    section "KEP-4815 Shared Counter Sets"
+
+    { kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | python3 -c "
+import json, sys
+from collections import defaultdict
+
+raw = sys.stdin.read()
+parts = raw.split('---SEP---')
+slices_data = json.loads(parts[0])
+try:
+    claims_data = json.loads(parts[1])
+except:
+    claims_data = {'items': []}
+
+BOLD = '\033[1m'
+DIM = '\033[2m'
+GREEN = '\033[32m'
+YELLOW = '\033[33m'
+RED = '\033[31m'
+CYAN = '\033[36m'
+MAGENTA = '\033[35m'
+NC = '\033[0m'
+
+# Collect shared counter sets and devices per pool
+pools = {}  # pool_name -> {counter_sets: {name: {counters}}, devices: [{name, consumesCounters}]}
+for rs in slices_data.get('items', []):
+    driver = rs['spec']['driver']
+    pool_name = rs['spec'].get('pool', {}).get('name', '?')
+    pool_key = f'{driver}/{pool_name}'
+    if pool_key not in pools:
+        pools[pool_key] = {'driver': driver, 'pool': pool_name, 'counter_sets': {}, 'devices': []}
+
+    for cs in rs['spec'].get('sharedCounters', []) or []:
+        cs_name = cs['name']
+        counters = {}
+        for cn, cv in cs.get('counters', {}).items():
+            counters[cn] = cv.get('value', '?')
+        pools[pool_key]['counter_sets'][cs_name] = counters
+
+    for dev in rs['spec'].get('devices', []) or []:
+        cc = dev.get('consumesCounters', []) or []
+        if cc:
+            pools[pool_key]['devices'].append({
+                'name': dev['name'],
+                'consumesCounters': cc,
+                'attrs': dev.get('attributes', {}),
+            })
+
+# Build allocated device set
+allocated = {}
+for c in claims_data.get('items', []):
+    reserved = c.get('status', {}).get('reservedFor', [])
+    consumer = reserved[0]['name'] if reserved else None
+    if not consumer:
+        continue
+    for r in c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', []):
+        key = f'{r[\"driver\"]}/{r[\"device\"]}'
+        allocated[key] = consumer
+
+found = False
+for pool_key in sorted(pools):
+    p = pools[pool_key]
+    if not p['counter_sets']:
+        continue
+    found = True
+
+    print(f'{BOLD}{p[\"driver\"]}{NC} (pool: {p[\"pool\"]})')
+    print()
+
+    for cs_name in sorted(p['counter_sets']):
+        counters = p['counter_sets'][cs_name]
+
+        # Find devices consuming from this counter set
+        consumers = []
+        for dev in p['devices']:
+            for cc in dev['consumesCounters']:
+                if cc.get('counterSet') == cs_name:
+                    dev_key = f'{p[\"driver\"]}/{dev[\"name\"]}'
+                    is_allocated = dev_key in allocated
+                    consumer_pod = allocated.get(dev_key, '')
+
+                    consumed = {}
+                    for cn, cv in cc.get('counters', {}).items():
+                        consumed[cn] = cv.get('value', '?')
+
+                    is_vf = dev.get('attrs', {}).get('isVF', {}).get('bool', None)
+                    dev_type = ''
+                    if is_vf is True:
+                        dev_type = f' {DIM}(VF){NC}'
+                    elif is_vf is False:
+                        dev_type = f' {DIM}(PF){NC}'
+
+                    consumers.append({
+                        'name': dev['name'],
+                        'consumed': consumed,
+                        'allocated': is_allocated,
+                        'pod': consumer_pod,
+                        'type': dev_type,
+                    })
+
+        # Compute remaining budget per counter
+        remaining = dict(counters)
+        for c in consumers:
+            if c['allocated']:
+                for cn, cv in c['consumed'].items():
+                    try:
+                        r = int(remaining.get(cn, 0))
+                        u = int(cv)
+                        remaining[cn] = str(r - u)
+                    except (ValueError, TypeError):
+                        pass
+
+        # Display counter set header
+        counter_parts = []
+        for cn in sorted(counters):
+            total = counters[cn]
+            rem = remaining.get(cn, total)
+            try:
+                r = int(rem)
+                t = int(total)
+                if r == t:
+                    color = GREEN
+                elif r > 0:
+                    color = YELLOW
+                else:
+                    color = RED
+                counter_parts.append(f'{cn}: {color}{rem}/{total}{NC}')
+            except (ValueError, TypeError):
+                counter_parts.append(f'{cn}: {rem}/{total}')
+        counter_str = ', '.join(counter_parts)
+
+        alloc_count = sum(1 for c in consumers if c['allocated'])
+        free_count = len(consumers) - alloc_count
+        print(f'  {CYAN}{cs_name}{NC}  [{counter_str}]')
+
+        if not consumers:
+            print(f'    {DIM}(no consuming devices){NC}')
+        else:
+            for c in sorted(consumers, key=lambda x: x['name']):
+                consumed_str = ', '.join(f'{cn}={cv}' for cn, cv in sorted(c['consumed'].items()))
+                if c['allocated']:
+                    pod_str = c['pod'][:35] if c['pod'] else '?'
+                    print(f'    {RED}✗{NC} {c[\"name\"]}{c[\"type\"]}  consumes [{consumed_str}]  {RED}→ {pod_str}{NC}')
+                else:
+                    print(f'    {GREEN}✓{NC} {c[\"name\"]}{c[\"type\"]}  consumes [{consumed_str}]  {GREEN}free{NC}')
+        print()
+
+if not found:
+    print(f'  {DIM}(no KEP-4815 shared counter sets found in any ResourceSlice){NC}')
+    print(f'  {DIM}Counter sets are published by DRA drivers that support partitionable devices.{NC}')
+    print(f'  {DIM}Examples: NVIDIA MIG partitions, AMD SR-IOV VF/PF mutual exclusivity.{NC}')
     print()
 " 2>/dev/null
 }
@@ -1928,6 +2087,7 @@ cmd_all() {
     cmd_deviceclasses
     cmd_claims
     cmd_alignment
+    cmd_counters
     cmd_vfio
 
     if [[ -n "$TARGET" ]]; then
@@ -1951,6 +2111,7 @@ cmd_help() {
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
     echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
     echo "  cpupinning [pod] [-n ns]   Show container cpuset vs device NUMA nodes"
+    echo "  counters                   Show KEP-4815 shared counter sets and consumption"
     echo "  vfio                       Show VFIO-bound devices, IOMMU groups, CDI specs"
     echo "  metadata [pod] [-n ns]     Show KEP-5304 metadata files in pod"
     echo "  guest [vm] [-n ns]         Show guest NUMA topology in KubeVirt VM"
@@ -1991,6 +2152,7 @@ case "$CMD" in
     claims)     cmd_claims ;;
     alignment)  cmd_alignment ;;
     cpupinning) cmd_cpupinning ;;
+    counters)   cmd_counters ;;
     vfio)       cmd_vfio ;;
     metadata)   cmd_metadata ;;
     guest)      cmd_guest ;;
