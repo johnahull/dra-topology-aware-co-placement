@@ -2303,15 +2303,33 @@ for c in claims_data.get('items', []):
             continue
         seen_dev_names.add(dev_name)
         drivers_seen[driver] = True
-        # Reconstruct minimal member info from the device name (e.g. gpu-vfio-0--pci-0000-3a-00-0)
+        # Look up member attributes from underlying driver ResourceSlices.
+        # The composite device name encodes member names: gpu-vfio-0--pci-0000-3a-00-0
         name_parts = dev_name.split('--')
         members = defaultdict(dict)
-        if len(name_parts) >= 2:
-            members['gpu']['device'] = name_parts[0]
-            members['nic']['device'] = name_parts[1]
+        top_attrs = {}
+        for rs2 in slices_data.get('items', []):
+            drv2 = rs2['spec']['driver']
+            if 'composite' in drv2:
+                continue
+            for d2 in rs2['spec'].get('devices', []) or []:
+                if d2['name'] not in name_parts:
+                    continue
+                attrs2 = d2.get('attributes', {})
+                src = 'gpu' if 'gpu' in drv2 else 'nic' if 'net' in drv2 or 'sriov' in drv2 else drv2
+                for ak, av in attrs2.items():
+                    if ak.startswith('resource.kubernetes.io/'):
+                        attr_name = ak.split('/', 1)[1]
+                        if attr_name not in top_attrs:
+                            top_attrs[attr_name] = extract_value(av)
+                        members[src][attr_name] = extract_value(av)
+                    else:
+                        domain = ak.split('/')[0] if '/' in ak else ''
+                        attr_name = ak.split('/', 1)[1] if '/' in ak else ak
+                        members[src][attr_name] = extract_value(av)
         compositions[(driver, 'gpu-nic-pair')].append({
             'name': dev_name,
-            'top': {},
+            'top': top_attrs,
             'members': dict(members),
             'consumer': consumer,
         })
