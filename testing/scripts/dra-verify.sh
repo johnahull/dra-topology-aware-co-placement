@@ -2076,31 +2076,78 @@ for profile in sorted(by_profile):
                     print(f"    \033[2m{drv}: {dev_str}\033[0m")
     print()
 
-# Count allocated claims per DeviceClass name
-allocated_by_dc = defaultdict(int)
+# Build set of allocated device keys from claims
+allocated_devices = set()
 for c in claim_data.get("items", []):
     reserved = c.get("status", {}).get("reservedFor", [])
     if not reserved:
         continue
-    for req in c.get("spec", {}).get("devices", {}).get("requests", []):
-        exactly = req.get("exactly", {})
-        if exactly:
-            allocated_by_dc[exactly.get("deviceClassName", "")] += 1
+    for r in c.get("status", {}).get("allocation", {}).get("devices", {}).get("results", []):
+        allocated_devices.add(r["driver"] + "/" + r["device"])
 
 # Highlight aggregate DeviceClasses (no NUMA label = scheduler picks placement)
 aggregates = [dc for dc in items if not dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
 if aggregates:
-    # Count specific instances per grouping/partitionType for totals
+    # For each specific (per-NUMA) grouping instance, check if any of its
+    # member drivers devices on that NUMA are allocated. The PartitionConfig
+    # lists the driver classes; the ResourceSlices tell us which devices
+    # exist on each NUMA.
     specific_items = [dc for dc in items if dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
     instances_per_group = defaultdict(int)
     allocated_per_group = defaultdict(int)
     for dc in specific_items:
         labels = dc.get("metadata", {}).get("labels", {})
         grp = labels.get(f"{COORD}/grouping", labels.get(f"{COORD}/partitionType", ""))
-        if grp:
-            instances_per_group[grp] += 1
-            if allocated_by_dc.get(dc["metadata"]["name"], 0) > 0:
-                allocated_per_group[grp] += 1
+        numa_label = labels.get(f"{COORD}/numa", "")
+        if not grp:
+            continue
+        instances_per_group[grp] += 1
+
+        # Parse NUMA node IDs from the label (e.g., "numa0" -> [0], "numa0-1" -> [0,1])
+        numa_ids = set()
+        for part in numa_label.replace("numa", "").split("-"):
+            if part.isdigit():
+                numa_ids.add(int(part))
+
+        # Check if any device from this instance on these NUMAs is allocated
+        configs = dc.get("spec", {}).get("config", [])
+        instance_allocated = False
+        for cfg in configs:
+            params = cfg.get("opaque", {}).get("parameters", {})
+            if isinstance(params, str):
+                try: params = json.loads(params)
+                except: continue
+            if params.get("kind") != "PartitionConfig":
+                continue
+            for sr in params.get("subResources", []):
+                drv = sr.get("deviceClass", "")
+                for s in slice_data.get("items", []):
+                    if s["spec"]["driver"] != drv:
+                        continue
+                    for d in s["spec"].get("devices", []) or []:
+                        dev_key = drv + "/" + d["name"]
+                        if dev_key in allocated_devices:
+                            attrs = d.get("attributes", {})
+                            dev_numa = None
+                            for nk in ["resource.kubernetes.io/numaNode", "dra.net/numaNode",
+                                       "dra.cpu/numaNodeID", "dra.memory/numaNode"]:
+                                if nk in attrs:
+                                    v = attrs[nk]
+                                    dev_numa = v.get("int")
+                                    if dev_numa is None and "ints" in v and v["ints"]:
+                                        dev_numa = v["ints"][0]
+                                    break
+                            if dev_numa is not None and int(dev_numa) in numa_ids:
+                                instance_allocated = True
+                                break
+                    if instance_allocated:
+                        break
+                if instance_allocated:
+                    break
+            if instance_allocated:
+                break
+        if instance_allocated:
+            allocated_per_group[grp] += 1
 
     print(f"\033[1mAggregate DeviceClasses\033[0m (scheduler-placed, no NUMA constraint):")
     for dc in sorted(aggregates, key=lambda x: x["metadata"]["name"]):
