@@ -2076,15 +2076,43 @@ for profile in sorted(by_profile):
                     print(f"    \033[2m{drv}: {dev_str}\033[0m")
     print()
 
+# Count allocated claims per DeviceClass name
+allocated_by_dc = defaultdict(int)
+for c in claim_data.get("items", []):
+    reserved = c.get("status", {}).get("reservedFor", [])
+    if not reserved:
+        continue
+    for req in c.get("spec", {}).get("devices", {}).get("requests", []):
+        exactly = req.get("exactly", {})
+        if exactly:
+            allocated_by_dc[exactly.get("deviceClassName", "")] += 1
+
 # Highlight aggregate DeviceClasses (no NUMA label = scheduler picks placement)
 aggregates = [dc for dc in items if not dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
 if aggregates:
+    # Count specific instances per grouping/partitionType for totals
+    specific_items = [dc for dc in items if dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
+    instances_per_group = defaultdict(int)
+    allocated_per_group = defaultdict(int)
+    for dc in specific_items:
+        labels = dc.get("metadata", {}).get("labels", {})
+        grp = labels.get(f"{COORD}/grouping", labels.get(f"{COORD}/partitionType", ""))
+        if grp:
+            instances_per_group[grp] += 1
+            if allocated_by_dc.get(dc["metadata"]["name"], 0) > 0:
+                allocated_per_group[grp] += 1
+
     print(f"\033[1mAggregate DeviceClasses\033[0m (scheduler-placed, no NUMA constraint):")
     for dc in sorted(aggregates, key=lambda x: x["metadata"]["name"]):
         name = dc["metadata"]["name"]
         labels = dc.get("metadata", {}).get("labels", {})
         pt = labels.get(f"{COORD}/partitionType", "")
         grouping = labels.get(f"{COORD}/grouping", "")
+        group_key = grouping or pt
+
+        total = instances_per_group.get(group_key, 0)
+        used = allocated_per_group.get(group_key, 0)
+        free = total - used
 
         configs = dc.get("spec", {}).get("config", [])
         sub_parts = []
@@ -2110,7 +2138,16 @@ if aggregates:
 
         desc = ", ".join(sub_parts) if sub_parts else ""
         label = f"\033[35m{pt}\033[0m" if pt else f"\033[35m{grouping}\033[0m"
-        print(f"  \033[1m{name}\033[0m  [{label}]  {desc}")
+
+        if total > 0:
+            if used > 0:
+                avail = f"\033[33m{free}/{total} free\033[0m"
+            else:
+                avail = f"\033[32m{free}/{total} free\033[0m"
+        else:
+            avail = ""
+
+        print(f"  \033[1m{name}\033[0m  [{label}]  {avail}  {desc}")
     print()
 
 specific = [dc for dc in items if dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
