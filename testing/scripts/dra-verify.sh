@@ -8,7 +8,7 @@
 #   dra-verify.sh attributes [-a]             Show ResourceSlice topology attributes (-a for all)
 #   dra-verify.sh driverinfo                  Show published attributes/capacities per driver
 #   dra-verify.sh deviceclasses               Show topology coordinator device classes
-#   dra-verify.sh composite                  Show composite device compositions and members
+#   dra-verify.sh composite [-a]             Show composite device compositions (-a for all attributes)
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
 #   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
 #   dra-verify.sh cpupinning [pod] [-n ns]   Show cpuset vs device NUMA
@@ -2208,9 +2208,11 @@ print(f"Total: {len(items)} device class{total_suffix} ({len(aggregates)} aggreg
 cmd_composite() {
     section "Composite Device Compositions"
 
-    { kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | python3 -c "
-import json, sys
+    { kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | SHOW_ALL="$SHOW_ALL" python3 -c "
+import json, sys, os
 from collections import defaultdict
+
+show_all = os.environ.get('SHOW_ALL', '') == '1'
 
 raw = sys.stdin.read()
 parts = raw.split('---SEP---')
@@ -2336,7 +2338,12 @@ for (driver, comp_name) in sorted(compositions):
         all_sources.update(d['members'].keys())
     sources = sorted(all_sources)
 
-    # Collect all attributes seen per source, filter out empties and duplicates with top-level
+    # Default columns: just the key identifiers per source
+    DEFAULT_COLS = {
+        'gpu': ['pciBusID'],
+        'nic': ['ifName', 'pciVendor'],
+    }
+
     source_display_attrs = {}
     for src in sources:
         all_attrs_for_src = set()
@@ -2344,8 +2351,6 @@ for (driver, comp_name) in sorted(compositions):
             for ak, av in d['members'].get(src, {}).items():
                 if str(av) != '-' and av != '':
                     all_attrs_for_src.add(ak)
-        # Remove attrs that duplicate top-level (pcieRoot is already shown)
-        # Also remove attrs whose values are identical to another attr in the same source
         all_attrs_for_src -= {'pcieRoot'}
         redundant = set()
         attr_vals = {}
@@ -2356,11 +2361,15 @@ for (driver, comp_name) in sorted(compositions):
             else:
                 attr_vals[attr] = vals
         all_attrs_for_src -= redundant
-        # Sort with key identifying attrs first
-        KEY_ORDER = ['pciBusID', 'pciAddr', 'pciAddress', 'ifName', 'pciVendor', 'pciDevice', 'rdma', 'mac']
-        ordered = [a for a in KEY_ORDER if a in all_attrs_for_src]
-        ordered += sorted(all_attrs_for_src - set(KEY_ORDER))
-        source_display_attrs[src] = ordered[:6]
+
+        if show_all:
+            KEY_ORDER = ['pciBusID', 'pciAddr', 'pciAddress', 'ifName', 'pciVendor', 'pciDevice', 'rdma', 'mac']
+            ordered = [a for a in KEY_ORDER if a in all_attrs_for_src]
+            ordered += sorted(all_attrs_for_src - set(KEY_ORDER))
+            source_display_attrs[src] = ordered[:6]
+        else:
+            defaults = DEFAULT_COLS.get(src, [])
+            source_display_attrs[src] = [a for a in defaults if a in all_attrs_for_src]
 
     # Track which underlying member devices are consumed (from shadow claims).
     # A composite device is "unavailable" if any of its member devices is
@@ -2487,7 +2496,7 @@ cmd_help() {
     echo "  attributes [-a]            Show ResourceSlice topology attributes (-a for all)"
     echo "  driverinfo                 Show published attributes/capacities per driver"
     echo "  deviceclasses              Show topology coordinator device classes"
-    echo "  composite                  Show composite device compositions and members"
+    echo "  composite [-a]             Show composite device compositions (-a for all attributes)"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
     echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
     echo "  cpupinning [pod] [-n ns]   Show container cpuset vs device NUMA nodes"
