@@ -1651,6 +1651,8 @@ dc_data = json.loads(parts[0])
 slice_data = json.loads(parts[1])
 claim_data = json.loads(parts[2])
 
+COORD = "nodepartition.dra.k8s.io"
+
 items = dc_data.get("items", [])
 if not items:
     print("  No topology coordinator device classes found.")
@@ -2074,8 +2076,46 @@ for profile in sorted(by_profile):
                     print(f"    \033[2m{drv}: {dev_str}\033[0m")
     print()
 
+# Highlight aggregate DeviceClasses (no NUMA label = scheduler picks placement)
+aggregates = [dc for dc in items if not dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
+if aggregates:
+    print(f"\033[1mAggregate DeviceClasses\033[0m (scheduler-placed, no NUMA constraint):")
+    for dc in sorted(aggregates, key=lambda x: x["metadata"]["name"]):
+        name = dc["metadata"]["name"]
+        labels = dc.get("metadata", {}).get("labels", {})
+        pt = labels.get(f"{COORD}/partitionType", "")
+        grouping = labels.get(f"{COORD}/grouping", "")
+
+        configs = dc.get("spec", {}).get("config", [])
+        sub_parts = []
+        for cfg in configs:
+            params = cfg.get("opaque", {}).get("parameters", {})
+            if isinstance(params, str):
+                try: params = json.loads(params)
+                except: continue
+            if params.get("kind") == "PartitionConfig":
+                for sr in params.get("subResources", []):
+                    drv = sr.get("deviceClass", "?")
+                    count = sr.get("count", 0)
+                    cap = sr.get("capacity", {})
+                    if cap:
+                        cap_str = ", ".join(f"{v}" for _, v in sorted(cap.items()))
+                        sub_parts.append(f"{drv}: {count} ({cap_str})")
+                    else:
+                        sub_parts.append(f"{drv}: {count}")
+                aligns = params.get("alignments") or []
+                for a in aligns:
+                    attr = a.get("attribute", "").split("/")[-1]
+                    sub_parts.append(f"\033[32m⚡ {attr}\033[0m")
+
+        desc = ", ".join(sub_parts) if sub_parts else ""
+        label = f"\033[35m{pt}\033[0m" if pt else f"\033[35m{grouping}\033[0m"
+        print(f"  \033[1m{name}\033[0m  [{label}]  {desc}")
+    print()
+
+specific = [dc for dc in items if dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
 total_suffix = "es" if len(items) != 1 else ""
-print(f"Total: {len(items)} device class{total_suffix}")
+print(f"Total: {len(items)} device class{total_suffix} ({len(aggregates)} aggregate, {len(specific)} specific)")
 ' 2>/dev/null
 }
 
