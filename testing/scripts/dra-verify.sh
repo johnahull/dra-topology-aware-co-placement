@@ -2238,7 +2238,7 @@ def extract_value(val):
             return v
     return '-'
 
-# Build allocated device lookup
+# Build allocated device lookup: both composite and underlying driver devices
 allocated = {}
 for c in claims_data.get('items', []):
     reserved = c.get('status', {}).get('reservedFor', [])
@@ -2246,12 +2246,14 @@ for c in claims_data.get('items', []):
     if not consumer:
         continue
     for r in c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', []):
-        key = f'{r[\"driver\"]}/{r[\"device\"]}'
+        key = r['driver'] + '/' + r['device']
         allocated[key] = consumer
 
-# Collect composite devices: group by (driver, compositionName)
+# Collect composite devices from ResourceSlices (unallocated)
+# AND from claims (allocated — the composite driver removes them from the slice)
 compositions = defaultdict(list)
 drivers_seen = {}
+seen_dev_names = set()
 
 for rs in slices_data.get('items', []):
     driver = rs['spec']['driver']
@@ -2262,7 +2264,8 @@ for rs in slices_data.get('items', []):
             continue
 
         drivers_seen[driver] = True
-        dev_key = f'{driver}/{dev[\"name\"]}'
+        seen_dev_names.add(dev['name'])
+        dev_key = driver + '/' + dev['name']
         consumer = allocated.get(dev_key, '')
 
         # Extract member sources and their attributes
@@ -2280,6 +2283,33 @@ for rs in slices_data.get('items', []):
         compositions[(driver, comp_name)].append({
             'name': dev['name'],
             'top': top_attrs,
+            'members': dict(members),
+            'consumer': consumer,
+        })
+
+# Add allocated composite devices from claims (removed from ResourceSlice by driver)
+for c in claims_data.get('items', []):
+    results = c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', [])
+    reserved = c.get('status', {}).get('reservedFor', [])
+    consumer = reserved[0]['name'] if reserved else ''
+    for r in results:
+        driver = r['driver']
+        dev_name = r['device']
+        if 'composite' not in driver:
+            continue
+        if dev_name in seen_dev_names:
+            continue
+        seen_dev_names.add(dev_name)
+        drivers_seen[driver] = True
+        # Reconstruct minimal member info from the device name (e.g. gpu-vfio-0--pci-0000-3a-00-0)
+        name_parts = dev_name.split('--')
+        members = defaultdict(dict)
+        if len(name_parts) >= 2:
+            members['gpu']['device'] = name_parts[0]
+            members['nic']['device'] = name_parts[1]
+        compositions[(driver, 'gpu-nic-pair')].append({
+            'name': dev_name,
+            'top': {},
             'members': dict(members),
             'consumer': consumer,
         })
@@ -2332,11 +2362,41 @@ for (driver, comp_name) in sorted(compositions):
         ordered += sorted(all_attrs_for_src - set(KEY_ORDER))
         source_display_attrs[src] = ordered[:6]
 
-    status = f'{len(devs)} devices'
+    # Track which underlying member devices are consumed (from shadow claims).
+    # A composite device is "unavailable" if any of its member devices is
+    # allocated to another composite device (GPU shared across multiple pairs).
+    consumed_members = set()  # set of member device identifiers (e.g. "gpu-vfio-2")
+    for d in devs:
+        if d['consumer']:
+            # Extract member device names from composite device name (e.g. "gpu-vfio-0--pci-0000-3a-00-0")
+            parts = d['name'].split('--')
+            for p in parts:
+                consumed_members.add(p)
+
+    # Mark unavailable devices (share a consumed member but not directly allocated)
+    for d in devs:
+        if not d['consumer']:
+            parts = d['name'].split('--')
+            for p in parts:
+                if p in consumed_members:
+                    d['unavailable'] = True
+                    break
+
+    unavail_count = sum(1 for d in devs if not d['consumer'] and d.get('unavailable'))
+    free_count = len(devs) - alloc_count - unavail_count
+
+    status = f'{len(devs)} pairs'
+    parts = []
     if alloc_count > 0:
-        status += f', {RED}{alloc_count} used{NC}, {GREEN}{free_count} free{NC}'
-    else:
-        status += f', {GREEN}all free{NC}'
+        parts.append(f'{RED}{alloc_count} used{NC}')
+    if unavail_count > 0:
+        parts.append(f'{YELLOW}{unavail_count} unavailable{NC}')
+    if free_count > 0:
+        parts.append(f'{GREEN}{free_count} free{NC}')
+    elif free_count == 0 and not parts:
+        parts.append(f'{GREEN}all free{NC}')
+    if parts:
+        status += ', ' + ', '.join(parts)
     print(f'{BOLD}{comp_name}{NC} ({status})')
     print(f'  {DIM}driver: {driver}, members: {\" + \".join(sources)}{NC}')
     print()
@@ -2380,6 +2440,8 @@ for (driver, comp_name) in sorted(compositions):
         if d['consumer']:
             pod = d['consumer'][:30]
             line += f'{RED}{pod}{NC}'
+        elif d.get('unavailable'):
+            line += f'{YELLOW}unavailable{NC}'
         else:
             line += f'{GREEN}free{NC}'
         print(line)
