@@ -8,6 +8,7 @@
 #   dra-verify.sh attributes [-a]             Show ResourceSlice topology attributes (-a for all)
 #   dra-verify.sh driverinfo                  Show published attributes/capacities per driver
 #   dra-verify.sh deviceclasses               Show topology coordinator device classes
+#   dra-verify.sh composite                  Show composite device compositions and members
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
 #   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
 #   dra-verify.sh cpupinning [pod] [-n ns]   Show cpuset vs device NUMA
@@ -25,7 +26,7 @@ _dra_verify() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    cmds="slices topology drivers attributes driverinfo deviceclasses claims alignment cpupinning counters vfio metadata guest all help completions"
+    cmds="slices topology drivers attributes driverinfo deviceclasses composite claims alignment cpupinning counters vfio metadata guest all help completions"
     opts="-n --namespace -v --verbose -a --all -h --help"
 
     if [[ ${COMP_CWORD} -eq 1 ]]; then
@@ -2078,6 +2079,197 @@ print(f"Total: {len(items)} device class{total_suffix}")
 ' 2>/dev/null
 }
 
+# ── composite ────────────────────────────────────────────────────────────────
+
+cmd_composite() {
+    section "Composite Device Compositions"
+
+    { kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | python3 -c "
+import json, sys
+from collections import defaultdict
+
+raw = sys.stdin.read()
+parts = raw.split('---SEP---')
+slices_data = json.loads(parts[0])
+try:
+    claims_data = json.loads(parts[1])
+except:
+    claims_data = {'items': []}
+
+BOLD = '\033[1m'
+DIM = '\033[2m'
+GREEN = '\033[32m'
+YELLOW = '\033[33m'
+RED = '\033[31m'
+CYAN = '\033[36m'
+MAGENTA = '\033[35m'
+NC = '\033[0m'
+
+def extract_value(val):
+    for t in ('int', 'string', 'bool', 'ints', 'strings'):
+        if t in val:
+            v = val[t]
+            if isinstance(v, list):
+                return ','.join(str(x) for x in v)
+            return v
+    return '-'
+
+# Build allocated device lookup
+allocated = {}
+for c in claims_data.get('items', []):
+    reserved = c.get('status', {}).get('reservedFor', [])
+    consumer = reserved[0]['name'] if reserved else None
+    if not consumer:
+        continue
+    for r in c.get('status', {}).get('allocation', {}).get('devices', {}).get('results', []):
+        key = f'{r[\"driver\"]}/{r[\"device\"]}'
+        allocated[key] = consumer
+
+# Collect composite devices: group by (driver, compositionName)
+compositions = defaultdict(list)
+drivers_seen = {}
+
+for rs in slices_data.get('items', []):
+    driver = rs['spec']['driver']
+    for dev in rs['spec'].get('devices', []) or []:
+        attrs = dev.get('attributes', {})
+        comp_name = attrs.get('composite/compositionName', {}).get('string')
+        if not comp_name:
+            continue
+
+        drivers_seen[driver] = True
+        dev_key = f'{driver}/{dev[\"name\"]}'
+        consumer = allocated.get(dev_key, '')
+
+        # Extract member sources and their attributes
+        members = defaultdict(dict)
+        top_attrs = {}
+        for ak, av in attrs.items():
+            if ak.startswith('composite/'):
+                top_attrs[ak.split('/', 1)[1]] = extract_value(av)
+            elif ak.startswith('resource.kubernetes.io/'):
+                top_attrs[ak.split('/', 1)[1]] = extract_value(av)
+            elif '/' in ak:
+                source, attr_name = ak.split('/', 1)
+                members[source][attr_name] = extract_value(av)
+
+        compositions[(driver, comp_name)].append({
+            'name': dev['name'],
+            'top': top_attrs,
+            'members': dict(members),
+            'consumer': consumer,
+        })
+
+if not compositions:
+    print(f'  {DIM}(no composite devices found){NC}')
+    print(f'  {DIM}Composite devices are published by composite-dra-driver.{NC}')
+    print()
+    sys.exit(0)
+
+total_devices = 0
+total_allocated = 0
+
+for (driver, comp_name) in sorted(compositions):
+    devs = compositions[(driver, comp_name)]
+    alloc_count = sum(1 for d in devs if d['consumer'])
+    free_count = len(devs) - alloc_count
+    total_devices += len(devs)
+    total_allocated += alloc_count
+
+    # Discover member sources
+    all_sources = set()
+    for d in devs:
+        all_sources.update(d['members'].keys())
+    sources = sorted(all_sources)
+
+    # Collect all attributes seen per source, filter out empties and duplicates with top-level
+    source_display_attrs = {}
+    for src in sources:
+        all_attrs_for_src = set()
+        for d in devs:
+            for ak, av in d['members'].get(src, {}).items():
+                if str(av) != '-' and av != '':
+                    all_attrs_for_src.add(ak)
+        # Remove attrs that duplicate top-level (pcieRoot is already shown)
+        # Also remove attrs whose values are identical to another attr in the same source
+        all_attrs_for_src -= {'pcieRoot'}
+        redundant = set()
+        attr_vals = {}
+        for attr in all_attrs_for_src:
+            vals = tuple(str(d['members'].get(src, {}).get(attr, '-')) for d in devs)
+            if vals in attr_vals.values():
+                redundant.add(attr)
+            else:
+                attr_vals[attr] = vals
+        all_attrs_for_src -= redundant
+        # Sort with key identifying attrs first
+        KEY_ORDER = ['pciBusID', 'pciAddr', 'pciAddress', 'ifName', 'pciVendor', 'pciDevice', 'rdma', 'mac']
+        ordered = [a for a in KEY_ORDER if a in all_attrs_for_src]
+        ordered += sorted(all_attrs_for_src - set(KEY_ORDER))
+        source_display_attrs[src] = ordered[:6]
+
+    status = f'{len(devs)} devices'
+    if alloc_count > 0:
+        status += f', {RED}{alloc_count} used{NC}, {GREEN}{free_count} free{NC}'
+    else:
+        status += f', {GREEN}all free{NC}'
+    print(f'{BOLD}{comp_name}{NC} ({status})')
+    print(f'  {DIM}driver: {driver}, members: {\" + \".join(sources)}{NC}')
+    print()
+
+    # Build table header: Device | pcieRoot | source1 cols | source2 cols | Status
+    pcieRoot_w = 15
+    dev_w = max(8, max((len(d['name']) for d in devs), default=8)) + 2
+    if dev_w > 45:
+        dev_w = 45
+
+    # Collect columns per source
+    col_info = []  # (header, width, source, attr)
+    for src in sources:
+        for attr in source_display_attrs[src]:
+            header = f'{src}/{attr}'
+            # Compute width
+            vals = [str(d['members'].get(src, {}).get(attr, '-')) for d in devs]
+            w = max(len(header), max((len(v) for v in vals), default=1)) + 2
+            if w > 30:
+                w = 30
+            col_info.append((header, w, src, attr))
+
+    # Print header
+    hdr = f'  {\"Device\":<{dev_w}}{\"pcieRoot\":<{pcieRoot_w}}'
+    for header, w, _, _ in col_info:
+        hdr += f'{header:<{w}}'
+    hdr += 'Status'
+    print(f'{DIM}{hdr}{NC}')
+
+    for d in sorted(devs, key=lambda x: x['name']):
+        name = d['name']
+        if len(name) > 43:
+            name = name[:41] + '..'
+        root = str(d['top'].get('pcieRoot', '-'))
+        line = f'  {name:<{dev_w}}{root:<{pcieRoot_w}}'
+        for _, w, src, attr in col_info:
+            val = str(d['members'].get(src, {}).get(attr, '-'))
+            if len(val) > w - 2:
+                val = val[:w-4] + '..'
+            line += f'{val:<{w}}'
+        if d['consumer']:
+            pod = d['consumer'][:30]
+            line += f'{RED}{pod}{NC}'
+        else:
+            line += f'{GREEN}free{NC}'
+        print(line)
+
+    print()
+
+# Summary
+driver_list = ', '.join(sorted(drivers_seen))
+print(f'{DIM}{len(compositions)} composition(s), {total_devices} total devices, {total_allocated} allocated{NC}')
+print(f'{DIM}driver(s): {driver_list}{NC}')
+print()
+" 2>/dev/null
+}
+
 # ── all ───────────────────────────────────────────────────────────────────────
 
 cmd_all() {
@@ -2085,6 +2277,7 @@ cmd_all() {
     cmd_drivers
     cmd_attributes
     cmd_deviceclasses
+    cmd_composite
     cmd_claims
     cmd_alignment
     cmd_counters
@@ -2108,6 +2301,7 @@ cmd_help() {
     echo "  attributes [-a]            Show ResourceSlice topology attributes (-a for all)"
     echo "  driverinfo                 Show published attributes/capacities per driver"
     echo "  deviceclasses              Show topology coordinator device classes"
+    echo "  composite                  Show composite device compositions and members"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
     echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
     echo "  cpupinning [pod] [-n ns]   Show container cpuset vs device NUMA nodes"
@@ -2149,6 +2343,7 @@ case "$CMD" in
     attributes) cmd_attributes ;;
     driverinfo) cmd_driverinfo ;;
     deviceclasses) cmd_deviceclasses ;;
+    composite)  cmd_composite ;;
     claims)     cmd_claims ;;
     alignment)  cmd_alignment ;;
     cpupinning) cmd_cpupinning ;;
