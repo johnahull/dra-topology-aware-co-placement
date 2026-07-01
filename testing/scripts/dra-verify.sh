@@ -2181,7 +2181,7 @@ if aggregates:
                 aligns = params.get("alignments") or []
                 for a in aligns:
                     attr = a.get("attribute", "").split("/")[-1]
-                    sub_parts.append(f"\033[32m⚡ {attr}\033[0m")
+                    sub_parts.append(f"\033[32m🔗 {attr}\033[0m")
 
         desc = ", ".join(sub_parts) if sub_parts else ""
         label = f"\033[35m{pt}\033[0m" if pt else f"\033[35m{grouping}\033[0m"
