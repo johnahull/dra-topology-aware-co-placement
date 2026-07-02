@@ -1,0 +1,109 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    attribute: dra.cpu/numaNodeID
+    driver: dra.cpu
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.cpu/numaNodeID","driver":"dra.cpu","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"cpu-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: cpu-numa-rule
+    namespace: default
+    resourceVersion: "1928686"
+    uid: ff04c9b3-18ec-4c5b-a9b0-b5b79c660cb3
+- apiVersion: v1
+  data:
+    attribute: numaNode
+    driver: gpu.amd.com
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"numaNode","driver":"gpu.amd.com","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"gpu-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: gpu-numa-rule
+    namespace: default
+    resourceVersion: "1928684"
+    uid: c3503e7d-5880-4b16-afc1-f5b9d8e886fd
+- apiVersion: v1
+  data:
+    attribute: dra.memory/numaNode
+    driver: dra.memory
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.memory/numaNode","driver":"dra.memory","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"memory-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: memory-numa-rule
+    namespace: default
+    resourceVersion: "1928687"
+    uid: 0863797f-302f-4674-854e-8d0689369083
+- apiVersion: v1
+  data:
+    attribute: dra.net/numaNode
+    driver: dra.net
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.net/numaNode","driver":"dra.net","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"nic-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: nic-numa-rule
+    namespace: default
+    resourceVersion: "1928685"
+    uid: 69eed991-f817-4c59-9034-bbb323a4f5c8
+kind: List
+metadata:
+  resourceVersion: ""
+---
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    alignment: pcieRoot
+    devices: |
+      - class: gpu.amd.com
+        count: 1
+      - class: sriovnetwork.k8snetworkplumbingwg.io
+        count: 1
+    fallback: numaNode
+    name: gpu-nic-pair
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"alignment":"pcieRoot","devices":"- class: gpu.amd.com\n  count: 1\n- class: sriovnetwork.k8snetworkplumbingwg.io\n  count: 1\n","fallback":"numaNode","name":"gpu-nic-pair"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/device-grouping":"true"},"name":"gpu-nic-pair","namespace":"default"}}
+    creationTimestamp: "2026-06-29T17:28:32Z"
+    labels:
+      nodepartition.dra.k8s.io/device-grouping: "true"
+    name: gpu-nic-pair
+    namespace: default
+    resourceVersion: "2142354"
+    uid: f3c20adf-4415-42bc-968d-ccbaa47d09b2
+kind: List
+metadata:
+  resourceVersion: ""

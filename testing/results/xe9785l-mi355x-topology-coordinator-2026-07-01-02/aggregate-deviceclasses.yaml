@@ -1,0 +1,205 @@
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  creationTimestamp: "2026-07-02T14:40:12Z"
+  generation: 248
+  labels:
+    nodepartition.dra.k8s.io/count: "8"
+    nodepartition.dra.k8s.io/managed: "true"
+    nodepartition.dra.k8s.io/partitionType: pcieroot
+    nodepartition.dra.k8s.io/profile: dra.cpu_dra.memory_gpu.amd.com_sriovnetwork.k8snetwork-3a9b45c3
+    nodepartition.dra.k8s.io/tierName: eighth
+  name: eighth
+  resourceVersion: "2808158"
+  uid: 847e952c-0516-43a8-a415-51c9089f3e6b
+spec:
+  config:
+  - opaque:
+      driver: nodepartition.dra.k8s.io
+      parameters:
+        alignments: null
+        kind: PartitionConfig
+        subResources:
+        - capacity:
+            size: 396348372Ki
+          count: 1
+          deviceClass: dra.memory
+        - count: 1
+          deviceClass: gpu.amd.com
+        - capacity:
+            dra.cpu/cpu: "32"
+          count: 1
+          deviceClass: dra.cpu
+  selectors:
+  - cel:
+      expression: device.driver == "nodepartition.dra.k8s.io" && device.attributes["nodepartition.dra.k8s.io"].partitionType
+        == "pcieroot"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  creationTimestamp: "2026-07-02T14:39:33Z"
+  generation: 251
+  labels:
+    nodepartition.dra.k8s.io/count: "8"
+    nodepartition.dra.k8s.io/managed: "true"
+    nodepartition.dra.k8s.io/partitionType: pcieroot
+    nodepartition.dra.k8s.io/profile: dra.cpu_dra.memory_gpu.amd.com_sriovnetwork.k8snetwork-3a9b45c3
+  name: pcieroot
+  resourceVersion: "2808155"
+  uid: e8dfc3dd-748b-426f-b472-043183f048e9
+spec:
+  config:
+  - opaque:
+      driver: nodepartition.dra.k8s.io
+      parameters:
+        alignments: null
+        kind: PartitionConfig
+        subResources:
+        - capacity:
+            size: 396348372Ki
+          count: 1
+          deviceClass: dra.memory
+        - count: 1
+          deviceClass: gpu.amd.com
+        - capacity:
+            dra.cpu/cpu: "32"
+          count: 1
+          deviceClass: dra.cpu
+  selectors:
+  - cel:
+      expression: device.driver == "nodepartition.dra.k8s.io" && device.attributes["nodepartition.dra.k8s.io"].partitionType
+        == "pcieroot"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  creationTimestamp: "2026-07-02T14:39:12Z"
+  generation: 264
+  labels:
+    nodepartition.dra.k8s.io/count: "8"
+    nodepartition.dra.k8s.io/managed: "true"
+    nodepartition.dra.k8s.io/partitionType: numa
+    nodepartition.dra.k8s.io/profile: dra.cpu_dra.memory_gpu.amd.com_sriovnetwork.k8snetwork-3a9b45c3
+  name: numa
+  resourceVersion: "2808157"
+  uid: b461c4c6-c3a2-4a93-977e-5ae558308400
+spec:
+  config:
+  - opaque:
+      driver: nodepartition.dra.k8s.io
+      parameters:
+        alignments: null
+        kind: PartitionConfig
+        subResources:
+        - capacity:
+            dra.cpu/cpu: "32"
+          count: 1
+          deviceClass: dra.cpu
+        - capacity:
+            size: 396348372Ki
+          count: 1
+          deviceClass: dra.memory
+        - count: 1
+          deviceClass: gpu.amd.com
+        - count: 1
+          deviceClass: sriovnetwork.k8snetworkplumbingwg.io
+  selectors:
+  - cel:
+      expression: device.driver == "nodepartition.dra.k8s.io" && device.attributes["nodepartition.dra.k8s.io"].partitionType
+        == "numa"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  creationTimestamp: "2026-07-02T14:39:10Z"
+  generation: 219
+  labels:
+    nodepartition.dra.k8s.io/coupling: loose
+    nodepartition.dra.k8s.io/managed: "true"
+    nodepartition.dra.k8s.io/partitionType: full
+    nodepartition.dra.k8s.io/profile: dra.cpu_dra.memory_gpu.amd.com_sriovnetwork.k8snetwork-3a9b45c3
+  name: full
+  resourceVersion: "2808150"
+  uid: 57cda1f6-61b7-456f-8ff3-e4362beb01f1
+spec:
+  config:
+  - opaque:
+      driver: nodepartition.dra.k8s.io
+      parameters:
+        alignments: null
+        kind: PartitionConfig
+        subResources:
+        - count: 8
+          deviceClass: sriovnetwork.k8snetworkplumbingwg.io
+          selectors:
+          - has(device.attributes["resource.kubernetes.io"].numaNode) && (device.attributes["resource.kubernetes.io"].numaNode.includes(0)
+            || device.attributes["resource.kubernetes.io"].numaNode.includes(1) ||
+            device.attributes["resource.kubernetes.io"].numaNode.includes(2) || device.attributes["resource.kubernetes.io"].numaNode.includes(3)
+            || device.attributes["resource.kubernetes.io"].numaNode.includes(4) ||
+            device.attributes["resource.kubernetes.io"].numaNode.includes(5) || device.attributes["resource.kubernetes.io"].numaNode.includes(6)
+            || device.attributes["resource.kubernetes.io"].numaNode.includes(7))
+        - count: 8
+          deviceClass: dra.cpu
+          selectors:
+          - has(device.attributes["dra.cpu"].numaNodeID) && (device.attributes["dra.cpu"].numaNodeID.includes(0)
+            || device.attributes["dra.cpu"].numaNodeID.includes(1) || device.attributes["dra.cpu"].numaNodeID.includes(2)
+            || device.attributes["dra.cpu"].numaNodeID.includes(3) || device.attributes["dra.cpu"].numaNodeID.includes(4)
+            || device.attributes["dra.cpu"].numaNodeID.includes(5) || device.attributes["dra.cpu"].numaNodeID.includes(6)
+            || device.attributes["dra.cpu"].numaNodeID.includes(7))
+        - count: 8
+          deviceClass: dra.memory
+          selectors:
+          - has(device.attributes["dra.memory"].numaNode) && (device.attributes["dra.memory"].numaNode.includes(0)
+            || device.attributes["dra.memory"].numaNode.includes(1) || device.attributes["dra.memory"].numaNode.includes(2)
+            || device.attributes["dra.memory"].numaNode.includes(3) || device.attributes["dra.memory"].numaNode.includes(4)
+            || device.attributes["dra.memory"].numaNode.includes(5) || device.attributes["dra.memory"].numaNode.includes(6)
+            || device.attributes["dra.memory"].numaNode.includes(7))
+        - count: 8
+          deviceClass: gpu.amd.com
+          selectors:
+          - has(device.attributes["gpu.amd.com"].numaNode) && (device.attributes["gpu.amd.com"].numaNode.includes(0)
+            || device.attributes["gpu.amd.com"].numaNode.includes(1) || device.attributes["gpu.amd.com"].numaNode.includes(2)
+            || device.attributes["gpu.amd.com"].numaNode.includes(3) || device.attributes["gpu.amd.com"].numaNode.includes(4)
+            || device.attributes["gpu.amd.com"].numaNode.includes(5) || device.attributes["gpu.amd.com"].numaNode.includes(6)
+            || device.attributes["gpu.amd.com"].numaNode.includes(7))
+  selectors:
+  - cel:
+      expression: device.driver == "nodepartition.dra.k8s.io" && device.attributes["nodepartition.dra.k8s.io"].partitionType
+        == "full"
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  creationTimestamp: "2026-07-02T15:30:46Z"
+  generation: 25
+  labels:
+    nodepartition.dra.k8s.io/alignment: pcieRoot
+    nodepartition.dra.k8s.io/count: "2"
+    nodepartition.dra.k8s.io/grouping: gpu-nic-pair
+    nodepartition.dra.k8s.io/managed: "true"
+  name: gpu-nic-pair
+  resourceVersion: "2808006"
+  uid: 9c9a5720-de76-4458-887e-37e1aafbb10c
+spec:
+  config:
+  - opaque:
+      driver: nodepartition.dra.k8s.io
+      parameters:
+        alignments:
+        - attribute: resource.kubernetes.io/pcieRoot
+          enforcement: required
+          requests:
+          - gpu.amd.com
+          - sriovnetwork.k8snetworkplumbingwg.io
+        kind: PartitionConfig
+        subResources:
+        - count: 1
+          deviceClass: gpu.amd.com
+        - count: 1
+          deviceClass: sriovnetwork.k8snetworkplumbingwg.io
+  selectors:
+  - cel:
+      expression: device.driver == "nodepartition.dra.k8s.io" && device.attributes["nodepartition.dra.k8s.io"].grouping
+        == "gpu-nic-pair"
+---

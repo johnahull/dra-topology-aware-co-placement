@@ -1,0 +1,119 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"kubevirt.io/v1","kind":"VirtualMachine","metadata":{"annotations":{},"name":"vm-final-all","namespace":"default"},"spec":{"runStrategy":"Always","template":{"spec":{"domain":{"cpu":{"cores":4,"numa":{"guestMappingPassthrough":{}},"sockets":3,"threads":1},"devices":{"disks":[{"disk":{"bus":"virtio"},"name":"containerdisk"},{"disk":{"bus":"virtio"},"name":"cloudinitdisk"}],"hostDevices":[{"claimName":"partitions","name":"gpu0","requestName":"n0-gpu-amd-com"},{"claimName":"partitions","name":"gpu1","requestName":"n1-gpu-amd-com"},{"claimName":"partitions","name":"gpu2","requestName":"n2-gpu-amd-com"},{"claimName":"partitions","name":"nic0","requestName":"n0-sriovnetwork-k8snetworkplumbingwg-io"},{"claimName":"partitions","name":"nic1","requestName":"n1-sriovnetwork-k8snetworkplumbingwg-io"},{"claimName":"partitions","name":"nic2","requestName":"n2-sriovnetwork-k8snetworkplumbingwg-io"}]},"machine":{"type":"q35"},"resources":{"requests":{"memory":"24Gi"}}},"resourceClaims":[{"name":"partitions","resourceClaimName":"vm-final-all"}],"volumes":[{"containerDisk":{"image":"quay.io/containerdisks/fedora:41"},"name":"containerdisk"},{"cloudInitNoCloud":{"userData":"#cloud-config\npassword: fedora\nchpasswd:\n  expire: false\nssh_pwauth: true\n"},"name":"cloudinitdisk"}]}}}}
+    kubevirt.io/latest-observed-api-version: v1
+    kubevirt.io/storage-observed-api-version: v1
+  creationTimestamp: "2026-07-02T15:31:27Z"
+  finalizers:
+  - kubevirt.io/virtualMachineControllerFinalize
+  generation: 1
+  name: vm-final-all
+  namespace: default
+  resourceVersion: "2804537"
+  uid: bc47b217-3e87-488a-bfc6-f5ada3a6e817
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/pci-topology-version: v3
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 4
+          numa:
+            guestMappingPassthrough: {}
+          sockets: 3
+          threads: 1
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          hostDevices:
+          - claimName: partitions
+            name: gpu0
+            requestName: n0-gpu-amd-com
+          - claimName: partitions
+            name: gpu1
+            requestName: n1-gpu-amd-com
+          - claimName: partitions
+            name: gpu2
+            requestName: n2-gpu-amd-com
+          - claimName: partitions
+            name: nic0
+            requestName: n0-sriovnetwork-k8snetworkplumbingwg-io
+          - claimName: partitions
+            name: nic1
+            requestName: n1-sriovnetwork-k8snetworkplumbingwg-io
+          - claimName: partitions
+            name: nic2
+            requestName: n2-sriovnetwork-k8snetworkplumbingwg-io
+        firmware:
+          serial: cef3476b-812d-4ff3-ab2a-8e6220162dd2
+          uuid: 896813fe-5d7d-4516-8be7-0cadf10d084d
+        machine:
+          type: q35
+        resources:
+          requests:
+            memory: 24Gi
+      resourceClaims:
+      - name: partitions
+        resourceClaimName: vm-final-all
+      volumes:
+      - containerDisk:
+          image: quay.io/containerdisks/fedora:41
+        name: containerdisk
+      - cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            password: fedora
+            chpasswd:
+              expire: false
+            ssh_pwauth: true
+        name: cloudinitdisk
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2026-07-02T15:31:28Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: null
+    message: cannot migrate VMI which does not use masquerade or a migratable plugin
+      to connect to the pod network
+    reason: InterfaceNotLiveMigratable
+    status: "False"
+    type: LiveMigratable
+  - lastProbeTime: null
+    lastTransitionTime: null
+    message: 'InterfaceNotLiveMigratable: cannot migrate VMI which does not use masquerade
+      or a migratable plugin to connect to the pod network, HostDeviceNotLiveMigratable:
+      VMI specifies non-migratable generic PCI host device'
+    reason: NotMigratable
+    status: "False"
+    type: StorageLiveMigratable
+  - lastProbeTime: "2026-07-02T15:32:43Z"
+    lastTransitionTime: null
+    status: "True"
+    type: AgentConnected
+  created: true
+  desiredGeneration: 1
+  observedGeneration: 1
+  printableStatus: Running
+  ready: true
+  runStrategy: Always
+  volumeSnapshotStatuses:
+  - enabled: false
+    name: containerdisk
+    reason: Snapshot is not supported for this volumeSource type [containerdisk]
+  - enabled: false
+    name: cloudinitdisk
+    reason: Snapshot is not supported for this volumeSource type [cloudinitdisk]
