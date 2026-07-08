@@ -1,5 +1,7 @@
 # KubeVirt VFIO Passthrough with DRA Topology Coordinator
 
+![Demo](demo.gif)
+
 Demonstrates a multi-NUMA KubeVirt VM with GPU and NIC VFIO passthrough, using the topology coordinator to automatically align devices to NUMA nodes. The user writes a simple VMI YAML — the webhook auto-generates hostDevices from the partition config.
 
 ## What's shown

@@ -1,5 +1,7 @@
 # DRA Topology Coordinator — Feature Demo
 
+![Demo](demo.gif)
+
 Demonstrates the topology coordinator's core features on an AMD MI355X server with 8 NUMA nodes, 8 PCIe root complexes, GPU VFs, and SR-IOV NIC VFs.
 
 ## What's shown
