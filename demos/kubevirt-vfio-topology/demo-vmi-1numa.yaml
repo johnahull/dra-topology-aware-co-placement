@@ -1,0 +1,55 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  name: demo-vm-1numa
+spec:
+  domain:
+    cpu:
+      cores: 2
+    resources:
+      requests:
+        memory: 2Gi
+    devices:
+      disks:
+      - disk:
+          bus: virtio
+        name: containerdisk
+      - disk:
+          bus: virtio
+        name: cloudinitdisk
+      hostDevices:
+      - name: gpu0
+        claimName: vm-1numa
+        requestName: partitions-gpu-amd-com
+      - name: nic0
+        claimName: vm-1numa
+        requestName: partitions-sriovnetwork-k8snetworkplumbingwg-io
+      interfaces:
+      - bridge: {}
+        name: default
+    machine:
+      type: q35
+  networks:
+  - name: default
+    pod: {}
+  resourceClaims:
+  - name: vm-1numa
+    resourceClaimName: vm-1numa
+  tolerations:
+  - operator: Exists
+  volumes:
+  - containerDisk:
+      image: quay.io/containerdisks/fedora:41
+      imagePullPolicy: IfNotPresent
+    name: containerdisk
+  - cloudInitNoCloud:
+      userData: |
+        #cloud-config
+        password: fedora
+        chpasswd:
+          expire: false
+        ssh_pwauth: true
+        packages:
+        - pciutils
+        - numactl
+    name: cloudinitdisk

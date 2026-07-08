@@ -1,0 +1,80 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: vm-2numa
+spec:
+  devices:
+    requests:
+    - name: partitions
+      exactly:
+        deviceClassName: numa
+        count: 2
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: demo-vm-2numa
+spec:
+  runStrategy: Always
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 4
+          sockets: 2
+          threads: 1
+          numa:
+            guestMappingPassthrough: {}
+        memory:
+          guest: 8Gi
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          gpus:
+          - name: gpu0
+            claimName: vm-2numa
+            requestName: partitions
+          - name: gpu1
+            claimName: vm-2numa
+            requestName: partitions
+          hostDevices:
+          - name: nic0
+            claimName: vm-2numa
+            requestName: partitions
+          - name: nic1
+            claimName: vm-2numa
+            requestName: partitions
+          interfaces:
+          - bridge: {}
+            name: default
+        machine:
+          type: q35
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: vm-2numa
+        resourceClaimName: vm-2numa
+      tolerations:
+      - operator: Exists
+      volumes:
+      - containerDisk:
+          image: quay.io/containerdisks/fedora:41
+          imagePullPolicy: IfNotPresent
+        name: containerdisk
+      - cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            password: fedora
+            chpasswd:
+              expire: false
+            ssh_pwauth: true
+            packages:
+            - pciutils
+            - numactl
+        name: cloudinitdisk

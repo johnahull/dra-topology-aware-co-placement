@@ -1,0 +1,12 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  name: demo-eighth
+  namespace: default
+spec:
+  devices:
+    requests:
+    - name: partitions
+      exactly:
+        deviceClassName: eighth
+        count: 1
