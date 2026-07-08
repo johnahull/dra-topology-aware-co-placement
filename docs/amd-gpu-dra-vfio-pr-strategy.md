@@ -41,12 +41,15 @@ PR 0: Feature gate infra             ← UNBLOCKS EVERYTHING
   │
   └── PR 2: KEP-5304 metadata (#48 rework)   gate: DeviceMetadata (alpha, off)
         │
-        └── PR 3: IOMMUFD support (new)      gate: VFIOPassthrough (same gate)
+        └── PR 3: Standardized numaNode (D-8)   blocked on K8s #139929
               │
-              └── PR 4: KEP-4815 counters (new)  gate: VFIOPassthrough (same gate)
+              └── PR 4: IOMMUFD support (new)      gate: VFIOPassthrough (same gate)
+                    │
+                    └── PR 5: KEP-4815 counters (new)  gate: VFIOPassthrough (same gate)
 ```
 
 PR 1 and PR 2 are independent of each other — can merge in either order after PR 0.
+PR 3 can also ship independently of PR 1 (affects all device types, not just VFIO), but is sequenced here after PR 2 because KEP-5304 metadata is how numaNode reaches the workload.
 
 ---
 
@@ -138,7 +141,35 @@ The driver's `--feature-gates` flag in `pkg/flags/logging.go` is private to `Log
 
 ---
 
-### PR 3: IOMMUFD Support (new — D-18)
+### PR 3: Standardized `numaNode` Attribute (D-8)
+
+**Status:** Code complete in `feature/standardized-topology-attrs`. Blocked on K8s dependency.
+**Target:** `develop`
+**Size:** ~50-100 lines (driver change is small; dependency bump is the bulk)
+**Depends on:** K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) (provides `GetNUMANodeAttributeByPCIBusID` helper)
+**Branch:** `johnahull/k8s-gpu-dra-driver` `feature/standardized-topology-attrs`
+
+The AMD driver publishes `numaNode` as a bare unqualified attribute. Other drivers publish vendor-specific names (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`). For `matchAttribute: resource.kubernetes.io/numaNode` to align devices across drivers, all must use the standardized name from KEP-6072.
+
+**What's already implemented (in fork):**
+- Publishes `resource.kubernetes.io/numaNode` (via `deviceattribute.GetNUMANodeAttributeByPCIBusID()`) alongside the bare `numaNode` for all device types (GPU, partition, VFIO)
+- Publishes `resource.kubernetes.io/cpuSocketID` for socket-level topology
+- VFIO devices get the same standardized attributes
+
+**What's needed to upstream:**
+1. K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) must merge (provides the helper in `k8s.io/dynamic-resource-allocation/deviceattribute`)
+2. Bump `k8s.io/dynamic-resource-allocation` dependency in `k8s-gpu-dra-driver` to pick up the helper
+3. PR against `develop` — call the standardized helper for all device types in `GetDevice()`
+
+**Can ship independently** of the VFIO PRs (affects all device types, not just VFIO). Sequenced here after PR 2 because KEP-5304 metadata is how `numaNode` reaches the workload at runtime.
+
+**Sequencing with VFIO PRs:**
+- The `feature/vfio-kep5304-combined` branch already includes the standardized numaNode for VFIO devices, but this depends on the K8s helper being available in the vendored dependency.
+- If K8s #139929 merges before PR 1, include standardized numaNode in PR 1. If not, ship PR 1 with bare `numaNode` and add standardized form in this PR when the dependency is available.
+
+---
+
+### PR 4: IOMMUFD Support (new — D-18)
 
 **Status:** Not started
 **Target:** `develop`
@@ -179,7 +210,7 @@ config:
 
 ---
 
-### PR 4: KEP-4815 Counter Sets (new)
+### PR 5: KEP-4815 Counter Sets (new)
 
 **Status:** Code complete in `feature/vfio-kep4815-counters`. Needs rebase.
 **Target:** `develop`
@@ -235,7 +266,7 @@ Physical GPU (PCI 0000:c1:00.0)
 | VF-only (GIM SR-IOV) — **the common AMD case** | No — PF stays on `amdgpu`, VFs are different PCI addresses | Yes — prevents VF over-subscription and PF+VF conflict |
 | PF passthrough | Yes — prevents compute + VFIO on same PF | Yes — prevents PF + VF conflict |
 
-For the current AMD implementation, GIM VFs are the primary path. PF passthrough is opt-in and currently broken on MI300X/MI355X (see FU-6). **Counters (PR 4) are higher priority than sibling exclusion (FU-1).**
+For the current AMD implementation, GIM VFs are the primary path. PF passthrough is opt-in and currently broken on MI300X/MI355X (see FU-6). **Counters (PR 5) are higher priority than sibling exclusion (FU-1).**
 
 ### FU-1: Sibling Mutual Exclusion and Re-Discovery
 
@@ -290,7 +321,7 @@ Conditional on `featureGates.VFIOPassthrough` so it's not created when VFIO is d
 ### FU-3: Webhook Validation for VfioDeviceConfig
 
 **Priority:** Medium — prevents invalid configs from reaching the driver at prepare time.
-**Ship with:** PR 3 (when `IOMMUConfig` fields land) or as follow-up
+**Ship with:** PR 4 (when `IOMMUConfig` fields land) or as follow-up
 **Size:** ~50-100 lines
 
 | File | Change |
@@ -307,7 +338,7 @@ Conditional on `featureGates.VFIOPassthrough` so it's not created when VFIO is d
 | File | Contents |
 |---|---|
 | `examples/vfio-claim.yaml` | ResourceClaim requesting `amdgpu-vfio` device |
-| `examples/vfio-claim-iommufd.yaml` | ResourceClaim with `VfioDeviceConfig` + `IOMMUConfig` (after PR 3) |
+| `examples/vfio-claim-iommufd.yaml` | ResourceClaim with `VfioDeviceConfig` + `IOMMUConfig` (after PR 4) |
 | `examples/kubevirt-vm-gpu-passthrough.yaml` | KubeVirt VirtualMachine referencing VFIO GPU claim |
 
 ### FU-5: GPU Operator Convergence
@@ -332,52 +363,9 @@ When an AMD Instinct GPU PF is bound to `vfio-pci` and QEMU resets the device (F
 **Impact on this PR sequence:**
 - VF passthrough via GIM SR-IOV is unaffected — VF config space reads `0xFFFF` for vendor:device (normal for GIM VFs, actual ID is in subsystem fields) but vfio-pci binds and operates correctly.
 - PF passthrough is gated behind `--enable-pf-passthrough` (PR 1) precisely because of this bug. The flag documents it as an opt-in risk.
-- FU-1 (sibling mutual exclusion) is lower priority because PF passthrough is blocked by this bug. Counters (PR 4) handle the VF case.
+- FU-1 (sibling mutual exclusion) is lower priority because PF passthrough is blocked by this bug. Counters (PR 5) handle the VF case.
 
 **Resolution path:** Needs AMD firmware investigation. May require a VFIO reset quirk in the kernel (`vfio-pci` reset hooks), or a firmware fix to handle FLR correctly on these ASICs. Not in scope for the DRA driver PRs — the driver correctly avoids the problem by defaulting to VF-only mode.
 
-### FU-7: Standardized `numaNode` Attribute (D-8)
 
-**Priority:** High for cross-driver NUMA alignment — required for `matchAttribute: resource.kubernetes.io/numaNode` to work across GPU, NIC, CPU, and memory drivers.
-**Depends on:** KEP-6072 — K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) (numaNode helpers, awaiting `/lgtm` from ffromani)
-**Branch:** `johnahull/k8s-gpu-dra-driver` `feature/standardized-topology-attrs`
 
-The AMD driver publishes `numaNode` as a bare unqualified attribute. Other drivers publish vendor-specific names (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`). For `matchAttribute` to align devices across drivers, all must use the standardized `resource.kubernetes.io/numaNode`.
-
-**What's already implemented (in fork):**
-- Publishes `resource.kubernetes.io/numaNode` (via `deviceattribute.GetNUMANodeAttributeByPCIBusID()`) alongside the bare `numaNode` for all device types (GPU, partition, VFIO)
-- Publishes `resource.kubernetes.io/cpuSocketID` for socket-level topology
-- VFIO devices get the same standardized attributes
-
-**What's needed to upstream:**
-1. K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) must merge (provides the `GetNUMANodeAttributeByPCIBusID` helper in `k8s.io/dynamic-resource-allocation/deviceattribute`)
-2. Bump `k8s.io/dynamic-resource-allocation` dependency in `k8s-gpu-dra-driver` to pick up the helper
-3. PR against `develop` — call the standardized helper for all device types in `GetDevice()`
-
-**Can ship independently** of the VFIO PRs (affects all device types, not just VFIO). Should be a separate small PR once the K8s dependency is available.
-
-**Sequencing with VFIO PRs:**
-- The `feature/vfio-kep5304-combined` branch already includes the standardized numaNode for VFIO devices, but this depends on the K8s helper being available in the vendored dependency.
-- If K8s #139929 merges before PR 1, include standardized numaNode in PR 1. If not, ship PR 1 with bare `numaNode` and add standardized form in FU-7 when the dependency is available.
-
----
-
-## Immediate Actions
-
-1. **Open PR 0** (feature gate infra) against `develop`. Small, uncontroversial, unblocks everything.
-2. **Reply to bhatnitish on #48** — confirm option 1 (shared `--feature-gates`), coming as separate PR 0. Will rebase #48 onto `develop` with gate wiring after PR 0 merges.
-3. **Reply to yansun1996 on #50** — confirm feature gate is coming via PR 0. Will rebase #50 onto `develop` with `VFIOPassthrough` gate. Clarify PF auto-detection question.
-4. Once PR 0 merges, push reworked #50 and #48 (can be simultaneous since they're independent).
-
----
-
-## What's NOT in This PR Sequence
-
-These items are tracked elsewhere or are external dependencies:
-
-| Item | Where |
-|---|---|
-| PF passthrough PCI config corruption (D-20) | FU-6 — AMD firmware issue, not a driver PR |
-| GIM module build failures on kernel 6.19+/7.0+ (D-19) | `issues.md` D-19 — `amd/MxGPU-Virtualization` repo |
-| KubeVirt VFIO capabilities (`CAP_SYS_RESOURCE`) | `issues.md` KV-7 — resolved by enabling `Root` feature gate globally |
-| KubeVirt VM-scoped persistent ResourceClaims | KubeVirt PR [#17957](https://github.com/kubevirt/kubevirt/pull/17957) — independent of driver changes |
