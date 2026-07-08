@@ -35,17 +35,26 @@ feature/vfio-kep4815-counters       ← KEP-4815 SharedCounters for PF/VF mutual
 ## PR Sequence
 
 ```
-PR 0: Feature gate infra             ← UNBLOCKS EVERYTHING
+PR 0:  Feature gate infra                         ← UNBLOCKS EVERYTHING
   │
-  ├── PR 1: VFIO passthrough (#50 rework)    gate: VFIOPassthrough (alpha, off)
+  ├── PR 1:  VFIO passthrough (#50 rework)         gate: VFIOPassthrough (alpha, off)
+  │    │
+  │    ├── PR 5:  KEP-4815 counters                gate: VFIOPassthrough  (K8s 1.37+)
+  │    ├── PR 6:  VFIO DeviceClass Helm template   gate: VFIOPassthrough
+  │    ├── PR 8:  Sibling mutual exclusion          blocked on PF config bug (D-20)
+  │    └── PR 9:  KubeVirt example manifests
   │
-  └── PR 2: KEP-5304 metadata (#48 rework)   gate: DeviceMetadata (alpha, off)
-        │
-        └── PR 3: Standardized numaNode (D-8)   blocked on K8s #139929
-              │
-              └── PR 4: IOMMUFD support (new)      gate: VFIOPassthrough (same gate)
-                    │
-                    └── PR 5: KEP-4815 counters (new)  gate: VFIOPassthrough (same gate)
+  └── PR 2:  KEP-5304 metadata (#48 rework)        gate: DeviceMetadata (alpha, off)
+       │
+       └── PR 3:  Standardized numaNode (D-8)      blocked on K8s #139929
+             │
+             └── PR 4:  IOMMUFD support             gate: VFIOPassthrough
+                   │
+                   └── PR 7:  Webhook validation for VfioDeviceConfig
+```
+
+```
+PR 10: GPU Operator convergence                    separate repo (ROCm/gpu-operator)
 ```
 
 PR 1 and PR 2 are independent of each other — can merge in either order after PR 0.
@@ -234,70 +243,12 @@ config:
 
 ---
 
-## Follow-Up Work (after core PRs land)
+### PR 6: VFIO DeviceClass Helm Template
 
-Items that should ship but don't need to block the core PR sequence. Each can be a small standalone PR against `develop`.
-
-### Mutual Exclusion: How Sibling Exclusion and Counters Interact
-
-Sibling exclusion (FU-1) and KEP-4815 counter sets (PR 4) solve different problems at different levels of the hardware hierarchy:
-
-```
-Physical GPU (PCI 0000:c1:00.0)
-├── gpu-0 (compute, type=amdgpu)          ─┐
-│                                           ├── Sibling exclusion (FU-1)
-├── gpu-vfio-0 (PF passthrough, type=vfio) ─┘─┐
-│                                              ├── Counter: consumes 8/8 vf-slots
-│   GIM SR-IOV creates VFs:                    │
-├── gpu-vfio-vf-0 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/8 vf-slots
-├── gpu-vfio-vf-1 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/8 vf-slots
-├── ...                                        │
-└── gpu-vfio-vf-7 (VF, type=vfio, isVF=true) ─┘── Counter: consumes 1/8 vf-slots
-```
-
-**Sibling exclusion** prevents the same PCI device from being allocated as both a compute device (`gpu-0` on `amdgpu`) and a passthrough device (`gpu-vfio-0` on `vfio-pci`) at the same time. It works by removing one device type from the ResourceSlice when the other is prepared, and re-adding it on unprepare.
-
-**KEP-4815 counters** prevent over-subscription of VFs from the same PF. A `SharedCounterSet` per PF has a `vf-slot` counter sized to `TotalVFs`. Each VF consumes 1 slot. If the PF itself is also allocatable as a VFIO device, it consumes all slots — making PF passthrough mutually exclusive with any VF allocation from that PF.
-
-**Which do you need?**
-
-| Passthrough mode | Sibling exclusion needed? | Counters needed? |
-|---|---|---|
-| VF-only (GIM SR-IOV) — **the common AMD case** | No — PF stays on `amdgpu`, VFs are different PCI addresses | Yes — prevents VF over-subscription and PF+VF conflict |
-| PF passthrough | Yes — prevents compute + VFIO on same PF | Yes — prevents PF + VF conflict |
-
-For the current AMD implementation, GIM VFs are the primary path. PF passthrough is opt-in and currently broken on MI300X/MI355X (see FU-6). **Counters (PR 5) are higher priority than sibling exclusion (FU-1).**
-
-### FU-1: Sibling Mutual Exclusion and Re-Discovery
-
-**Priority:** Low for now — only matters for PF passthrough mode, which is blocked by FU-6 (PCI config corruption). Becomes high priority if/when PF passthrough works.
-**Ship with:** After FU-6 is resolved, or as defensive measure in PR 1
-**Size:** ~100-150 lines
-
-The AMD driver currently publishes compute (`amdgpu`) and VFIO (`amdgpu-vfio`) devices for the same PCI address independently. Nothing stops the scheduler from allocating both simultaneously.
-
-NVIDIA's DRA driver handles this in two places:
-
-1. **On prepare:** `perGPUAllocatable.RemoveSiblingDevices()` removes the compute GPU entry when its VFIO sibling is prepared (and vice versa). The ResourceSlice is re-published, so the scheduler can't allocate both.
-
-2. **On unprepare:** `discoverSiblingAllocatables()` re-discovers the compute GPU (now back on the `nvidia` driver) and adds it back to the allocatable set. Re-publishes ResourceSlice.
-
-**What to build in `k8s-gpu-dra-driver`:**
-
-| File | Change |
-|---|---|
-| `cmd/gpu-kubeletplugin/allocatable.go` | Add `RemoveSiblingDevices(pciAddress)` — remove all devices sharing the same PCI address except the one being prepared |
-| `cmd/gpu-kubeletplugin/state.go` `Prepare()` | After successful VFIO prepare, call `RemoveSiblingDevices()` and trigger ResourceSlice re-publication |
-| `cmd/gpu-kubeletplugin/state.go` `Unprepare()` | After successful VFIO unconfigure, re-run discovery for that PCI address and add the compute device back to allocatables. Trigger re-publication. |
-| `cmd/gpu-kubeletplugin/driver.go` | Expose a `republishResources()` method callable from state management |
-
-**Note:** In the VF-only case (GIM creates VFs), the PF stays on `amdgpu` and VFs have different PCI addresses. Sibling exclusion doesn't apply between PF-compute and VF-VFIO — that's what counters handle. Sibling exclusion only matters when the same PCI device could be either compute or VFIO (i.e., PF passthrough mode).
-
-### FU-2: VFIO DeviceClass Helm Template
-
-**Priority:** Medium — users can create this manually, but shipping it in the chart is the expected UX.
-**Ship with:** PR 1 or as follow-up
+**Status:** Not started
+**Target:** `develop`
 **Size:** ~20 lines
+**Depends on:** PR 1
 
 Add `helm-charts-k8s/templates/deviceclass-vfio.yaml`:
 
@@ -318,43 +269,110 @@ spec:
 
 Conditional on `featureGates.VFIOPassthrough` so it's not created when VFIO is disabled.
 
-### FU-3: Webhook Validation for VfioDeviceConfig
+---
 
-**Priority:** Medium — prevents invalid configs from reaching the driver at prepare time.
-**Ship with:** PR 4 (when `IOMMUConfig` fields land) or as follow-up
+### PR 7: Webhook Validation for VfioDeviceConfig
+
+**Status:** Not started
+**Target:** `develop`
 **Size:** ~50-100 lines
+**Depends on:** PR 4 (when `IOMMUConfig` fields land)
 
 | File | Change |
 |---|---|
 | `cmd/webhook/main.go` | Add `VfioDeviceConfig` to the type decoder switch. Validate `BackendPolicy` enum, `EnableAPIDevice` bool. |
 | `api/.../validate.go` | Implement `VfioDeviceConfig.Validate()` — currently a no-op. Validate `Iommu.BackendPolicy` is one of `LegacyOnly` or `PreferIommuFD`. |
 
-### FU-4: KubeVirt Example Manifests
+---
 
-**Priority:** Low — documentation, not functionality.
-**Ship as:** Follow-up after PR 1
+### PR 8: Sibling Mutual Exclusion and Re-Discovery
+
+**Status:** Not started
+**Target:** `develop`
+**Size:** ~100-150 lines
+**Depends on:** PR 1. Blocked by PCI config corruption bug (see below) — only matters for PF passthrough mode. Becomes urgent if/when PF passthrough works.
+
+The AMD driver currently publishes compute (`amdgpu`) and VFIO (`amdgpu-vfio`) devices for the same PCI address independently. Nothing stops the scheduler from allocating both simultaneously.
+
+NVIDIA's DRA driver handles this in two places:
+
+1. **On prepare:** `perGPUAllocatable.RemoveSiblingDevices()` removes the compute GPU entry when its VFIO sibling is prepared (and vice versa). The ResourceSlice is re-published, so the scheduler can't allocate both.
+
+2. **On unprepare:** `discoverSiblingAllocatables()` re-discovers the compute GPU (now back on the `nvidia` driver) and adds it back to the allocatable set. Re-publishes ResourceSlice.
+
+**What to build:**
+
+| File | Change |
+|---|---|
+| `cmd/gpu-kubeletplugin/allocatable.go` | Add `RemoveSiblingDevices(pciAddress)` — remove all devices sharing the same PCI address except the one being prepared |
+| `cmd/gpu-kubeletplugin/state.go` `Prepare()` | After successful VFIO prepare, call `RemoveSiblingDevices()` and trigger ResourceSlice re-publication |
+| `cmd/gpu-kubeletplugin/state.go` `Unprepare()` | After successful VFIO unconfigure, re-run discovery for that PCI address and add the compute device back to allocatables. Trigger re-publication. |
+| `cmd/gpu-kubeletplugin/driver.go` | Expose a `republishResources()` method callable from state management |
+
+**Note:** In the VF-only case (GIM creates VFs), the PF stays on `amdgpu` and VFs have different PCI addresses. Sibling exclusion doesn't apply between PF-compute and VF-VFIO — that's what counters handle (PR 5). Sibling exclusion only matters when the same PCI device could be either compute or VFIO (i.e., PF passthrough mode).
+
+---
+
+### PR 9: KubeVirt Example Manifests
+
+**Status:** Not started
+**Target:** `develop`
 **Size:** ~100 lines of YAML
+**Depends on:** PR 1 (basic examples), PR 4 (IOMMUFD example)
 
 | File | Contents |
 |---|---|
 | `examples/vfio-claim.yaml` | ResourceClaim requesting `amdgpu-vfio` device |
-| `examples/vfio-claim-iommufd.yaml` | ResourceClaim with `VfioDeviceConfig` + `IOMMUConfig` (after PR 4) |
+| `examples/vfio-claim-iommufd.yaml` | ResourceClaim with `VfioDeviceConfig` + `IOMMUConfig` |
 | `examples/kubevirt-vm-gpu-passthrough.yaml` | KubeVirt VirtualMachine referencing VFIO GPU claim |
 
-### FU-5: GPU Operator Convergence
+---
 
-**Priority:** Low — current operator scripts still work, DRA is additive.
-**Repo:** `ROCm/gpu-operator` (separate repo, separate PRs)
-**Ship as:** After PR 1 is validated in production
+### PR 10: GPU Operator Convergence
+
+**Status:** Not started
+**Target:** `ROCm/gpu-operator` `develop` (separate repo)
+**Depends on:** PR 1 validated in production
 
 | File | Change |
 |---|---|
 | `internal/controllers/workermgr/workermgr.go` | When DRA driver version supports VFIO (detected via ResourceSlice or Helm config), skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation for `vf-passthrough`/`pf-passthrough` driver types |
 | Helm values | Expose `PassthroughSupport` feature gate toggle for the DRA driver DaemonSet args |
 
-### FU-6: PF Passthrough PCI Config Space Corruption (D-20)
+---
 
-**Priority:** High for PF passthrough viability — currently a hardware/firmware blocker.
+## Mutual Exclusion: How Sibling Exclusion (PR 8) and Counters (PR 5) Interact
+
+These solve different problems at different levels of the hardware hierarchy:
+
+```
+Physical GPU (PCI 0000:c1:00.0)
+├── gpu-0 (compute, type=amdgpu)          ─┐
+│                                           ├── Sibling exclusion (PR 8)
+├── gpu-vfio-0 (PF passthrough, type=vfio) ─┘─┐
+│                                              ├── Counter: consumes 8/8 vf-slots
+│   GIM SR-IOV creates VFs:                    │
+├── gpu-vfio-vf-0 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/8 vf-slots
+├── gpu-vfio-vf-1 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/8 vf-slots
+├── ...                                        │
+└── gpu-vfio-vf-7 (VF, type=vfio, isVF=true) ─┘── Counter: consumes 1/8 vf-slots
+```
+
+**Sibling exclusion** prevents the same PCI device from being allocated as both a compute device (`gpu-0` on `amdgpu`) and a passthrough device (`gpu-vfio-0` on `vfio-pci`) at the same time. It works by removing one device type from the ResourceSlice when the other is prepared, and re-adding it on unprepare.
+
+**KEP-4815 counters** prevent over-subscription of VFs from the same PF. A `SharedCounterSet` per PF has a `vf-slot` counter sized to `TotalVFs`. Each VF consumes 1 slot. If the PF itself is also allocatable as a VFIO device, it consumes all slots — making PF passthrough mutually exclusive with any VF allocation from that PF.
+
+| Passthrough mode | Sibling exclusion needed? | Counters needed? |
+|---|---|---|
+| VF-only (GIM SR-IOV) — **the common AMD case** | No — PF stays on `amdgpu`, VFs are different PCI addresses | Yes — prevents VF over-subscription and PF+VF conflict |
+| PF passthrough | Yes — prevents compute + VFIO on same PF | Yes — prevents PF + VF conflict |
+
+For the current AMD implementation, GIM VFs are the primary path. PF passthrough is opt-in and currently broken on MI300X/MI355X (see below). **Counters (PR 5) are higher priority than sibling exclusion (PR 8).**
+
+---
+
+## Known Blocker: PF Passthrough PCI Config Space Corruption (D-20)
+
 **Status:** Not filed upstream. Observed on MI300X and MI355X.
 **Repo:** AMD firmware / `amd/MxGPU-Virtualization`
 
@@ -363,9 +381,7 @@ When an AMD Instinct GPU PF is bound to `vfio-pci` and QEMU resets the device (F
 **Impact on this PR sequence:**
 - VF passthrough via GIM SR-IOV is unaffected — VF config space reads `0xFFFF` for vendor:device (normal for GIM VFs, actual ID is in subsystem fields) but vfio-pci binds and operates correctly.
 - PF passthrough is gated behind `--enable-pf-passthrough` (PR 1) precisely because of this bug. The flag documents it as an opt-in risk.
-- FU-1 (sibling mutual exclusion) is lower priority because PF passthrough is blocked by this bug. Counters (PR 5) handle the VF case.
+- PR 8 (sibling mutual exclusion) is lower priority because PF passthrough is blocked by this bug. PR 5 (counters) handles the VF case.
 
 **Resolution path:** Needs AMD firmware investigation. May require a VFIO reset quirk in the kernel (`vfio-pci` reset hooks), or a firmware fix to handle FLR correctly on these ASICs. Not in scope for the DRA driver PRs — the driver correctly avoids the problem by defaulting to VF-only mode.
-
-
 
