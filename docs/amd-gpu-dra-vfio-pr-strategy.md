@@ -64,25 +64,14 @@ PR 3 can also ship independently of PR 1 (affects all device types, not just VFI
 
 ### PR 0: Feature Gate Infrastructure
 
-**Status:** Not started
+**Status:** AMD team (bhatnitish/yansun1996) will develop this.
 **Target:** `develop`
 **Size:** ~100-150 lines
 **Blocks:** PR 1, PR 2
 
 The driver's `--feature-gates` flag in `pkg/flags/logging.go` is private to `LoggingConfig`. This PR extracts it into shared infrastructure.
 
-**What to build:**
-
-| File | Change |
-|---|---|
-| `pkg/featuregates/featuregates.go` (new) | Shared feature gate registry. Register `VFIOPassthrough` (alpha, default false) and `DeviceMetadata` (alpha, default false). Use `k8s.io/component-base/featuregate` or a lightweight equivalent. |
-| `cmd/gpu-kubeletplugin/main.go` | Register feature gates at startup, pass gate state to driver/state constructors via config struct or function args. |
-| `pkg/flags/logging.go` | Refactor to use shared gate instance instead of private one. |
-
-**Acceptance criteria:**
-- `--feature-gates=VFIOPassthrough=true,DeviceMetadata=true` works from CLI
-- Helm values can set feature gates via container args
-- No functional changes — just plumbing
+**Expected gates:** `VFIOPassthrough` (alpha, default false) and `DeviceMetadata` (alpha, default false).
 
 **Why separate:** Both bhatnitish and yansun1996 asked for gates. Shipping infra first keeps the VFIO and metadata PRs focused on their own logic and avoids re-review of gate mechanics inside a 1,500-line VFIO diff.
 
