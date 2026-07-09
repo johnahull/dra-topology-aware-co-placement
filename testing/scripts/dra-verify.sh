@@ -1181,7 +1181,47 @@ if not found:
 # ── vfio ──────────────────────────────────────────────────────────────────────
 
 cmd_vfio() {
-    section "VFIO Devices"
+    section "VFIO / IOMMUFD Devices"
+
+    # IOMMU backend detection
+    echo -e "${BOLD}IOMMU Backend:${NC}"
+    if [[ -c /dev/iommu ]]; then
+        echo -e "  ${GREEN}✓${NC} iommufd available (/dev/iommu)"
+    else
+        echo -e "  ${DIM}✗ iommufd not available${NC}"
+    fi
+    if [[ -c /dev/vfio/vfio ]]; then
+        echo -e "  ${GREEN}✓${NC} VFIO container available (/dev/vfio/vfio)"
+    else
+        echo -e "  ${DIM}✗ VFIO container not available${NC}"
+    fi
+    # Check kernel config for iommufd
+    local iommufd_mod=""
+    if [[ -f /sys/module/iommufd/initstate ]]; then
+        iommufd_mod="loaded"
+    elif modinfo iommufd &>/dev/null 2>&1; then
+        iommufd_mod="available (not loaded)"
+    fi
+    if [[ -n "$iommufd_mod" ]]; then
+        echo -e "  ${DIM}iommufd module: ${iommufd_mod}${NC}"
+    fi
+    # Check default VFIO driver backend
+    local vfio_iommu_type=""
+    if [[ -f /sys/module/vfio/parameters/enable_iommufd ]]; then
+        local iommufd_enabled
+        iommufd_enabled=$(cat /sys/module/vfio/parameters/enable_iommufd 2>/dev/null)
+        if [[ "$iommufd_enabled" == "Y" || "$iommufd_enabled" == "1" ]]; then
+            vfio_iommu_type="iommufd (default)"
+        else
+            vfio_iommu_type="legacy container (iommufd disabled)"
+        fi
+    elif [[ -f /sys/module/vfio_iommu_type1/initstate ]]; then
+        vfio_iommu_type="type1 (legacy)"
+    fi
+    if [[ -n "$vfio_iommu_type" ]]; then
+        echo -e "  ${DIM}VFIO IOMMU backend: ${vfio_iommu_type}${NC}"
+    fi
+    echo ""
 
     echo -e "${BOLD}Devices bound to vfio-pci:${NC}"
     local found=0
@@ -1201,7 +1241,14 @@ cmd_vfio() {
             if command -v lspci &>/dev/null; then
                 desc=$(lspci -s "$bdf" 2>/dev/null | sed 's/^[^ ]* //')
             fi
-            echo -e "  ${BOLD}$bdf${NC}  NUMA=$numa  IOMMU=$iommu_grp  ${DIM}$desc${NC}"
+            # Check if this device has an iommufd or legacy vfio group device node
+            local backend=""
+            if [[ -c "/dev/vfio/devices/vfio${iommu_grp}" ]] || [[ -c "/dev/iommu" ]]; then
+                backend=" ${DIM}[iommufd]${NC}"
+            elif [[ -c "/dev/vfio/${iommu_grp}" ]]; then
+                backend=" ${DIM}[legacy]${NC}"
+            fi
+            echo -e "  ${BOLD}$bdf${NC}  NUMA=$numa  IOMMU=$iommu_grp${backend}  ${DIM}$desc${NC}"
             found=1
         fi
     done
@@ -1210,7 +1257,7 @@ cmd_vfio() {
     fi
     echo ""
 
-    echo -e "${BOLD}CDI Specs (VFIO devices):${NC}"
+    echo -e "${BOLD}CDI Specs (VFIO/IOMMUFD devices):${NC}"
     local found_vfio=0
     local _sudo=""
     [[ $(id -u) -ne 0 ]] && _sudo="sudo"
@@ -1244,7 +1291,7 @@ if not d or not isinstance(d, dict):
 devs = d.get('devices', [])
 for dev in devs:
     nodes = dev.get('containerEdits', {}).get('deviceNodes', [])
-    paths = [n['path'] for n in nodes if 'vfio' in n.get('path', '')]
+    paths = [n['path'] for n in nodes if 'vfio' in n.get('path', '') or 'iommu' in n.get('path', '')]
     if paths:
         print(f'  {dev[\"name\"]}: {\", \".join(paths)}')
 " 2>/dev/null)
@@ -1256,7 +1303,7 @@ for dev in devs:
         done
     done
     if [[ "$found_vfio" -eq 0 ]]; then
-        echo -e "  ${DIM}(no VFIO CDI specs found)${NC}"
+        echo -e "  ${DIM}(no VFIO/IOMMUFD CDI specs found)${NC}"
     fi
 }
 
