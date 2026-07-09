@@ -510,22 +510,42 @@ for rs in slices_data.get('items', []):
                     topo[short] = v
         # Build productName from vendor/device attributes if not already set
         if 'productName' not in topo:
+            # Also check dra.nvme/model
+            for mk in ('dra.nvme/model',):
+                if mk in attrs:
+                    topo['productName'] = str(list(attrs[mk].values())[0])
+                    break
+        if 'productName' not in topo:
             _vnames = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel',
                        '1002': 'AMD', '10de': 'NVIDIA', '14e4': 'Broadcom'}
+            _dnames = {
+                '2684': 'A100', '2786': 'A100X', '2330': 'H100', '2331': 'H100',
+                '2339': 'H200', '2900': 'B100', '2901': 'B200',
+                '7468': 'MI355X', '75b3': 'MI355X VF', '74a1': 'MI325X',
+                '740c': 'MI300X', '740f': 'MI300A',
+            }
             def _vlookup(v):
                 return _vnames.get(v.lower().removeprefix('0x'), v)
+            def _dlookup(d):
+                return _dnames.get(d.lower().removeprefix('0x'), '')
             vid = ''
+            did = ''
             pfn = ''
             for vk in ('sriovnetwork.k8snetworkplumbingwg.io/vendor', 'vendorID'):
                 if vk in attrs:
                     vid = attrs[vk].get('string', '')
+                    break
+            for dk in ('deviceID',):
+                if dk in attrs:
+                    did = attrs[dk].get('string', '')
                     break
             for pk in ('sriovnetwork.k8snetworkplumbingwg.io/PFName',):
                 if pk in attrs:
                     pfn = attrs[pk].get('string', '')
                     break
             if vid:
-                label = _vlookup(vid)
+                mdl = _dlookup(did) if did else ''
+                label = f'{_vlookup(vid)} {mdl}'.strip() if mdl else _vlookup(vid)
                 if pfn:
                     label += f' ({pfn})'
                 topo['productName'] = label
@@ -1400,7 +1420,7 @@ for rs in data.get('items', []):
                 pci = str(list(val.values())[0])
                 break
         product = ''
-        for key in ('productName', 'dra.net/pciDevice', 'model'):
+        for key in ('productName', 'dra.net/pciDevice', 'dra.nvme/model', 'model'):
             if key in attrs:
                 val = attrs[key]
                 product = str(list(val.values())[0])
@@ -1408,17 +1428,39 @@ for rs in data.get('items', []):
         if not product:
             _vnames = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel',
                        '1002': 'AMD', '10de': 'NVIDIA', '14e4': 'Broadcom'}
-            def _vlookup(vid):
-                v = vid.lower().removeprefix('0x')
-                return _vnames.get(v, vid)
+            _dnames = {
+                '2684': 'A100', '2786': 'A100X', '2330': 'H100', '2331': 'H100',
+                '2339': 'H200', '2900': 'B100', '2901': 'B200',
+                '7468': 'MI355X', '75b3': 'MI355X VF', '74a1': 'MI325X',
+                '740c': 'MI300X', '740f': 'MI300A',
+            }
+            def _vlookup(v):
+                return _vnames.get(v.lower().removeprefix('0x'), v)
+            def _dlookup(d):
+                return _dnames.get(d.lower().removeprefix('0x'), '')
+            vid = ''
+            did = ''
+            pfn = ''
             for vk in ('sriovnetwork.k8snetworkplumbingwg.io/vendor', 'vendorID'):
                 if vk in attrs:
                     vid = attrs[vk].get('string', '')
-                    pfn = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
-                    product = _vlookup(vid)
-                    if pfn:
-                        product += f' ({pfn})'
                     break
+            for dk in ('deviceID',):
+                if dk in attrs:
+                    did = attrs[dk].get('string', '')
+                    break
+            for pk in ('sriovnetwork.k8snetworkplumbingwg.io/PFName',):
+                if pk in attrs:
+                    pfn = attrs[pk].get('string', '')
+                    break
+            if vid:
+                model = _dlookup(did) if did else ''
+                if model:
+                    product = f'{_vlookup(vid)} {model}'
+                else:
+                    product = _vlookup(vid)
+                if pfn:
+                    product += f' ({pfn})'
         is_vf = False
         if 'dra.net/isSriovVf' in attrs:
             is_vf = attrs['dra.net/isSriovVf'].get('bool', False)
@@ -1561,21 +1603,40 @@ for rs in data.get('items', []):
             is_vf = True
         has_sriov = get_bool(['dra.net/sriov'])
         num_vfs = get_attr(['dra.net/sriovVfs'])
-        product = get_attr(['productName', 'dra.net/pciDevice', 'dra.net/pciVendor', 'model'])
+        product = get_attr(['productName', 'dra.net/pciDevice', 'dra.nvme/model', 'model'])
         if not product:
             _vnames = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel',
                        '1002': 'AMD', '10de': 'NVIDIA', '14e4': 'Broadcom'}
-            def _vlookup(vid):
-                v = vid.lower().removeprefix('0x')
-                return _vnames.get(v, vid)
+            _dnames = {
+                '2684': 'A100', '2786': 'A100X', '2330': 'H100', '2331': 'H100',
+                '2339': 'H200', '2900': 'B100', '2901': 'B200',
+                '7468': 'MI355X', '75b3': 'MI355X VF', '74a1': 'MI325X',
+                '740c': 'MI300X', '740f': 'MI300A',
+            }
+            def _vlookup(v):
+                return _vnames.get(v.lower().removeprefix('0x'), v)
+            def _dlookup(d):
+                return _dnames.get(d.lower().removeprefix('0x'), '')
+            vid = ''
+            did = ''
+            pfn = ''
             for vk in ('sriovnetwork.k8snetworkplumbingwg.io/vendor', 'vendorID'):
                 if vk in attrs:
                     vid = attrs[vk].get('string', '')
-                    pfn = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
-                    product = _vlookup(vid)
-                    if pfn:
-                        product += f' ({pfn})'
                     break
+            for dk in ('deviceID',):
+                if dk in attrs:
+                    did = attrs[dk].get('string', '')
+                    break
+            for pk in ('sriovnetwork.k8snetworkplumbingwg.io/PFName',):
+                if pk in attrs:
+                    pfn = attrs[pk].get('string', '')
+                    break
+            if vid:
+                mdl = _dlookup(did) if did else ''
+                product = f'{_vlookup(vid)} {mdl}'.strip() if mdl else _vlookup(vid)
+                if pfn:
+                    product += f' ({pfn})'
 
         drv_label = DRIVER_LABELS.get(driver, driver.split('.')[-1] if '.' in driver else driver)
         is_cpu = 'cpu' in driver.lower()
