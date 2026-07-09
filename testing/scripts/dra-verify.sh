@@ -478,8 +478,11 @@ cmd_claims() {
     local nf
     nf=$(ns_flag)
 
-    { kubectl get resourceclaims $nf -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get vmi $nf -o json 2>/dev/null; } | python3 -c "
-import json, sys
+    local verbose="$VERBOSE"
+    { kubectl get resourceclaims $nf -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get vmi $nf -o json 2>/dev/null; } | VERBOSE="$verbose" python3 -c "
+import json, sys, os
+
+verbose = os.environ.get('VERBOSE', '') == '1'
 
 raw = sys.stdin.read()
 parts = raw.split('---SEP---')
@@ -505,6 +508,27 @@ for rs in slices_data.get('items', []):
                     topo['productName'] = v
                 else:
                     topo[short] = v
+        # Build productName from vendor/device attributes if not already set
+        if 'productName' not in topo:
+            _vnames = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel',
+                       '1002': 'AMD', '10de': 'NVIDIA', '14e4': 'Broadcom'}
+            def _vlookup(v):
+                return _vnames.get(v.lower().removeprefix('0x'), v)
+            vid = ''
+            pfn = ''
+            for vk in ('sriovnetwork.k8snetworkplumbingwg.io/vendor', 'vendorID'):
+                if vk in attrs:
+                    vid = attrs[vk].get('string', '')
+                    break
+            for pk in ('sriovnetwork.k8snetworkplumbingwg.io/PFName',):
+                if pk in attrs:
+                    pfn = attrs[pk].get('string', '')
+                    break
+            if vid:
+                label = _vlookup(vid)
+                if pfn:
+                    label += f' ({pfn})'
+                topo['productName'] = label
         device_attrs[f'{driver}/{dev[\"name\"]}'] = topo
 
 # Build VMI name lookup from pod names
@@ -1381,20 +1405,27 @@ for rs in data.get('items', []):
                 val = attrs[key]
                 product = str(list(val.values())[0])
                 break
-        # SR-IOV driver: build product from vendor+PF name
-        if not product and 'sriovnetwork.k8snetworkplumbingwg.io/vendor' in attrs:
-            vendor_id = attrs['sriovnetwork.k8snetworkplumbingwg.io/vendor'].get('string', '')
-            pf_name = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
-            vendor_names = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel'}
-            vendor_label = vendor_names.get(vendor_id, vendor_id)
-            product = f'{vendor_label} VF'
-            if pf_name:
-                product += f' ({pf_name})'
+        if not product:
+            _vnames = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel',
+                       '1002': 'AMD', '10de': 'NVIDIA', '14e4': 'Broadcom'}
+            def _vlookup(vid):
+                v = vid.lower().removeprefix('0x')
+                return _vnames.get(v, vid)
+            for vk in ('sriovnetwork.k8snetworkplumbingwg.io/vendor', 'vendorID'):
+                if vk in attrs:
+                    vid = attrs[vk].get('string', '')
+                    pfn = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
+                    product = _vlookup(vid)
+                    if pfn:
+                        product += f' ({pfn})'
+                    break
         is_vf = False
         if 'dra.net/isSriovVf' in attrs:
             is_vf = attrs['dra.net/isSriovVf'].get('bool', False)
         elif 'sriovnetwork.k8snetworkplumbingwg.io/vfID' in attrs:
             is_vf = True
+        elif 'isVF' in attrs:
+            is_vf = attrs['isVF'].get('bool', False)
         has_sriov = False
         if 'dra.net/sriov' in attrs:
             has_sriov = attrs['dra.net/sriov'].get('bool', False)
@@ -1482,11 +1513,13 @@ data = json.load(sys.stdin)
 
 DRIVER_LABELS = {
     'gpu.nvidia.com': 'gpu',
+    'gpu.amd.com': 'gpu',
     'compute-domain.nvidia.com': 'gpu-vfio',
     'dra.cpu': 'cpu',
     'dra.memory': 'memory',
     'dra.net': 'nic',
     'dra.nvme': 'nvme',
+    'sriovnetwork.k8snetworkplumbingwg.io': 'nic',
 }
 
 def parse_numa(numa_str):
@@ -1523,19 +1556,26 @@ for rs in data.get('items', []):
                            'dra.cpu/socketID'])
         root = get_attr(['resource.kubernetes.io/pcieRoot'])
         pci = get_attr(['resource.kubernetes.io/pciBusID', 'dra.net/pciAddress'])
-        is_vf = get_bool(['dra.net/isSriovVf'])
+        is_vf = get_bool(['dra.net/isSriovVf', 'isVF'])
         if not is_vf and 'sriovnetwork.k8snetworkplumbingwg.io/vfID' in attrs:
             is_vf = True
         has_sriov = get_bool(['dra.net/sriov'])
         num_vfs = get_attr(['dra.net/sriovVfs'])
         product = get_attr(['productName', 'dra.net/pciDevice', 'dra.net/pciVendor', 'model'])
-        if not product and 'sriovnetwork.k8snetworkplumbingwg.io/vendor' in attrs:
-            vendor_id = attrs['sriovnetwork.k8snetworkplumbingwg.io/vendor'].get('string', '')
-            pf_name = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
-            vendor_names = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel'}
-            product = vendor_names.get(vendor_id, vendor_id)
-            if pf_name:
-                product += f' ({pf_name})'
+        if not product:
+            _vnames = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel',
+                       '1002': 'AMD', '10de': 'NVIDIA', '14e4': 'Broadcom'}
+            def _vlookup(vid):
+                v = vid.lower().removeprefix('0x')
+                return _vnames.get(v, vid)
+            for vk in ('sriovnetwork.k8snetworkplumbingwg.io/vendor', 'vendorID'):
+                if vk in attrs:
+                    vid = attrs[vk].get('string', '')
+                    pfn = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
+                    product = _vlookup(vid)
+                    if pfn:
+                        product += f' ({pfn})'
+                    break
 
         drv_label = DRIVER_LABELS.get(driver, driver.split('.')[-1] if '.' in driver else driver)
         is_cpu = 'cpu' in driver.lower()
@@ -1640,7 +1680,7 @@ for sock in sorted(sockets, key=sock_key):
                             tags.append(f'PF:{d[\"num_vfs\"]}VFs')
                         elif d['has_sriov']:
                             tags.append('PF')
-                        if verbose and d['product']:
+                        if d['product'] and (verbose or d['is_vf']):
                             tags.append(d['product'][:35])
                         if tags:
                             label += f' \033[33m[{\", \".join(tags)}]\033[0m'
