@@ -1381,9 +1381,20 @@ for rs in data.get('items', []):
                 val = attrs[key]
                 product = str(list(val.values())[0])
                 break
+        # SR-IOV driver: build product from vendor+PF name
+        if not product and 'sriovnetwork.k8snetworkplumbingwg.io/vendor' in attrs:
+            vendor_id = attrs['sriovnetwork.k8snetworkplumbingwg.io/vendor'].get('string', '')
+            pf_name = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
+            vendor_names = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel'}
+            vendor_label = vendor_names.get(vendor_id, vendor_id)
+            product = f'{vendor_label} VF'
+            if pf_name:
+                product += f' ({pf_name})'
         is_vf = False
         if 'dra.net/isSriovVf' in attrs:
             is_vf = attrs['dra.net/isSriovVf'].get('bool', False)
+        elif 'sriovnetwork.k8snetworkplumbingwg.io/vfID' in attrs:
+            is_vf = True
         has_sriov = False
         if 'dra.net/sriov' in attrs:
             has_sriov = attrs['dra.net/sriov'].get('bool', False)
@@ -1439,7 +1450,7 @@ for driver in sorted(by_driver):
                     tags.append(f'PF:{d[\"num_vfs\"]}VFs')
                 elif d['has_sriov']:
                     tags.append('PF')
-                if verbose and d['product']:
+                if d['product'] and (verbose or d['is_vf']):
                     tags.append(d['product'][:35])
                 if tags:
                     tag_str = ', '.join(tags)
@@ -1513,9 +1524,18 @@ for rs in data.get('items', []):
         root = get_attr(['resource.kubernetes.io/pcieRoot'])
         pci = get_attr(['resource.kubernetes.io/pciBusID', 'dra.net/pciAddress'])
         is_vf = get_bool(['dra.net/isSriovVf'])
+        if not is_vf and 'sriovnetwork.k8snetworkplumbingwg.io/vfID' in attrs:
+            is_vf = True
         has_sriov = get_bool(['dra.net/sriov'])
         num_vfs = get_attr(['dra.net/sriovVfs'])
         product = get_attr(['productName', 'dra.net/pciDevice', 'dra.net/pciVendor', 'model'])
+        if not product and 'sriovnetwork.k8snetworkplumbingwg.io/vendor' in attrs:
+            vendor_id = attrs['sriovnetwork.k8snetworkplumbingwg.io/vendor'].get('string', '')
+            pf_name = attrs.get('sriovnetwork.k8snetworkplumbingwg.io/PFName', {}).get('string', '')
+            vendor_names = {'15b3': 'Mellanox', '1dd8': 'Pensando', '8086': 'Intel'}
+            product = vendor_names.get(vendor_id, vendor_id)
+            if pf_name:
+                product += f' ({pf_name})'
 
         drv_label = DRIVER_LABELS.get(driver, driver.split('.')[-1] if '.' in driver else driver)
         is_cpu = 'cpu' in driver.lower()
