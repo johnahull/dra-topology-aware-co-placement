@@ -1,6 +1,6 @@
 # KubeVirt VFIO Passthrough with DRA Topology Coordinator
 # Run: vhs demo.tape
-# Pre-req: kubectl apply -f demo-vm-2numa.yaml (VM must be Running before recording)
+# Pre-req: kubectl apply -f demo-vm-3eighth.yaml (VM must be Running before recording)
 
 Output demo.gif
 Output demo.mp4
@@ -53,10 +53,8 @@ Sleep 10s
 Type "clear"
 Enter
 Sleep 0.5s
-Type "cat $DEMO/demo-vm-2numa.yaml | more"
+Type "cat $DEMO/demo-vm-3eighth.yaml"
 Enter
-Sleep 8s
-Type " "
 Sleep 8s
 
 # 5. Show VM and VMI running
@@ -67,7 +65,7 @@ Type "kubectl get vm,vmi"
 Enter
 Sleep 5s
 
-# 6. Show claims — 2 independent pcieRoot alignment groups
+# 6. Show claims — 3 independent pcieRoot + numaNode alignment groups
 Type "clear"
 Enter
 Sleep 0.5s
@@ -77,11 +75,11 @@ Sleep 10s
 Type " "
 Sleep 10s
 
-# 7. SSH into guest and show NUMA topology — 2 nodes, each with GPU + NIC
+# 7. SSH into guest and show NUMA topology — 3 nodes, each with GPU + NIC
 Type "clear"
 Enter
 Sleep 0.5s
-Type "sshpass -p fedora ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null fedora@$(kubectl get vmi demo-vm-2numa -o jsonpath='{.status.interfaces[0].ipAddress}') 'bash -s' < $HOME/devel/dra-topology-aware-co-placement/testing/scripts/hw-topology.sh | more"
+Type "sshpass -p fedora ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null fedora@$(kubectl get vmi demo-vm-3eighth -o jsonpath='{.status.interfaces[0].ipAddress}') 'bash -s' < $HOME/devel/dra-topology-aware-co-placement/testing/scripts/hw-topology.sh | more"
 Enter
 Sleep 8s
 Type " "
