@@ -1407,6 +1407,73 @@ unset _nps_info
 unset _total_slots _empty_slots _populated_slots _slot_info
 echo ""
 
+# ── SLIT distance matrix from numactl (if available) ────────────────────────
+if command -v numactl &>/dev/null && [ ${#SLIT_NODES[@]} -gt 1 ]; then
+    echo -e "${BOLD}NUMA Distances:${RESET}"
+    # Header row
+    _hdr="       "
+    for _n in "${SLIT_NODES[@]}"; do
+        _hdr+=$(printf " %4s" "N${_n}")
+    done
+    echo -e "${DIM}${_hdr}${RESET}"
+    # Data rows
+    for _src in "${SLIT_NODES[@]}"; do
+        _row=$(printf "  N%-4s" "${_src}")
+        for _dst in "${SLIT_NODES[@]}"; do
+            _d="${SLIT_DIST[${_src}:${_dst}]:-?}"
+            if [ "$_src" = "$_dst" ]; then
+                _row+=$(printf " ${BOLD}%4s${RESET}" "$_d")
+            else
+                _row+=$(printf " %4s" "$_d")
+            fi
+        done
+        echo -e "${_row}"
+    done
+    echo ""
+    unset _hdr _row _src _dst _d _n
+fi
+
+# ── lstopo device NUMA correction ────────────────────────────────────────────
+# When lstopo is available, use it to fix devices showing numa_node=-1 in sysfs.
+# lstopo knows the actual NUMA affinity from firmware/ACPI even when the kernel
+# reports -1 (common for VFs and some on-die devices).
+if command -v lstopo &>/dev/null; then
+    _lstopo_xml=$(lstopo --of xml 2>/dev/null || true)
+    if [ -n "$_lstopo_xml" ]; then
+        _corrections=0
+        for _bdf in "${!DEV_NUMA[@]}"; do
+            [ "${DEV_NUMA[$_bdf]}" != "-1" ] && continue
+            # lstopo uses short BDF without domain for 0000: devices
+            _short_bdf="${_bdf#0000:}"
+            _lstopo_numa=$(echo "$_lstopo_xml" | python3 -c "
+import sys, xml.etree.ElementTree as ET
+try:
+    root = ET.fromstring(sys.stdin.read())
+    bdf = '$_short_bdf'.lower()
+    for pci in root.iter('object'):
+        if pci.get('type') == 'PCIDev' and bdf in (pci.get('pci_busid','').lower()):
+            parent = pci
+            while parent is not None:
+                if parent.get('type') == 'NUMANode':
+                    print(parent.get('os_index', ''))
+                    break
+                parent = next((p for p in root.iter() if pci in list(p)), None)
+                break
+except: pass
+" 2>/dev/null)
+            if [ -n "$_lstopo_numa" ]; then
+                DEV_NUMA["$_bdf"]="$_lstopo_numa"
+                _corrections=$((_corrections + 1))
+            fi
+        done
+        if [ "$_corrections" -gt 0 ]; then
+            echo -e "${DIM}(lstopo corrected NUMA affinity for ${_corrections} device(s))${RESET}"
+            echo ""
+        fi
+        unset _lstopo_xml _corrections _bdf _short_bdf _lstopo_numa
+    fi
+fi
+
 if [ "$SIMPLE" = "1" ]; then
     print_simple_topology
 else
