@@ -1257,6 +1257,51 @@ cmd_vfio() {
     fi
     echo ""
 
+    echo -e "${BOLD}Passthrough-Capable Devices:${NC}"
+    local vf_found=0
+    for dev_path in /sys/bus/pci/devices/*/; do
+        local bdf
+        bdf=$(basename "$dev_path")
+        # Check if this is a VF (has physfn link) or has SR-IOV VFs
+        local is_vf=0
+        [[ -L "${dev_path}physfn" ]] && is_vf=1
+        [[ "$is_vf" == "0" ]] && continue
+
+        local driver_name="none"
+        if [[ -L "${dev_path}driver" ]]; then
+            driver_name=$(basename "$(readlink "${dev_path}driver")")
+        fi
+        local numa
+        numa=$(cat "${dev_path}numa_node" 2>/dev/null || echo "?")
+        local desc=""
+        if command -v lspci &>/dev/null; then
+            desc=$(lspci -s "$bdf" 2>/dev/null | sed 's/^[^ ]* //')
+        fi
+        local status_color="$DIM"
+        local status_label=""
+        case "$driver_name" in
+            vfio-pci)
+                status_color="$GREEN"
+                status_label="bound"
+                ;;
+            none|"")
+                status_color="$YELLOW"
+                status_label="unbound"
+                driver_name="none"
+                ;;
+            *)
+                status_color="$CYAN"
+                status_label="available"
+                ;;
+        esac
+        echo -e "  ${BOLD}$bdf${NC}  NUMA=$numa  ${status_color}${driver_name} (${status_label})${NC}  ${DIM}$desc${NC}"
+        vf_found=1
+    done
+    if [[ "$vf_found" == "0" ]]; then
+        echo -e "  ${DIM}(no VFs found — run on the node)${NC}"
+    fi
+    echo ""
+
     echo -e "${BOLD}CDI Specs (VFIO/IOMMUFD devices):${NC}"
     local found_vfio=0
     local _sudo=""
