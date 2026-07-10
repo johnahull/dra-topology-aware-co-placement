@@ -1,0 +1,58 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: vm-half-tpl
+spec:
+  spec:
+    devices:
+      requests:
+      - name: partitions
+        exactly:
+          deviceClassName: half
+          count: 1
+      config:
+      - opaque:
+          driver: sriovnetwork.k8snetworkplumbingwg.io
+          parameters:
+            apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
+            kind: VfConfig
+            driver: vfio-pci
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  name: demo-vm-half
+spec:
+  domain:
+    cpu:
+      cores: 4
+    resources:
+      requests:
+        memory: 4Gi
+    devices:
+      disks:
+      - {name: containerdisk, disk: {bus: virtio}}
+      - {name: cloudinitdisk, disk: {bus: virtio}}
+      interfaces:
+      - {name: default, bridge: {}}
+    machine:
+      type: q35
+  networks:
+  - {name: default, pod: {}}
+  resourceClaims:
+  - name: partitions
+    resourceClaimTemplateName: vm-half-tpl
+  tolerations:
+  - operator: Exists
+  volumes:
+  - name: containerdisk
+    containerDisk:
+      image: quay.io/containerdisks/fedora:41
+  - name: cloudinitdisk
+    cloudInitNoCloud:
+      userData: |
+        #cloud-config
+        password: fedora
+        chpasswd: {expire: false}
+        ssh_pwauth: true
+        packages: [pciutils, numactl]
