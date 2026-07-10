@@ -1,0 +1,215 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    attribute: dra.cpu/numaNodeID
+    driver: dra.cpu
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.cpu/numaNodeID","driver":"dra.cpu","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"cpu-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: cpu-numa-rule
+    namespace: default
+    resourceVersion: "1928686"
+    uid: ff04c9b3-18ec-4c5b-a9b0-b5b79c660cb3
+- apiVersion: v1
+  data:
+    attribute: numaNode
+    driver: gpu.amd.com
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"numaNode","driver":"gpu.amd.com","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"gpu-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: gpu-numa-rule
+    namespace: default
+    resourceVersion: "1928684"
+    uid: c3503e7d-5880-4b16-afc1-f5b9d8e886fd
+- apiVersion: v1
+  data:
+    attribute: dra.memory/numaNode
+    driver: dra.memory
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.memory/numaNode","driver":"dra.memory","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"memory-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: memory-numa-rule
+    namespace: default
+    resourceVersion: "1928687"
+    uid: 0863797f-302f-4674-854e-8d0689369083
+- apiVersion: v1
+  data:
+    attribute: dra.net/numaNode
+    driver: dra.net
+    mapsTo: numaNode
+    partitioning: group
+    type: int
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"attribute":"dra.net/numaNode","driver":"dra.net","mapsTo":"numaNode","partitioning":"group","type":"int"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"nodepartition.dra.k8s.io/topology-rule":"true"},"name":"nic-numa-rule","namespace":"default"}}
+    creationTimestamp: "2026-06-29T16:41:26Z"
+    labels:
+      nodepartition.dra.k8s.io/topology-rule: "true"
+    name: nic-numa-rule
+    namespace: default
+    resourceVersion: "1928685"
+    uid: 69eed991-f817-4c59-9034-bbb323a4f5c8
+kind: List
+metadata:
+  resourceVersion: ""
+---
+apiVersion: v1
+items:
+- apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
+  kind: SriovResourcePolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"sriovnetwork.k8snetworkplumbingwg.io/v1alpha1","kind":"SriovResourcePolicy","metadata":{"annotations":{},"name":"mellanox-policy","namespace":"dra-driver-sriov"},"spec":{"configs":[{"resourceFilters":[{"drivers":["vfio-pci","ionic"],"vendors":["1dd8"]}]}]}}
+    creationTimestamp: "2026-07-07T22:00:44Z"
+    generation: 3
+    name: mellanox-policy
+    namespace: dra-driver-sriov
+    resourceVersion: "4914562"
+    uid: 7b68a9d7-4888-4e26-a32b-a74aea1bdfc9
+  spec:
+    configs:
+    - resourceFilters:
+      - drivers:
+        - vfio-pci
+        - ionic
+        vendors:
+        - 1dd8
+kind: List
+metadata:
+  resourceVersion: ""
+---
+apiVersion: v1
+items:
+- apiVersion: sriovnetwork.openshift.io/v1
+  kind: SriovNetworkNodePolicy
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"sriovnetwork.openshift.io/v1","kind":"SriovNetworkNodePolicy","metadata":{"annotations":{},"name":"mellanox-vfio","namespace":"sriov-network-operator"},"spec":{"deviceType":"vfio-pci","externallyManaged":true,"nicSelector":{"pfNames":["eno17495np0","eno16595np0"],"vendor":"15b3"},"nodeSelector":{"kubernetes.io/os":"linux"},"numVfs":4,"resourceName":"mlx_vfio"}}
+    creationTimestamp: "2026-07-07T21:58:30Z"
+    generation: 1
+    name: mellanox-vfio
+    namespace: sriov-network-operator
+    resourceVersion: "4279546"
+    uid: be9ff6c7-0cf8-48d6-bd25-251a9a88be62
+  spec:
+    deviceType: vfio-pci
+    externallyManaged: true
+    nicSelector:
+      pfNames:
+      - eno17495np0
+      - eno16595np0
+      vendor: 15b3
+    nodeSelector:
+      kubernetes.io/os: linux
+    numVfs: 4
+    resourceName: mlx_vfio
+kind: List
+metadata:
+  resourceVersion: ""
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: default/nodepartition-webhook-tls
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"admissionregistration.k8s.io/v1","kind":"MutatingWebhookConfiguration","metadata":{"annotations":{"cert-manager.io/inject-ca-from":"default/nodepartition-webhook-tls"},"creationTimestamp":"2026-06-30T13:38:56Z","generation":2,"name":"nodepartition-webhook","resourceVersion":"4274579","uid":"7574fbea-611c-4d19-9319-fb9fd5b39025"},"webhooks":[{"admissionReviewVersions":["v1"],"clientConfig":{"caBundle":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFakNDQWZxZ0F3SUJBZ0lVUHFmS2Vpc0xGN1BQYjJzWFYzbFJ0S3R2dkRNd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0FEQWVGdzB5TmpBMk1qTXhOakF5TURsYUZ3MHlOakE1TWpFeE5qQXlNRGxhTUFBd2dnRWlNQTBHQ1NxRwpTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDNEFDRkc1RGRLVEMwYnBNOHpVV0pUN1E4SjFDcmNDYlNVCjhSOG9MMTR3SXpZQlg5NFdqY1dwS0NTREVUR095RDR5ZDNVY0dhSVNncVpoU1VPWXFhOGlJTUZOWC9XMXg4WmcKeHZERk1lajV2cTR3RjR1cDZzRnEzQUZNNnFjLzJXaXZhT3kxOHFacHljV2dsaU1BdSt3QVF5ZnB0TEhwanowNQpIRFRuWlRUeFRNRlVNY0NrUGdQNnBEZXNpdVFNVHpKUGtRTElVSnhsNllTaFFnaHNFMG9jcGRGN1FkZ1RMODhsCldLVVpKYmt0UGIwK2UySit0dk8zdENVNUNxaUUwS3NueExsVzJXeEg0K2NRaDc1Y3I5cG9Fc1NaUTFyaE91T1gKS3lOdGM1M0VoNEo2U3hTTHl2dllDbVovSUdrRUp0RzlucXZMMUFjZkcwdlRPVzI1Z3BCL0FnTUJBQUdqZ1lNdwpnWUF3RGdZRFZSMFBBUUgvQkFRREFnV2dNQXdHQTFVZEV3RUIvd1FDTUFBd1lBWURWUjBSQVFIL0JGWXdWSUloCmJtOWtaWEJoY25ScGRHbHZiaTEzWldKb2IyOXJMbVJsWm1GMWJIUXVjM1pqZ2k5dWIyUmxjR0Z5ZEdsMGFXOXUKTFhkbFltaHZiMnN1WkdWbVlYVnNkQzV6ZG1NdVkyeDFjM1JsY2k1c2IyTmhiREFOQmdrcWhraUc5dzBCQVFzRgpBQU9DQVFFQXFLZXl5NWxuV2xkNHZrQTZvRTBFNjlVazkrVWZwamdqKyt2aVNOekVpSExnV3lOajlkc1hMdW0rCk9GTTVYb2h1SFYwQ2FJOFAwemhhV2hEM2xRRTFVcGszWXp1b1FXK1p0WVN1cGZJTE1JOTZxR1JDUnd6bVdMQUsKc2tKSFZ5SVR6TENFT29ZbU9PaHNGUzVoYkVlNzE2RjNoeHNSbG1sb1AxMVVzZnNYaE1EVlBWTTRYQ3ZoVGRvdwpuVUR0eXBCUVNuRWxhVXY3akl0bzhPWmgyNVBKWGw1RU5KWjFVSFNzRUlHV2RrMWhYSmNaVWF6UEJ1WGFzZCtECnlPN3RIQldZeko1cFF0eW5WN0pRWGd1NzJqRXBicXN1SFRkM0xEOVZxRzZhOG4yeDFzL1MwV2RicmZjV2JoUS8KcENEUVZSWkplUVNqOEdwdmZoNXFaN2tSZ0Y2cmdRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=","service":{"name":"nodepartition-webhook","namespace":"default","path":"/mutate","port":443}},"failurePolicy":"Fail","matchConditions":[{"expression":"object.spec.devices.requests.exists(r,\n  r.exactly != null \u0026\u0026\n  r.exactly.deviceClassName != \"\" \u0026\u0026\n  !r.exactly.deviceClassName.startsWith(\"dra.\") \u0026\u0026\n  !r.exactly.deviceClassName.startsWith(\"gpu.\") \u0026\u0026\n  !r.exactly.deviceClassName.startsWith(\"sriov\"))","name":"has-coordinator-deviceclass"}],"matchPolicy":"Equivalent","name":"nodepartition.dra.k8s.io","namespaceSelector":{},"objectSelector":{},"reinvocationPolicy":"Never","rules":[{"apiGroups":["resource.k8s.io"],"apiVersions":["v1"],"operations":["CREATE","UPDATE"],"resources":["resourceclaims"],"scope":"*"}],"sideEffects":"None","timeoutSeconds":10},{"admissionReviewVersions":["v1"],"clientConfig":{"caBundle":"LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFakNDQWZxZ0F3SUJBZ0lVUHFmS2Vpc0xGN1BQYjJzWFYzbFJ0S3R2dkRNd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0FEQWVGdzB5TmpBMk1qTXhOakF5TURsYUZ3MHlOakE1TWpFeE5qQXlNRGxhTUFBd2dnRWlNQTBHQ1NxRwpTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDNEFDRkc1RGRLVEMwYnBNOHpVV0pUN1E4SjFDcmNDYlNVCjhSOG9MMTR3SXpZQlg5NFdqY1dwS0NTREVUR095RDR5ZDNVY0dhSVNncVpoU1VPWXFhOGlJTUZOWC9XMXg4WmcKeHZERk1lajV2cTR3RjR1cDZzRnEzQUZNNnFjLzJXaXZhT3kxOHFacHljV2dsaU1BdSt3QVF5ZnB0TEhwanowNQpIRFRuWlRUeFRNRlVNY0NrUGdQNnBEZXNpdVFNVHpKUGtRTElVSnhsNllTaFFnaHNFMG9jcGRGN1FkZ1RMODhsCldLVVpKYmt0UGIwK2UySit0dk8zdENVNUNxaUUwS3NueExsVzJXeEg0K2NRaDc1Y3I5cG9Fc1NaUTFyaE91T1gKS3lOdGM1M0VoNEo2U3hTTHl2dllDbVovSUdrRUp0RzlucXZMMUFjZkcwdlRPVzI1Z3BCL0FnTUJBQUdqZ1lNdwpnWUF3RGdZRFZSMFBBUUgvQkFRREFnV2dNQXdHQTFVZEV3RUIvd1FDTUFBd1lBWURWUjBSQVFIL0JGWXdWSUloCmJtOWtaWEJoY25ScGRHbHZiaTEzWldKb2IyOXJMbVJsWm1GMWJIUXVjM1pqZ2k5dWIyUmxjR0Z5ZEdsMGFXOXUKTFhkbFltaHZiMnN1WkdWbVlYVnNkQzV6ZG1NdVkyeDFjM1JsY2k1c2IyTmhiREFOQmdrcWhraUc5dzBCQVFzRgpBQU9DQVFFQXFLZXl5NWxuV2xkNHZrQTZvRTBFNjlVazkrVWZwamdqKyt2aVNOekVpSExnV3lOajlkc1hMdW0rCk9GTTVYb2h1SFYwQ2FJOFAwemhhV2hEM2xRRTFVcGszWXp1b1FXK1p0WVN1cGZJTE1JOTZxR1JDUnd6bVdMQUsKc2tKSFZ5SVR6TENFT29ZbU9PaHNGUzVoYkVlNzE2RjNoeHNSbG1sb1AxMVVzZnNYaE1EVlBWTTRYQ3ZoVGRvdwpuVUR0eXBCUVNuRWxhVXY3akl0bzhPWmgyNVBKWGw1RU5KWjFVSFNzRUlHV2RrMWhYSmNaVWF6UEJ1WGFzZCtECnlPN3RIQldZeko1cFF0eW5WN0pRWGd1NzJqRXBicXN1SFRkM0xEOVZxRzZhOG4yeDFzL1MwV2RicmZjV2JoUS8KcENEUVZSWkplUVNqOEdwdmZoNXFaN2tSZ0Y2cmdRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=","service":{"name":"nodepartition-webhook","namespace":"default","path":"/mutate","port":443}},"failurePolicy":"Fail","matchPolicy":"Equivalent","name":"vmis.nodepartition.dra.k8s.io","namespaceSelector":{},"objectSelector":{},"reinvocationPolicy":"Never","rules":[{"apiGroups":["kubevirt.io"],"apiVersions":["v1"],"operations":["CREATE"],"resources":["virtualmachineinstances"],"scope":"*"}],"sideEffects":"None","timeoutSeconds":10}]}
+  creationTimestamp: "2026-06-30T13:38:56Z"
+  generation: 3
+  name: nodepartition-webhook
+  resourceVersion: "4628163"
+  uid: 7574fbea-611c-4d19-9319-fb9fd5b39025
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFakNDQWZxZ0F3SUJBZ0lVUHFmS2Vpc0xGN1BQYjJzWFYzbFJ0S3R2dkRNd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0FEQWVGdzB5TmpBMk1qTXhOakF5TURsYUZ3MHlOakE1TWpFeE5qQXlNRGxhTUFBd2dnRWlNQTBHQ1NxRwpTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDNEFDRkc1RGRLVEMwYnBNOHpVV0pUN1E4SjFDcmNDYlNVCjhSOG9MMTR3SXpZQlg5NFdqY1dwS0NTREVUR095RDR5ZDNVY0dhSVNncVpoU1VPWXFhOGlJTUZOWC9XMXg4WmcKeHZERk1lajV2cTR3RjR1cDZzRnEzQUZNNnFjLzJXaXZhT3kxOHFacHljV2dsaU1BdSt3QVF5ZnB0TEhwanowNQpIRFRuWlRUeFRNRlVNY0NrUGdQNnBEZXNpdVFNVHpKUGtRTElVSnhsNllTaFFnaHNFMG9jcGRGN1FkZ1RMODhsCldLVVpKYmt0UGIwK2UySit0dk8zdENVNUNxaUUwS3NueExsVzJXeEg0K2NRaDc1Y3I5cG9Fc1NaUTFyaE91T1gKS3lOdGM1M0VoNEo2U3hTTHl2dllDbVovSUdrRUp0RzlucXZMMUFjZkcwdlRPVzI1Z3BCL0FnTUJBQUdqZ1lNdwpnWUF3RGdZRFZSMFBBUUgvQkFRREFnV2dNQXdHQTFVZEV3RUIvd1FDTUFBd1lBWURWUjBSQVFIL0JGWXdWSUloCmJtOWtaWEJoY25ScGRHbHZiaTEzWldKb2IyOXJMbVJsWm1GMWJIUXVjM1pqZ2k5dWIyUmxjR0Z5ZEdsMGFXOXUKTFhkbFltaHZiMnN1WkdWbVlYVnNkQzV6ZG1NdVkyeDFjM1JsY2k1c2IyTmhiREFOQmdrcWhraUc5dzBCQVFzRgpBQU9DQVFFQXFLZXl5NWxuV2xkNHZrQTZvRTBFNjlVazkrVWZwamdqKyt2aVNOekVpSExnV3lOajlkc1hMdW0rCk9GTTVYb2h1SFYwQ2FJOFAwemhhV2hEM2xRRTFVcGszWXp1b1FXK1p0WVN1cGZJTE1JOTZxR1JDUnd6bVdMQUsKc2tKSFZ5SVR6TENFT29ZbU9PaHNGUzVoYkVlNzE2RjNoeHNSbG1sb1AxMVVzZnNYaE1EVlBWTTRYQ3ZoVGRvdwpuVUR0eXBCUVNuRWxhVXY3akl0bzhPWmgyNVBKWGw1RU5KWjFVSFNzRUlHV2RrMWhYSmNaVWF6UEJ1WGFzZCtECnlPN3RIQldZeko1cFF0eW5WN0pRWGd1NzJqRXBicXN1SFRkM0xEOVZxRzZhOG4yeDFzL1MwV2RicmZjV2JoUS8KcENEUVZSWkplUVNqOEdwdmZoNXFaN2tSZ0Y2cmdRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    service:
+      name: nodepartition-webhook
+      namespace: default
+      path: /mutate
+      port: 443
+  failurePolicy: Fail
+  matchConditions:
+  - expression: |-
+      object.spec.devices.requests.exists(r,
+        r.exactly != null &&
+        r.exactly.deviceClassName != "" &&
+        !r.exactly.deviceClassName.startsWith("dra.") &&
+        !r.exactly.deviceClassName.startsWith("gpu.") &&
+        !r.exactly.deviceClassName.startsWith("sriov"))
+    name: has-coordinator-deviceclass
+  matchPolicy: Equivalent
+  name: nodepartition.dra.k8s.io
+  namespaceSelector: {}
+  objectSelector: {}
+  reinvocationPolicy: Never
+  rules:
+  - apiGroups:
+    - resource.k8s.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - resourceclaims
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFakNDQWZxZ0F3SUJBZ0lVUHFmS2Vpc0xGN1BQYjJzWFYzbFJ0S3R2dkRNd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0FEQWVGdzB5TmpBMk1qTXhOakF5TURsYUZ3MHlOakE1TWpFeE5qQXlNRGxhTUFBd2dnRWlNQTBHQ1NxRwpTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDNEFDRkc1RGRLVEMwYnBNOHpVV0pUN1E4SjFDcmNDYlNVCjhSOG9MMTR3SXpZQlg5NFdqY1dwS0NTREVUR095RDR5ZDNVY0dhSVNncVpoU1VPWXFhOGlJTUZOWC9XMXg4WmcKeHZERk1lajV2cTR3RjR1cDZzRnEzQUZNNnFjLzJXaXZhT3kxOHFacHljV2dsaU1BdSt3QVF5ZnB0TEhwanowNQpIRFRuWlRUeFRNRlVNY0NrUGdQNnBEZXNpdVFNVHpKUGtRTElVSnhsNllTaFFnaHNFMG9jcGRGN1FkZ1RMODhsCldLVVpKYmt0UGIwK2UySit0dk8zdENVNUNxaUUwS3NueExsVzJXeEg0K2NRaDc1Y3I5cG9Fc1NaUTFyaE91T1gKS3lOdGM1M0VoNEo2U3hTTHl2dllDbVovSUdrRUp0RzlucXZMMUFjZkcwdlRPVzI1Z3BCL0FnTUJBQUdqZ1lNdwpnWUF3RGdZRFZSMFBBUUgvQkFRREFnV2dNQXdHQTFVZEV3RUIvd1FDTUFBd1lBWURWUjBSQVFIL0JGWXdWSUloCmJtOWtaWEJoY25ScGRHbHZiaTEzWldKb2IyOXJMbVJsWm1GMWJIUXVjM1pqZ2k5dWIyUmxjR0Z5ZEdsMGFXOXUKTFhkbFltaHZiMnN1WkdWbVlYVnNkQzV6ZG1NdVkyeDFjM1JsY2k1c2IyTmhiREFOQmdrcWhraUc5dzBCQVFzRgpBQU9DQVFFQXFLZXl5NWxuV2xkNHZrQTZvRTBFNjlVazkrVWZwamdqKyt2aVNOekVpSExnV3lOajlkc1hMdW0rCk9GTTVYb2h1SFYwQ2FJOFAwemhhV2hEM2xRRTFVcGszWXp1b1FXK1p0WVN1cGZJTE1JOTZxR1JDUnd6bVdMQUsKc2tKSFZ5SVR6TENFT29ZbU9PaHNGUzVoYkVlNzE2RjNoeHNSbG1sb1AxMVVzZnNYaE1EVlBWTTRYQ3ZoVGRvdwpuVUR0eXBCUVNuRWxhVXY3akl0bzhPWmgyNVBKWGw1RU5KWjFVSFNzRUlHV2RrMWhYSmNaVWF6UEJ1WGFzZCtECnlPN3RIQldZeko1cFF0eW5WN0pRWGd1NzJqRXBicXN1SFRkM0xEOVZxRzZhOG4yeDFzL1MwV2RicmZjV2JoUS8KcENEUVZSWkplUVNqOEdwdmZoNXFaN2tSZ0Y2cmdRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    service:
+      name: nodepartition-webhook
+      namespace: default
+      path: /mutate
+      port: 443
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: vmis.nodepartition.dra.k8s.io
+  namespaceSelector: {}
+  objectSelector: {}
+  reinvocationPolicy: Never
+  rules:
+  - apiGroups:
+    - kubevirt.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - virtualmachineinstances
+    scope: '*'
+  sideEffects: None
+  timeoutSeconds: 10

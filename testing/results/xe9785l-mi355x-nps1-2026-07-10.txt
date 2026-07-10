@@ -1,0 +1,67 @@
+=== SYSTEM ===
+7.0.12-201.fc44.x86_64
+CPU(s):                                  256
+Model name:                              AMD EPYC 9575F 64-Core Processor
+Socket(s):                               2
+NUMA node(s):                            2
+NUMA node0 CPU(s):                       0-63,128-191
+=== DRIVERS ===
+dra.cpu
+dra.memory
+gpu.amd.com
+sriovnetwork.k8snetworkplumbingwg.io
+=== DEVICECLASSES ===
+deviceclass.resource.k8s.io/dra.cpu
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k8sne-bbbe6cc4-numa-numa0-loose
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k8sne-bbbe6cc4-numa-numa1-loose
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa0-pci0000-00-tight-rail0
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa0-pci0000-32-tight-rail1
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa0-pci0000-a0-tight-rail2
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa0-pci0000-d0-tight-rail3
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa1-pci0001-00-tight-rail4
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa1-pci0001-32-tight-rail5
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa1-pci0001-a0-tight-rail6
+deviceclass.resource.k8s.io/dra-cpu-dra-memory-gpu-amd-com-sriovnetwork-k-bbbe6cc4-pcieroot-numa1-pci0001-d0-tight-rail7
+deviceclass.resource.k8s.io/dra.hugepages-1g
+deviceclass.resource.k8s.io/dra.hugepages-2m
+deviceclass.resource.k8s.io/dra.memory
+deviceclass.resource.k8s.io/dra.net
+deviceclass.resource.k8s.io/dra.nvme
+deviceclass.resource.k8s.io/eighth
+deviceclass.resource.k8s.io/full
+deviceclass.resource.k8s.io/gpu.amd.com
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail0
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail1
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail2
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail3
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail4
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail5
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail6
+deviceclass.resource.k8s.io/gpu-amd-com-sriovnetwork-k8snetworkplumbingwg-io-pair-rail7
+deviceclass.resource.k8s.io/half
+deviceclass.resource.k8s.io/numa
+deviceclass.resource.k8s.io/pcieroot
+deviceclass.resource.k8s.io/sriovnetwork.k8snetworkplumbingwg.io
+=== TOPOLOGY ===
+
+[1m[0;36m═══ ResourceSlice Hardware Summary ═══[0m
+
+[1mNode:[0m localhost.localdomain
+
+[1mdra.cpu[0m (2 devices):
+  [2mNUMA [0]:[0m cpudevnuma000
+  [2mNUMA [1]:[0m cpudevnuma001
+
+[1mdra.memory[0m (2 devices):
+  [2mNUMA [0]:[0m memory-vpsfgm
+  [2mNUMA [1]:[0m memory-94vfs4
+
+[1mgpu.amd.com[0m (8 devices):
+  [2mNUMA [0]:[0m gpu-vfio-0 (0000:0c:02.0) [33m[VF, AMD MI355X VF][0m, gpu-vfio-1 (0000:dc:02.0) [33m[VF, AMD MI355X VF][0m, gpu-vfio-4 (0000:3d:02.0) [33m[VF, AMD MI355X VF][0m, gpu-vfio-6 (0000:a8:02.0) [33m[VF, AMD MI355X VF][0m
+  [2mNUMA [1]:[0m gpu-vfio-7 (0001:3d:02.0) [33m[VF, AMD MI355X VF][0m, gpu-vfio-2 (0001:dc:02.0) [33m[VF, AMD MI355X VF][0m, gpu-vfio-3 (0001:a5:02.0) [33m[VF, AMD MI355X VF][0m, gpu-vfio-5 (0001:0d:02.0) [33m[VF, AMD MI355X VF][0m
+
+[1msriovnetwork.k8snetworkplumbingwg.io[0m (8 devices):
+  [2mNUMA [0]:[0m 0000-d9-00-1 (0000:d9:00.1) [33m[VF, Pensando (eno17395np0)][0m, 0000-06-00-1 (0000:06:00.1) [33m[VF, Pensando (eno17095np0)][0m, 0000-ac-00-1 (0000:ac:00.1) [33m[VF, Pensando (eno17595np0)][0m, 0000-3a-00-1 (0000:3a:00.1) [33m[VF, Pensando (eno17295np0)][0m
+  [2mNUMA [1]:[0m 0001-d6-00-1 (0001:d6:00.1) [33m[VF, Pensando (eno16795np0)][0m, 0001-38-00-1 (0001:38:00.1) [33m[VF, Pensando (eno16695np0)][0m, 0001-a9-00-1 (0001:a9:00.1) [33m[VF, Pensando (eno16995np0)][0m, 0001-06-00-1 (0001:06:00.1) [33m[VF, Pensando (eno16495np0)][0m
+
