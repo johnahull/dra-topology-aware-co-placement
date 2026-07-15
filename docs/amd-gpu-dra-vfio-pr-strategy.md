@@ -26,7 +26,7 @@ feat/kep5304-device-metadata-v2      ← KEP-5304 metadata + DeviceMetadata gate
 
 | PR | Title | Status | Reviewer Feedback |
 |---|---|---|---|
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | LGTM (yansun1996), rebased onto `develop`, `VFIOPassthrough` feature gate added | Approved after feature gate integration. PF passthrough tested end-to-end on MI355X. |
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | Rebased onto `develop`, `VFIOPassthrough` feature gate added. Changes requested (yansun1996, 2026-05-20) — all items addressed. | Awaiting re-review after feature gate integration and rebase. PF passthrough tested end-to-end on MI355X. |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata | Rebased onto `develop`, `DeviceMetadata` feature gate added | Ready for re-review. |
 | [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64) | Feature gate mechanism | **Merged** into `develop` | Provides the gate infra used by PRs #50 and #48. |
 
@@ -43,7 +43,7 @@ feat/kep5304-device-metadata-v2      ← KEP-5304 metadata + DeviceMetadata gate
 ```
 PR 0:  Feature gate infra (#64)                    ✅ MERGED
   │
-  ├── PR 1:  VFIO passthrough (#50)                ✅ VFIOPassthrough gate added, LGTM
+  ├── PR 1:  VFIO passthrough (#50)                ✅ VFIOPassthrough gate added, awaiting re-review
   │    │
   │    ├── PR 4.5: Multi-VF partition modes         code complete, not PR'd yet
   │    ├── PR 5:  KEP-4815 counters                gate: VFIOPassthrough  (K8s 1.37+)
@@ -80,7 +80,7 @@ Adds `pkg/featuregates/featuregates.go` with versioned gate registry, `pkg/flags
 
 ### PR 1: VFIO Passthrough (#50) — Ready for Merge
 
-**Status:** ✅ Rebased onto `develop`, feature gate added, LGTM from yansun1996
+**Status:** ✅ Rebased onto `develop`, feature gate added. Awaiting re-review.
 **Branch:** `feature/vfio-passthrough-v2`
 **Target:** `develop`
 **Gate:** `VFIOPassthrough` (alpha, default false)
