@@ -332,21 +332,31 @@ NVIDIA's DRA driver handles this in two places:
 
 The GPU Operator currently manages VFIO binding itself — it runs worker pods that execute `vfio_bind.sh`/`vfio_unbind.sh` to bind VFs to `vfio-pci` before the DRA driver discovers them. With on-demand VFIO binding now in the DRA driver, these worker pods **conflict**: the operator binds VFs to `vfio-pci` at boot, but the DRA driver expects them unbound (or on `amdgpu`) so it can bind on-demand during Prepare and unbind during Unprepare.
 
+#### Current Operator Behavior
+
+The operator manages the full GPU lifecycle for passthrough:
+
+1. **KMM builds and loads GIM** — `kmmmodule.go` compiles `gim.ko` from source via KMM (Kernel Module Management), loads it with `modprobe gim`. The `vf_num` parameter comes from the user's `DeviceConfig.spec.driver.kernelModuleConfig.parameters` (not hardcoded by the operator).
+2. **Blacklists `amdgpu`** — for `vf-passthrough` mode, writes `blacklist amdgpu` to `/etc/modprobe.d/` so GIM gets the PF instead of the compute driver.
+3. **Waits for GIM** — init containers poll `/sys/module/gim/drivers/` before starting the DRA plugin or node labeller.
+4. **VFIO bind worker pods** — `workermgr.go` creates pods that run `vfio_bind.sh` to bind VFs to `vfio-pci` after GIM creates them, and `vfio_unbind.sh` to unbind on teardown.
+5. **Node labels** — sets `gpu.operator.amd.com/<node>.vfio.ready` labels after VFIO binding completes.
+
 #### What Needs to Change
 
 | Area | Change | Why |
 |---|---|---|
-| **Skip VFIO worker pods** | `workermgr.go`: when `draVfioEnabled: true`, skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation for `vf-passthrough`/`pf-passthrough` driver types | Workers conflict with DRA driver's on-demand binding — operator binds at boot, driver expects to bind during Prepare |
-| **Pass feature gate to DRA driver** | Helm: when `draVfioEnabled: true`, add `--feature-gates=VFIOPassthrough=true` to the DRA driver DaemonSet args via `featureGates: {VFIOPassthrough: true}` | DRA driver needs the gate enabled to discover PFs and do on-demand binding |
-| **Conditional init container** | Helm: make the `driver-init` container's `/sys/class/kfd` check conditional | In PF passthrough mode (no GIM), `kfd` may not exist if GPUs are on `vfio-pci`; the init container would block forever |
-| **GIM VF count passthrough** | No change needed | Operator still loads GIM with `modprobe gim vf_num=N`; DRA driver discovers whatever VFs exist |
+| **Skip VFIO bind worker pods** | `workermgr.go`: when `draVfioEnabled: true`, skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation for `vf-passthrough`/`pf-passthrough` driver types | Workers conflict with DRA driver's on-demand binding — operator binds VFs at boot, but DRA driver expects them unbound so it can bind during Prepare and unbind during Unprepare |
+| **Pass feature gate to DRA driver** | Helm/DeviceConfig: when `draVfioEnabled: true`, add `--feature-gates=VFIOPassthrough=true` to the DRA driver DaemonSet args | DRA driver needs the gate enabled to discover PFs and do on-demand binding |
+| **Conditional init container** | `plugin.go`, `configmanager.go`: when `draVfioEnabled` and `pf-passthrough`, don't wait for `/sys/module/gim/drivers/` or `/sys/class/kfd` | PF passthrough mode has no GIM — init containers would block forever |
 
 #### What Does NOT Change
 
-- **GIM loading** (`modprobe gim vf_num=N`) — operator still manages this
+- **KMM GIM loading** — operator still builds and loads `gim.ko` via KMM for `vf-passthrough` mode
+- **`vf_num` parameter** — still set by user in `DeviceConfig.spec.driver.kernelModuleConfig.parameters`
+- **`amdgpu` blacklisting** — still needed for `vf-passthrough` so GIM gets the PF
 - **DeviceClass creation** — DRA driver or topology coordinator handles this
 - **CDI spec generation** — handled by DRA driver
-- **Node labeling** — unaffected
 
 #### Implementation Options
 
