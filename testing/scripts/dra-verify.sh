@@ -7,7 +7,7 @@
 #   dra-verify.sh drivers                    Show DRA driver status
 #   dra-verify.sh attributes [-a]             Show ResourceSlice topology attributes (-a for all)
 #   dra-verify.sh driverinfo                  Show published attributes/capacities per driver
-#   dra-verify.sh deviceclasses               Show topology coordinator device classes
+#   dra-verify.sh deviceclasses [filter]       Show device classes (pairs|partitions|aggregates, default: all)
 #   dra-verify.sh composite [-a]             Show composite device compositions (-a for all attributes)
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
 #   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
@@ -39,6 +39,10 @@ _dra_verify() {
             local namespaces
             namespaces=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
             COMPREPLY=( $(compgen -W "${namespaces}" -- "${cur}") )
+            return 0
+            ;;
+        deviceclasses)
+            COMPREPLY=( $(compgen -W "pairs partitions aggregates" -- "${cur}") )
             return 0
             ;;
     esac
@@ -1852,11 +1856,13 @@ cmd_deviceclasses() {
     section "Topology Coordinator Device Classes"
 
     local verbose="$VERBOSE"
-    { kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | VERBOSE="$verbose" python3 -c '
+    local dc_filter="${TARGET:-all}"
+    { kubectl get deviceclasses -l 'nodepartition.dra.k8s.io/managed=true' -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceclaims -A -o json 2>/dev/null; } | VERBOSE="$verbose" DC_FILTER="$dc_filter" python3 -c '
 import json, sys, os, re
 from collections import defaultdict
 
 verbose = os.environ.get("VERBOSE", "") == "1"
+dc_filter = os.environ.get("DC_FILTER", "all").lower()
 
 raw = sys.stdin.read()
 parts = raw.split("---SEP---")
@@ -2001,8 +2007,12 @@ for dc in items:
         profile = labels.get("nodepartition.dra.k8s.io/profile", "(unknown)")
         by_profile[profile].append(dc)
 
-# Display custom groupings first
-for grouping_name in sorted(by_grouping):
+show_pairs = dc_filter in ("all", "pairs", "groupings")
+show_partitions = dc_filter in ("all", "partitions")
+show_aggregates = dc_filter in ("all", "aggregates", "aggregate")
+
+# Display custom groupings (pairs)
+for grouping_name in sorted(by_grouping) if show_pairs else []:
     print(f"\n\033[1mGrouping: {grouping_name}\033[0m")
     classes = by_grouping[grouping_name]
     classes.sort(key=lambda dc: (
@@ -2055,8 +2065,8 @@ for grouping_name in sorted(by_grouping):
         print(f"  {alignment} \xb7 {numa_str} → {name}  {status}")
         print(f"    {sub_summary}")
 
-# Display legacy partitions
-for profile in sorted(by_profile):
+# Display partitions
+for profile in sorted(by_profile) if show_partitions else []:
     print(f"\n\033[1mProfile: {profile}\033[0m")
     classes = by_profile[profile]
     order = {"eighth": 0, "quarter": 1, "half": 2, "full": 3}
@@ -2300,7 +2310,7 @@ for c in claim_data.get("items", []):
 
 # Highlight aggregate DeviceClasses (no NUMA label = scheduler picks placement)
 aggregates = [dc for dc in items if not dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
-if aggregates:
+if aggregates and show_aggregates:
     # For each specific (per-NUMA) grouping instance, check if any of its
     # member drivers devices on that NUMA are allocated. The PartitionConfig
     # lists the driver classes; the ResourceSlices tell us which devices
@@ -2411,8 +2421,16 @@ if aggregates:
     print()
 
 specific = [dc for dc in items if dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
+grouping_count = sum(len(v) for v in by_grouping.values())
+partition_count = sum(len(v) for v in by_profile.values())
+agg_count = len(aggregates)
+shown = []
+if show_pairs and grouping_count: shown.append(f"{grouping_count} pairs")
+if show_partitions and partition_count: shown.append(f"{partition_count} partitions")
+if show_aggregates and agg_count: shown.append(f"{agg_count} aggregate")
 total_suffix = "es" if len(items) != 1 else ""
-print(f"Total: {len(items)} device class{total_suffix} ({len(aggregates)} aggregate, {len(specific)} specific)")
+filter_note = f" (showing: {', '.join(shown)})" if dc_filter != "all" and shown else f" ({agg_count} aggregate, {len(specific)} specific)"
+print(f"Total: {len(items)} device class{total_suffix}{filter_note}")
 ' 2>/dev/null
 }
 
@@ -2726,7 +2744,7 @@ cmd_help() {
     echo "  drivers                    Show DRA driver DaemonSets, pods, registration"
     echo "  attributes [-a]            Show ResourceSlice topology attributes (-a for all)"
     echo "  driverinfo                 Show published attributes/capacities per driver"
-    echo "  deviceclasses              Show topology coordinator device classes"
+    echo "  deviceclasses [filter]     Show device classes (pairs|partitions|aggregates, default: all)"
     echo "  composite [-a]             Show composite device compositions (-a for all attributes)"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
     echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
