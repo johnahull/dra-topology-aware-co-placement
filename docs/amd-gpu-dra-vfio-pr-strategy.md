@@ -328,10 +328,42 @@ NVIDIA's DRA driver handles this in two places:
 **Target:** `ROCm/gpu-operator` `develop` (separate repo)
 **Depends on:** PR 1 validated in production
 
+#### The Problem
+
+The GPU Operator currently manages VFIO binding itself — it runs worker pods that execute `vfio_bind.sh`/`vfio_unbind.sh` to bind VFs to `vfio-pci` before the DRA driver discovers them. With on-demand VFIO binding now in the DRA driver, these worker pods **conflict**: the operator binds VFs to `vfio-pci` at boot, but the DRA driver expects them unbound (or on `amdgpu`) so it can bind on-demand during Prepare and unbind during Unprepare.
+
+#### What Needs to Change
+
+| Area | Change | Why |
+|---|---|---|
+| **Skip VFIO worker pods** | `workermgr.go`: when `draVfioEnabled: true`, skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation for `vf-passthrough`/`pf-passthrough` driver types | Workers conflict with DRA driver's on-demand binding — operator binds at boot, driver expects to bind during Prepare |
+| **Pass feature gate to DRA driver** | Helm: when `draVfioEnabled: true`, add `--feature-gates=VFIOPassthrough=true` to the DRA driver DaemonSet args via `featureGates: {VFIOPassthrough: true}` | DRA driver needs the gate enabled to discover PFs and do on-demand binding |
+| **Conditional init container** | Helm: make the `driver-init` container's `/sys/class/kfd` check conditional | In PF passthrough mode (no GIM), `kfd` may not exist if GPUs are on `vfio-pci`; the init container would block forever |
+| **GIM VF count passthrough** | No change needed | Operator still loads GIM with `modprobe gim vf_num=N`; DRA driver discovers whatever VFs exist |
+
+#### What Does NOT Change
+
+- **GIM loading** (`modprobe gim vf_num=N`) — operator still manages this
+- **DeviceClass creation** — DRA driver or topology coordinator handles this
+- **CDI spec generation** — handled by DRA driver
+- **Node labeling** — unaffected
+
+#### Implementation Options
+
+| Option | Approach | Tradeoff |
+|---|---|---|
+| **Helm flag** (recommended) | Add `draVfioEnabled: true` in operator Helm values; skip workers + pass gate | Simple, explicit, no auto-detection complexity |
+| **Auto-detect from DRA driver** | Operator reads DRA driver's feature gates from ResourceSlice or pod args | More complex, couples operator to DRA driver internals |
+| **Feature gate in operator** | Add `VFIOPassthrough` gate to the operator itself | Redundant — the DRA driver already has the gate |
+
+#### Files to Modify
+
 | File | Change |
 |---|---|
-| `internal/controllers/workermgr/workermgr.go` | When DRA driver version supports VFIO (detected via ResourceSlice or Helm config), skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation for `vf-passthrough`/`pf-passthrough` driver types |
-| Helm values | Expose `PassthroughSupport` feature gate toggle for the DRA driver DaemonSet args |
+| `internal/controllers/workermgr/workermgr.go` | Skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation when `draVfioEnabled` |
+| `helm-charts/values.yaml` | Add `draVfioEnabled: false` (default off) |
+| `helm-charts/templates/dra-daemonset.yaml` | Conditionally pass `featureGates: {VFIOPassthrough: true}` to DRA driver |
+| `helm-charts/templates/dra-daemonset.yaml` | Make init container `/sys/class/kfd` check conditional on `draVfioEnabled` |
 
 ---
 
