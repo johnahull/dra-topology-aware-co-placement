@@ -31,11 +31,30 @@ The `numaNode` attribute has two forms:
 
 This means drivers must detect the cluster version and choose the right form.
 
+## Dependency Compatibility
+
+The helpers live in `k8s.io/dynamic-resource-allocation/deviceattribute`, which was added in the K8s 1.37 release of that module. This raises a question: **what if your driver runs on a K8s 1.35 or 1.36 cluster?**
+
+The helpers are client-side Go code — they read local sysfs files and construct attribute structs. They don't call the API server. So the module version doesn't need to match the cluster version. A driver can vendor the 1.37 version of `k8s.io/dynamic-resource-allocation` and deploy on a 1.35 cluster.
+
+With `listEnabled=false`, the helper produces `IntValue` (scalar) — a field that exists in all DRA-capable K8s versions. The 1.35 API server accepts it without issue.
+
+**Will bumping to 1.37 deps break other things?** In practice, no. The `k8s.io/api/resource/v1` types are additive — new fields are added, old ones aren't removed. The API server ignores fields it doesn't recognize. However, if your driver pins to an older `k8s.io/*` dependency set for other reasons, you can't selectively bump just `dynamic-resource-allocation` — the `k8s.io/*` modules are versioned together.
+
+**If you can't bump dependencies**, copy the helper logic into your driver. The core is ~50 lines: read `numa_node` from sysfs, optionally read SLIT distances, construct the attribute with the standardized name `"resource.kubernetes.io/numaNode"`. No dependency on the 1.37 module needed.
+
+| Approach | When to use |
+|---|---|
+| **Bump `k8s.io/dynamic-resource-allocation` to 1.37+** | Driver can update its K8s dependency set. This is the recommended approach. |
+| **Copy the helper code** | Driver is pinned to older `k8s.io/*` versions and can't bump without breaking other integrations. |
+
+Both approaches produce identical attributes. The standardized name is just a string constant — it works on any K8s version.
+
 ## How to Adopt
 
 ### Step 1: Bump the dependency
 
-Add or update the `k8s.io/dynamic-resource-allocation` dependency to pick up the `deviceattribute` package with the KEP-6072 helpers:
+Add or update the `k8s.io/dynamic-resource-allocation` dependency to pick up the `deviceattribute` package with the KEP-6072 helpers. This module can be built against K8s 1.37 and deployed on older clusters — see [Dependency Compatibility](#dependency-compatibility).
 
 ```bash
 go get k8s.io/dynamic-resource-allocation@latest
