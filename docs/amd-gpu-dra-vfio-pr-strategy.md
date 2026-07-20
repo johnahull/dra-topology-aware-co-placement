@@ -1,172 +1,121 @@
-# AMD GPU DRA Driver — VFIO/IOMMUFD PR Strategy
+# Proposed Roadmap: VFIO Passthrough and IOMMUFD Support for the AMD GPU DRA Driver
 
-PR plan for landing VFIO passthrough and IOMMUFD support in `ROCm/k8s-gpu-dra-driver`. Based on review feedback from bhatnitish and yansun1996, existing branch work, and the NVIDIA DRA driver as reference implementation.
+Roadmap for landing VFIO passthrough, IOMMUFD, and related topology features in `ROCm/k8s-gpu-dra-driver`. Organized into three phases: core VFIO support, topology and IOMMUFD, and polish.
 
-**Last updated:** 2026-07-15
+## Motivation
+
+KubeVirt VMs require GPU passthrough via VFIO to access AMD Instinct GPUs with near-native performance. The DRA driver needs to manage the full VFIO lifecycle — discovering GPU VFs created by GIM SR-IOV, binding them to `vfio-pci`, generating CDI specs for `/dev/vfio/*` device nodes, and unbinding on release. This enables KubeVirt to allocate GPU resources through the standard Kubernetes DRA API instead of relying on the legacy device-plugin path, which requires GPUs to be pre-bound to `vfio-pci` by the GPU Operator before discovery.
 
 ---
 
 ## Current State
 
-### Existing Branches (all rebased onto `develop`)
+Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64)). Two PRs are rebased onto `develop` with gates wired in, awaiting re-review:
 
-```
-feature/multi-vf-partitions          ← GIM 9.1.0.K multi-VF (1/2/8) partition mode + per-VF capacity
-  └─ feature/vfio-passthrough-v2     ← core VFIO + on-demand binding + PF passthrough + VFIOPassthrough gate
-       └─ develop                    ← feature gate infra (PR #64, merged) + Go 1.26.5 security fix
-
-feature/vfio-kep4815-counters        ← superset: VFIO + counters + metadata + numa-list + both gates
-  └─ develop
-
-feat/kep5304-device-metadata-v2      ← KEP-5304 metadata + DeviceMetadata gate
-  └─ develop
-```
-
-### Open PRs
-
-| PR | Title | Status | Reviewer Feedback |
+| PR | Title | Gate | Status |
 |---|---|---|---|
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | Rebased onto `develop`, `VFIOPassthrough` feature gate added. Changes requested (yansun1996, 2026-05-20) — all items addressed. | Awaiting re-review after feature gate integration and rebase. PF passthrough tested end-to-end on MI355X. |
-| [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata | Rebased onto `develop`, `DeviceMetadata` feature gate added | Ready for re-review. |
-| [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64) | Feature gate mechanism | **Merged** into `develop` | Provides the gate infra used by PRs #50 and #48. |
-
-### Key Reviewer Requirements — All Addressed
-
-1. ~~**Target `develop` branch**~~ — Done. Both PRs rebased onto `develop`.
-2. ~~**Feature gate infrastructure**~~ — Done. PR #64 merged. Both features gated.
-3. ~~**`make check` / `go fmt` clean**~~ — Done. All branches pass `go build`, `go vet`, `go test`.
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | `VFIOPassthrough` (alpha, off) | Rebased, gate added, all review items addressed. Tested with single-VF-per-GPU (SPX mode) on MI300X and MI355X with GIM SR-IOV and KubeVirt. |
+| [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata | `DeviceMetadata` (alpha, off) | Rebased, gate added, ready for re-review. |
 
 ---
 
-## PR Sequence
+## Phased Roadmap
 
-```
-PR 0:  Feature gate infra (#64)                    ✅ MERGED
-  │
-  ├── PR 1:  VFIO passthrough (#50)                ✅ VFIOPassthrough gate added, awaiting re-review
-  │    │
-  │    ├── PR 4.5: Multi-VF partition modes         code complete, not PR'd yet
-  │    ├── PR 5:  KEP-4815 counters                gate: VFIOPassthrough  (K8s 1.37+)
-  │    ├── PR 6:  VFIO DeviceClass Helm template   gate: VFIOPassthrough
-  │    ├── PR 8:  Sibling mutual exclusion          PF passthrough only (workaround exists)
-  │    └── PR 9:  KubeVirt example manifests
-  │
-  └── PR 2:  KEP-5304 metadata (#48)               ✅ DeviceMetadata gate added
-       │
-       └── PR 3:  Standardized numaNode (D-8)      blocked on K8s #139929
-             │
-             └── PR 4:  IOMMUFD support             gate: VFIOPassthrough
-                   │
-                   └── PR 7:  Webhook validation for VfioDeviceConfig
-```
+### Phase 1 — Core VFIO + Metadata (in progress)
 
-```
-PR 10: GPU Operator convergence                    separate repo (ROCm/gpu-operator)
-```
+| Item | PR | Gate | Status |
+|---|---|---|---|
+| VFIO passthrough for SR-IOV VFs | [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | `VFIOPassthrough` | Awaiting re-review |
+| KEP-5304 device metadata | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | `DeviceMetadata` | Awaiting re-review |
 
-PR 1 and PR 2 are independent of each other — can merge in either order (PR 0 already merged).
-PR 4.5 (multi-VF) extends PR 1 with GIM 9.1.0.K support for 2-VF DPX mode.
+PRs #50 and #48 are independent — can merge in either order.
 
----
+### Phase 2 — Topology & IOMMUFD
 
-### PR 0: Feature Gate Infrastructure — MERGED (#64)
+| Item | Depends on | External blocker |
+|---|---|---|
+| KEP-4815 partitionable devices (multi-VF + mutual exclusion) | PR #50 | Beta in K8s 1.36 (available now) |
+| Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 | K8s helper merged ([#139929](https://github.com/kubernetes/kubernetes/pull/139929)), ready to implement |
+| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | — |
 
-**Status:** ✅ Merged into `develop` (2026-07-13)
-**Author:** johnahull
+### Phase 3 — Polish
 
-Adds `pkg/featuregates/featuregates.go` with versioned gate registry, `pkg/flags/featuregates.go` with CLI/env wiring (`--feature-gates`, `FEATURE_GATES`), and Helm `featureGates` map support. Both PRs #50 and #48 now use this infrastructure.
-
----
-
-### PR 1: VFIO Passthrough (#50) — Ready for Merge
-
-**Status:** ✅ Rebased onto `develop`, feature gate added. Awaiting re-review.
-**Branch:** `feature/vfio-passthrough-v2`
-**Target:** `develop`
-**Gate:** `VFIOPassthrough` (alpha, default false)
-**Tested on:** XE9680 (MI300X), XE9785L (MI355X)
-
-All rework complete:
-- ✅ Rebased onto `develop`
-- ✅ `--enable-pf-passthrough` replaced with `VFIOPassthrough` feature gate
-- ✅ PF passthrough tested end-to-end (amdgpu→vfio-pci→amdgpu cycle)
-- ✅ On-demand VFIO binding for VFs (amdgpu→vfio-pci when VfioDeviceConfig present)
-- ✅ `go build`, `go vet`, `go test` all pass
-
----
-
-### PR 2: KEP-5304 Device Metadata (#48) — Ready for Re-review
-
-**Status:** ✅ Rebased onto `develop`, `DeviceMetadata` feature gate added
-**Branch:** `feat/kep5304-device-metadata-v2`
-**Target:** `develop`
-**Gate:** `DeviceMetadata` (alpha, default false)
-
-All rework complete:
-- ✅ Rebased onto `develop`
-- ✅ `kubeletplugin.EnableDeviceMetadata(true)` gated behind `DeviceMetadata` feature gate
-- ✅ Metadata attribute population gated
-- ✅ `go build`, `go vet`, `go test` all pass
-
-**Note:** Independent of PR 1. Can merge before or after VFIO.
-
----
-
-### PR 3: Standardized `numaNode` Attribute (D-8)
-
-**Status:** Code complete in `feature/standardized-topology-attrs`. Blocked on K8s dependency.
-**Target:** `develop`
-**Size:** ~50-100 lines (driver change is small; dependency bump is the bulk)
-**Depends on:** K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) (provides `GetNUMANodeAttributeByPCIBusID` helper)
-**Branch:** `johnahull/k8s-gpu-dra-driver` `feature/standardized-topology-attrs`
-
-The AMD driver publishes `numaNode` as a bare unqualified attribute. Other drivers publish vendor-specific names (`gpu.nvidia.com/numa`, `dra.cpu/numaNodeID`, `dra.net/numaNode`). For `matchAttribute: resource.kubernetes.io/numaNode` to align devices across drivers, all must use the standardized name from KEP-6072.
-
-**What's already implemented (in fork):**
-- Publishes `resource.kubernetes.io/numaNode` (via `deviceattribute.GetNUMANodeAttributeByPCIBusID()`) alongside the bare `numaNode` for all device types (GPU, partition, VFIO)
-- Publishes `resource.kubernetes.io/cpuSocketID` for socket-level topology
-- VFIO devices get the same standardized attributes
-
-**What's needed to upstream:**
-1. K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) must merge (provides the helper in `k8s.io/dynamic-resource-allocation/deviceattribute`)
-2. Bump `k8s.io/dynamic-resource-allocation` dependency in `k8s-gpu-dra-driver` to pick up the helper
-3. PR against `develop` — call the standardized helper for all device types in `GetDevice()`
-
-**Can ship independently** of the VFIO PRs (affects all device types, not just VFIO). Sequenced here after PR 2 because KEP-5304 metadata is how `numaNode` reaches the workload at runtime.
-
-**Sequencing with VFIO PRs:**
-- The `feature/vfio-kep5304-combined` branch already includes the standardized numaNode for VFIO devices, but this depends on the K8s helper being available in the vendored dependency.
-- If K8s #139929 merges before PR 1, include standardized numaNode in PR 1. If not, ship PR 1 with bare `numaNode` and add standardized form in this PR when the dependency is available.
-
----
-
-### PR 4: IOMMUFD Support (new — D-18)
-
-**Status:** Not started
-**Target:** `develop`
-**Size:** ~300-400 lines estimated
-**Depends on:** PR 1 (extends VFIO CDI handler)
-**Gate:** `VFIOPassthrough` (same gate — IOMMUFD is part of the VFIO feature)
-**Reference:** NVIDIA DRA driver `cmd/gpu-kubelet-plugin/vfio-cdi.go`, [KubeVirt VEP 266](https://github.com/kubevirt/enhancements/issues/266)
-
-**What to build:**
-
-| File | Change |
+| Item | Depends on |
 |---|---|
-| `api/.../vfioconfig.go` or extend `api.go` | Add `IOMMUConfig` fields to `VfioDeviceConfig`: `BackendPolicy` (LegacyOnly/PreferIommuFD), `EnableAPIDevice` (bool) |
-| `api/.../iommu.go` (new) | `IOMMUConfig` type, `IOMMUBackendPolicy` enum, helper methods `ShouldPreferIommuFD()`, `ShouldEnableAPIDevice()` |
-| `pkg/amdgpu/vfio.go` | Add `CheckIommuFDEnabled()` — check `/dev/iommu` exists |
-| `cmd/gpu-kubeletplugin/deviceinfo.go` | Add `IommuFDEnabled bool` to `AmdGpuVFIOInfo`, publish as device attribute |
-| `cmd/gpu-kubeletplugin/vfio_manager.go` | Extend CDI spec generation: when `PreferIommuFD` and IOMMUFD available, inject `/dev/iommu` + `/dev/vfio/devices/vfioX` instead of `/dev/vfio/vfio` + `/dev/vfio/<group>` |
-| `cmd/gpu-kubeletplugin/state.go` | Pass `IOMMUConfig` from `VfioDeviceConfig` into CDI generation |
-| `api/.../validate.go` | Validate `VfioDeviceConfig.Iommu` fields |
+| VFIO DeviceClass Helm template | PR #50 |
+| Webhook validation for `VfioDeviceConfig` | IOMMUFD (Phase 2) |
+| Sibling mutual exclusion (PF passthrough only) | PR #50 + PF config bug resolution |
+| KubeVirt example manifests | PR #50 |
+| GPU Operator convergence | PR #50 validated (separate repo) |
 
-**NVIDIA reference (exact pattern to follow):**
-- `vfio-cdi.go:53` `GetCommonEdits(enableAPIDevice, preferIommuFD bool)` — always includes `/dev/vfio/vfio`, optionally `/dev/iommu`
-- `vfio-cdi.go:91` `GetDeviceSpecsByPCIBusID(pciBusID, preferIommuFD bool)` — IOMMUFD: `/dev/vfio/devices/<cdev>`; legacy: `/dev/vfio/<group>`
-- `iommu.go:42` `IOMMUConfig` struct with `BackendPolicy` and `EnableAPIDevice`
+---
 
-**User-facing config:**
+## Phase 1 Detail
+
+### VFIO Passthrough (PR [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50))
+
+End-to-end VFIO passthrough for AMD GPUs via DRA. Supports GIM SR-IOV VFs (primary path) and opt-in PF passthrough.
+
+| Component | File | Description |
+|---|---|---|
+| PCI-level discovery | `pkg/amdgpu/vfio.go` | Scans `/sys/bus/pci/devices/` by AMD vendor ID `0x1002`. GIM VF discovery via `virtfn*` symlinks. IOMMU group detection. PF passthrough (opt-in). |
+| VFIO bind/unbind manager | `cmd/gpu-kubeletplugin/vfio_manager.go` | `VfioPciManager` with `Configure()`/`Unconfigure()`. Per-GPU locking. Sysfs `driver_override` writes with cleanup. CDI spec generation for `/dev/vfio/*`. |
+| Device type | `cmd/gpu-kubeletplugin/deviceinfo.go` | `AmdGpuVFIOInfo` struct with PCI address, IOMMU group, VF/PF flag, parent PF address. |
+| Allocatable extension | `cmd/gpu-kubeletplugin/allocatable.go` | `Vfio *AmdGpuVFIOInfo` field in `AllocatableDevice` union. |
+| Prepare/Unprepare | `cmd/gpu-kubeletplugin/state.go` | Type-based dispatch to VFIO config path. On-demand VF binding (`amdgpu` → `vfio-pci`). |
+| API type | `api/.../api.go` | `VfioDeviceConfig` kind registered in scheme. |
+| Unit tests | `vfio_manager_test.go`, `vfio_test.go` | Tmpdir-backed sysfs for isolated testing. |
+
+### KEP-5304 Device Metadata (PR [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48))
+
+Opts into KEP-5304 device metadata so KubeVirt can read PCI address and NUMA topology from inside the pod.
+
+- `kubeletplugin.EnableDeviceMetadata(true)` when `DeviceMetadata` gate is on
+- Populates `DeviceMetadata.Attributes` with `resource.kubernetes.io/pciBusID`, `productName`, `numaNode`
+- Works for full GPUs, partitions, and VFIO devices
+
+---
+
+## Phase 2 Detail
+
+### KEP-4815 Partitionable Devices
+
+[KEP-4815](https://github.com/kubernetes/enhancements/issues/4815) (alpha K8s 1.35, beta 1.36) adds DRA support for partitionable devices. Drivers publish a parent device's total capacity as a `SharedCounterSet`, and each partition declares how much it consumes via `consumesCounters`. The scheduler tracks aggregate consumption and prevents over-subscription.
+
+This maps directly to AMD GPU SR-IOV: the PF's total capacity (memory, CU, SIMD) is the counter set, and each GIM VF consumes a fraction. It also handles PF/VF mutual exclusion — if the PF is allocatable as a VFIO device, it consumes all counter slots, preventing co-allocation with any VFs.
+
+**What the driver needs to implement:**
+
+- Publish a `SharedCounterSet` per PF with counters for `memory`, `computeUnits`, `simdUnits` (or a single `vf-slots` counter — design TBD)
+- Each VF's `GetDevice()` declares `consumesCounters` for its share of the PF's capacity
+- Read `sriov_numvfs` (current active VF count) from sysfs to size the partition model — **not** `sriov_totalvfs` (max supported). With GIM 9.1.0.K multi-VF partition modes, the active count varies by compute partition mode (SPX=1, DPX=2, CPX=8) while `totalvfs` stays fixed at 8. Using `totalvfs` would advertise phantom capacity.
+- Derive per-VF capacity (memory, CU, SIMD) by dividing PF totals by VF count — needs a reliable way to read PF-level CU/SIMD capacity from sysfs rather than hardcoding per device ID
+- If the partition mode is reconfigured (changing the active VF count), re-publish the counter set and device list with updated capacity
+- Unit tests covering discovery and capacity division across partition modes (SPX, DPX, CPX)
+- Validation against actual GIM 9.1.0.K DPX (2-VF) and CPX (8-VF) mode output
+
+### Standardized `numaNode` (KEP-6072)
+
+The AMD driver publishes `numaNode` as a bare unqualified attribute. For cross-driver `matchAttribute: resource.kubernetes.io/numaNode` to work (aligning GPUs with NICs, CPUs, and memory from different DRA drivers), all drivers must use the standardized attribute name from [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) ([KEP PR](https://github.com/kubernetes/enhancements/pull/6073), merged).
+
+Implementation requires calling `deviceattribute.GetNUMANodeAttributeByPCIBusID()` for all device types (GPU, partition, VFIO) in `GetDevice()`. The helper is available in `k8s.io/dynamic-resource-allocation/deviceattribute` as of K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) (merged 2026-07-16). Requires a dependency bump to pick it up.
+
+### IOMMUFD Support
+
+IOMMUFD (Linux 6.2+) enables per-device IOMMU isolation instead of per-group, required for confidential VMs (AMD SEV-SNP) and improved security for multi-device passthrough. See [KubeVirt VEP-266](https://github.com/kubevirt/enhancements/issues/266).
+
+The proposed implementation follows the pattern established by the NVIDIA DRA GPU driver (`kubernetes-sigs/dra-driver-nvidia-gpu`).
+
+**What the driver needs to implement:**
+
+- Add `IOMMUConfig` to the existing `VfioDeviceConfig` API type with two fields: `BackendPolicy` (LegacyOnly or PreferIommuFD) and `EnableAPIDevice` (bool)
+- Detect IOMMUFD support at startup by checking for `/dev/iommu`
+- Publish `iommuFDEnabled` as a device attribute on VFIO devices in the ResourceSlice
+- Extend CDI spec generation: when IOMMUFD is preferred and available, inject `/dev/iommu` + `/dev/vfio/devices/vfioX` instead of the legacy `/dev/vfio/vfio` + `/dev/vfio/<group>`
+- Validate `IOMMUConfig` fields in the admission webhook
+
+User-facing config:
+
 ```yaml
 config:
 - opaque:
@@ -181,70 +130,11 @@ config:
 
 ---
 
-### PR 4.5: Multi-VF Partition Mode Support (new)
+## Phase 3 Detail
 
-**Status:** Code complete in `feature/multi-vf-partitions`. Not yet PR'd.
-**Branch:** `feature/multi-vf-partitions` (based on `feature/vfio-passthrough-v2`)
-**Target:** `develop`
-**Size:** ~120 lines
-**Depends on:** PR 1
+### VFIO DeviceClass Helm Template
 
-Support for GIM 9.1.0.K multi-VF configurations:
-- **1 VF** (SPX) — full GPU in a single VF
-- **2 VFs** (DPX) — 4 XCCs per VF (new in GIM 9.1.0.K for MI355X/MI350X)
-- **8 VFs** (CPX) — 1 XCC per VF
-
-**What's implemented:**
-
-| Component | File | Change |
-|---|---|---|
-| `ReadSRIOVNumVFs()` | `pkg/amdgpu/vfio.go` | Read active VF count from parent PF |
-| `ReadPFCapacity()` | `pkg/amdgpu/vfio.go` | Read PF memory from sysfs, CU/SIMD from device ID lookup |
-| `NumVFs`, `TotalVFs` on VFInfo | `pkg/amdgpu/vfio.go` | Propagated from parent PF during discovery |
-| `partitionMode()` | `cmd/gpu-kubeletplugin/deviceinfo.go` | Infers SPX/DPX/QPX/CPX from NumVFs |
-| `partitionProfile` attribute | `cmd/gpu-kubeletplugin/deviceinfo.go` | Published on VFIO devices (e.g., `cpx_nps1`) |
-| Per-VF capacity | `cmd/gpu-kubeletplugin/deviceinfo.go` | `memory`, `computeUnits`, `simdUnits` = PF capacity / NumVFs |
-| VF discovery | `cmd/gpu-kubeletplugin/discovery.go` | Propagates NumVFs, TotalVFs, ParentPFAddress, per-VF capacity |
-
-**Partition mode → Topology coordinator tier mapping:**
-- SPX (1 VF) = `full` — 8/8 PCIe roots
-- DPX (2 VFs) = `half` — 4/8 PCIe roots
-- CPX (8 VFs) = `eighth` — 1/8 PCIe roots
-
----
-
-### PR 5: KEP-4815 Counter Sets (new)
-
-**Status:** Code complete in `feature/vfio-kep4815-counters`. Needs rebase.
-**Target:** `develop`
-**Size:** ~350 lines
-**Depends on:** PR 1
-**Gate:** `VFIOPassthrough` (same gate)
-**K8s dependency:** KEP-4815 `SharedCounters` API — requires K8s 1.37+
-
-**What's already implemented:**
-
-- `collectVFIOCounterSets()` — creates one `SharedCounters` per PF, sized to the VF count
-- `GetSharedCounterSet()` on `AmdGpuVFIOInfo` — generates counter set named after PF PCI address
-- Separate ResourceSlices for counters vs devices when the API requires it
-- PF/VF mutual exclusion: allocating a VF decrements the PF's counter, preventing over-subscription
-
-**Rework needed:**
-
-1. Rebase onto `develop` with PR 1 merged
-2. Gate behind `VFIOPassthrough`
-3. May need to wait for K8s 1.37 GA if counter API is still alpha
-
----
-
-### PR 6: VFIO DeviceClass Helm Template
-
-**Status:** Not started
-**Target:** `develop`
-**Size:** ~20 lines
-**Depends on:** PR 1
-
-Add `helm-charts-k8s/templates/deviceclass-vfio.yaml`:
+Ship `vfio.gpu.amd.com` DeviceClass in the Helm chart, conditional on `featureGates.VFIOPassthrough`:
 
 ```yaml
 {{- if .Values.featureGates.VFIOPassthrough }}
@@ -261,205 +151,63 @@ spec:
 {{- end }}
 ```
 
-Conditional on `featureGates.VFIOPassthrough` so it's not created when VFIO is disabled.
+### Webhook Validation
+
+Wire `VfioDeviceConfig` into the admission webhook (`cmd/webhook/main.go`). Validate `IOMMUConfig.BackendPolicy` enum and `EnableAPIDevice` bool. Depends on IOMMUFD PR landing first.
+
+### Sibling Mutual Exclusion
+
+Prevents the same PCI device from being allocated as both a compute device and a VFIO passthrough device. On prepare, remove the compute sibling from the ResourceSlice; on unprepare, re-discover and re-add it. Only relevant for PF passthrough mode — in the VF case, the PF stays on `amdgpu` and VFs have different PCI addresses, so KEP-4815 partitionable devices (Phase 2) handle the exclusion. Blocked on PF config corruption bug (see below).
+
+### KubeVirt Example Manifests
+
+Example ResourceClaim and VirtualMachine YAML for VFIO GPU passthrough and IOMMUFD configuration.
+
+### GPU Operator Convergence
+
+The GPU Operator currently runs `vfio_bind.sh`/`vfio_unbind.sh` in worker pods for passthrough mode. Once the DRA driver handles VFIO natively, the operator could delegate VFIO binding to the DRA driver for DRA-based workloads. The worker pods are still needed for the legacy device-plugin path, which relies on GPUs being pre-bound to `vfio-pci` before discovery.
 
 ---
 
-### PR 7: Webhook Validation for VfioDeviceConfig
-
-**Status:** Not started
-**Target:** `develop`
-**Size:** ~50-100 lines
-**Depends on:** PR 4 (when `IOMMUConfig` fields land)
-
-| File | Change |
-|---|---|
-| `cmd/webhook/main.go` | Add `VfioDeviceConfig` to the type decoder switch. Validate `BackendPolicy` enum, `EnableAPIDevice` bool. |
-| `api/.../validate.go` | Implement `VfioDeviceConfig.Validate()` — currently a no-op. Validate `Iommu.BackendPolicy` is one of `LegacyOnly` or `PreferIommuFD`. |
-
----
-
-### PR 8: Sibling Mutual Exclusion and Re-Discovery
-
-**Status:** Not started
-**Target:** `develop`
-**Size:** ~100-150 lines
-**Depends on:** PR 1. Blocked by PCI config corruption bug (see below) — only matters for PF passthrough mode. Becomes urgent if/when PF passthrough works.
-
-The AMD driver currently publishes compute (`amdgpu`) and VFIO (`amdgpu-vfio`) devices for the same PCI address independently. Nothing stops the scheduler from allocating both simultaneously.
-
-NVIDIA's DRA driver handles this in two places:
-
-1. **On prepare:** `perGPUAllocatable.RemoveSiblingDevices()` removes the compute GPU entry when its VFIO sibling is prepared (and vice versa). The ResourceSlice is re-published, so the scheduler can't allocate both.
-
-2. **On unprepare:** `discoverSiblingAllocatables()` re-discovers the compute GPU (now back on the `nvidia` driver) and adds it back to the allocatable set. Re-publishes ResourceSlice.
-
-**What to build:**
-
-| File | Change |
-|---|---|
-| `cmd/gpu-kubeletplugin/allocatable.go` | Add `RemoveSiblingDevices(pciAddress)` — remove all devices sharing the same PCI address except the one being prepared |
-| `cmd/gpu-kubeletplugin/state.go` `Prepare()` | After successful VFIO prepare, call `RemoveSiblingDevices()` and trigger ResourceSlice re-publication |
-| `cmd/gpu-kubeletplugin/state.go` `Unprepare()` | After successful VFIO unconfigure, re-run discovery for that PCI address and add the compute device back to allocatables. Trigger re-publication. |
-| `cmd/gpu-kubeletplugin/driver.go` | Expose a `republishResources()` method callable from state management |
-
-**Note:** In the VF-only case (GIM creates VFs), the PF stays on `amdgpu` and VFs have different PCI addresses. Sibling exclusion doesn't apply between PF-compute and VF-VFIO — that's what counters handle (PR 5). Sibling exclusion only matters when the same PCI device could be either compute or VFIO (i.e., PF passthrough mode).
-
----
-
-### PR 9: KubeVirt Example Manifests
-
-**Status:** Not started
-**Target:** `develop`
-**Size:** ~100 lines of YAML
-**Depends on:** PR 1 (basic examples), PR 4 (IOMMUFD example)
-
-| File | Contents |
-|---|---|
-| `examples/vfio-claim.yaml` | ResourceClaim requesting `amdgpu-vfio` device |
-| `examples/vfio-claim-iommufd.yaml` | ResourceClaim with `VfioDeviceConfig` + `IOMMUConfig` |
-| `examples/kubevirt-vm-gpu-passthrough.yaml` | KubeVirt VirtualMachine referencing VFIO GPU claim |
-
----
-
-### PR 10: GPU Operator Convergence
-
-**Status:** Not started
-**Target:** `ROCm/gpu-operator` `develop` (separate repo)
-**Depends on:** PR 1 validated in production
-
-#### The Problem
-
-The GPU Operator currently manages VFIO binding itself — it runs worker pods that execute `vfio_bind.sh`/`vfio_unbind.sh` to bind VFs to `vfio-pci` before the DRA driver discovers them. With on-demand VFIO binding now in the DRA driver, these worker pods **conflict**: the operator binds VFs to `vfio-pci` at boot, but the DRA driver expects them unbound (or on `amdgpu`) so it can bind on-demand during Prepare and unbind during Unprepare.
-
-#### Current Operator Behavior
-
-The operator manages the full GPU lifecycle for passthrough:
-
-1. **KMM builds and loads GIM** — `kmmmodule.go` compiles `gim.ko` from source via KMM (Kernel Module Management), loads it with `modprobe gim`. The `vf_num` parameter comes from the user's `DeviceConfig.spec.driver.kernelModuleConfig.parameters` (not hardcoded by the operator).
-2. **Blacklists `amdgpu`** — for `vf-passthrough` mode, writes `blacklist amdgpu` to `/etc/modprobe.d/` so GIM gets the PF instead of the compute driver.
-3. **Waits for GIM** — init containers poll `/sys/module/gim/drivers/` before starting the DRA plugin or node labeller.
-4. **VFIO bind worker pods** — `workermgr.go` creates pods that run `vfio_bind.sh` to bind VFs to `vfio-pci` after GIM creates them, and `vfio_unbind.sh` to unbind on teardown.
-5. **Node labels** — sets `gpu.operator.amd.com/<node>.vfio.ready` labels after VFIO binding completes.
-
-#### What Needs to Change
-
-| Area | Change | Why |
-|---|---|---|
-| **Skip VFIO bind worker pods** | `workermgr.go`: when `draVfioEnabled: true`, skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation for `vf-passthrough`/`pf-passthrough` driver types | Workers conflict with DRA driver's on-demand binding — operator binds VFs at boot, but DRA driver expects them unbound so it can bind during Prepare and unbind during Unprepare |
-| **Pass feature gate to DRA driver** | Helm/DeviceConfig: when `draVfioEnabled: true`, add `--feature-gates=VFIOPassthrough=true` to the DRA driver DaemonSet args | DRA driver needs the gate enabled to discover PFs and do on-demand binding |
-| **Conditional init container** | `plugin.go`, `configmanager.go`: when `draVfioEnabled` and `pf-passthrough`, don't wait for `/sys/module/gim/drivers/` or `/sys/class/kfd` | PF passthrough mode has no GIM — init containers would block forever |
-
-#### What Does NOT Change
-
-- **KMM GIM loading** — operator still builds and loads `gim.ko` via KMM for `vf-passthrough` mode
-- **`vf_num` parameter** — still set by user in `DeviceConfig.spec.driver.kernelModuleConfig.parameters`
-- **`amdgpu` blacklisting** — still needed for `vf-passthrough` so GIM gets the PF
-- **DeviceClass creation** — DRA driver or topology coordinator handles this
-- **CDI spec generation** — handled by DRA driver
-
-#### Implementation Options
-
-| Option | Approach | Tradeoff |
-|---|---|---|
-| **Helm flag** (recommended) | Add `draVfioEnabled: true` in operator Helm values; skip workers + pass gate | Simple, explicit, no auto-detection complexity |
-| **Auto-detect from DRA driver** | Operator reads DRA driver's feature gates from ResourceSlice or pod args | More complex, couples operator to DRA driver internals |
-| **Feature gate in operator** | Add `VFIOPassthrough` gate to the operator itself | Redundant — the DRA driver already has the gate |
-
-#### Files to Modify
-
-| File | Change |
-|---|---|
-| `internal/controllers/workermgr/workermgr.go` | Skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation when `draVfioEnabled` |
-| `helm-charts/values.yaml` | Add `draVfioEnabled: false` (default off) |
-| `helm-charts/templates/dra-daemonset.yaml` | Conditionally pass `featureGates: {VFIOPassthrough: true}` to DRA driver |
-| `helm-charts/templates/dra-daemonset.yaml` | Make init container `/sys/class/kfd` check conditional on `draVfioEnabled` |
-
----
-
-## Mutual Exclusion: How Sibling Exclusion (PR 8) and Counters (PR 5) Interact
+## Mutual Exclusion: How Sibling Exclusion and KEP-4815 Partitionable Devices Interact
 
 These solve different problems at different levels of the hardware hierarchy:
 
 ```
-Physical GPU (PCI 0000:c1:00.0)
+Physical GPU (PCI 0000:c1:00.0)                    Example: CPX mode (8 VFs)
 ├── gpu-0 (compute, type=amdgpu)          ─┐
-│                                           ├── Sibling exclusion (PR 8)
+│                                           ├── Sibling exclusion (Phase 3)
 ├── gpu-vfio-0 (PF passthrough, type=vfio) ─┘─┐
-│                                              ├── Counter: consumes 8/8 vf-slots
-│   GIM SR-IOV creates VFs:                    │
-├── gpu-vfio-vf-0 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/8 vf-slots
-├── gpu-vfio-vf-1 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/8 vf-slots
+│                                              ├── Counter: consumes N/N vf-slots
+│   GIM SR-IOV creates N VFs (N=1,2,8):       │
+├── gpu-vfio-vf-0 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/N vf-slots
+├── gpu-vfio-vf-1 (VF, type=vfio, isVF=true) ─┤── Counter: consumes 1/N vf-slots
 ├── ...                                        │
-└── gpu-vfio-vf-7 (VF, type=vfio, isVF=true) ─┘── Counter: consumes 1/8 vf-slots
+└── gpu-vfio-vf-(N-1)                         ─┘── Counter: consumes 1/N vf-slots
 ```
 
-**Sibling exclusion** prevents the same PCI device from being allocated as both a compute device (`gpu-0` on `amdgpu`) and a passthrough device (`gpu-vfio-0` on `vfio-pci`) at the same time. It works by removing one device type from the ResourceSlice when the other is prepared, and re-adding it on unprepare.
+VF count depends on compute partition mode: SPX=1 VF (whole GPU), DPX=2 VFs, CPX=8 VFs.
 
-**KEP-4815 counters** prevent over-subscription of VFs from the same PF. A `SharedCounterSet` per PF has a `vf-slot` counter sized to `TotalVFs`. Each VF consumes 1 slot. If the PF itself is also allocatable as a VFIO device, it consumes all slots — making PF passthrough mutually exclusive with any VF allocation from that PF.
+**Sibling exclusion** prevents the same PCI device from being allocated as both a compute device (`gpu-0` on `amdgpu`) and a passthrough device (`gpu-vfio-0` on `vfio-pci`) at the same time.
 
-| Passthrough mode | Sibling exclusion needed? | Counters needed? |
+**KEP-4815 partitionable devices** prevent over-subscription of VFs from the same PF. If the PF is also allocatable, it consumes all counter slots — making PF passthrough mutually exclusive with any VF allocation.
+
+| Passthrough mode | Sibling exclusion needed? | KEP-4815 needed? |
 |---|---|---|
-| VF-only (GIM SR-IOV) — **the common AMD case** | No — PF stays on `amdgpu`, VFs are different PCI addresses | Yes — prevents VF over-subscription and PF+VF conflict |
+| VF-only (GIM SR-IOV) — **the common case** | No — PF stays on `amdgpu`, VFs are different PCI addresses | Yes — prevents VF over-subscription and PF+VF conflict |
 | PF passthrough | Yes — prevents compute + VFIO on same PF | Yes — prevents PF + VF conflict |
 
-For the current AMD implementation, GIM VFs are the primary path. PF passthrough is opt-in and currently broken on MI300X/MI355X (see below). **Counters (PR 5) are higher priority than sibling exclusion (PR 8).**
+For VF-only mode (the primary AMD path), KEP-4815 partitionable devices are sufficient. Sibling exclusion only matters for PF passthrough, which is currently blocked by a hardware issue (see below).
 
 ---
 
-## KEP-4815 Counters and Multi-VF Partition Modes
+## Known Issue: PF Passthrough PCI Config Space Corruption
 
-### Current model: VF slot counters
+When an AMD Instinct GPU PF is bound to `vfio-pci` and QEMU resets the device (FLR or bus reset), the PCI config space becomes permanently `0xFF`. The device cannot be recovered via PCI remove+rescan — only a full host reboot recovers it. Observed on MI300X and MI355X.
 
-The `SharedCounters` mechanism (PR 5) models VF slot allocation — one `CounterSet` per PF sized to `TotalVFs`. Each VF consumes 1 slot; PF passthrough consumes all slots. This works correctly for any GIM VF count (1, 2, or 8) because `TotalVFs` reflects whatever GIM was loaded with.
+**Impact:**
+- VF passthrough via GIM SR-IOV is **unaffected** and works correctly.
+- PF passthrough is gated behind the `VFIOPassthrough` feature gate (PR #50) precisely because of this issue.
+- Sibling mutual exclusion (Phase 3) is lower priority because PF passthrough is blocked by this bug.
 
-```
-CounterSet "pf-0000-0c-00-0"  →  vf-slots: 8    (vf_num=8, CPX)
-CounterSet "pf-0000-0c-00-0"  →  vf-slots: 2    (vf_num=2, DPX)
-CounterSet "pf-0000-0c-00-0"  →  vf-slots: 1    (vf_num=1, SPX)
-```
-
-Each VF consumes 1 slot regardless of partition mode. The scheduler correctly limits allocations to the available VF count.
-
-### Why VF-slot counters are sufficient today
-
-GIM does not support mixed partition modes on the same PF. All VFs within a PF are identical — you can't have one DPX VF (4 XCCs) and four CPX VFs (1 XCC each) simultaneously. The `vf_num` is set at `modprobe gim` time and all VFs get equal resources. The `partitionProfile` attribute on each VF tells consumers what compute/memory each VF provides.
-
-### Future opportunity: XCC-based counters
-
-If AMD adds dynamic repartitioning in a future GIM release (resizing VFs without reloading GIM), XCC-based counters would enable heterogeneous allocation:
-
-```
-CounterSet "pf-0000-0c-00-0"  →  xcc-slots: 8
-    CPX VF consumes 1 XCC     (can allocate up to 8)
-    DPX VF consumes 4 XCCs    (can allocate up to 2)
-    SPX VF consumes 8 XCCs    (can allocate 1, mutually exclusive)
-    PF passthrough consumes 8  (mutually exclusive with all VFs)
-```
-
-The scheduler could then reason about compute capacity rather than VF slot counts — allocating one DPX VF (4 XCCs) would leave 4 XCCs for other allocations, not 7 "slots" that imply more capacity than exists.
-
-**Decision:** Keep `vf-slots` for now. Switch to XCC-based counters if/when GIM supports dynamic repartitioning.
-
----
-
-## Known Issue: PF Passthrough PCI Config Space Corruption (D-20)
-
-**Status:** Workaround available. Observed on MI300X and MI355X.
-**Repo:** AMD firmware / `amd/MxGPU-Virtualization`
-
-When an AMD Instinct GPU PF is bound to `vfio-pci` and QEMU resets the device (FLR or bus reset), the PCI config space becomes permanently `0xFF`. The device cannot be recovered via PCI remove+rescan — only a full host reboot recovers it.
-
-**Workaround:** Disable bus reset per-device via sysfs before binding to vfio-pci:
-```bash
-echo "" > /sys/bus/pci/devices/<bdf>/reset_method
-```
-This prevents QEMU from triggering a PCI bus reset. Tested successfully on MI355X — full PF passthrough cycle (amdgpu→vfio-pci→amdgpu) works with the workaround applied.
-
-**Impact on this PR sequence:**
-- VF passthrough via GIM SR-IOV is unaffected.
-- PF passthrough works with the `reset_method` workaround and is gated behind `VFIOPassthrough` feature gate.
-- GIM 9.1.0.K release notes confirm the same issue: "In configurations with 8 VFs per GPU, VF FLR may intermittently fail with 'SMU FW not responding' or 'SMU Timeout' errors."
-
-**Resolution path:** Needs AMD firmware fix for proper FLR handling on MI300X/MI355X. The `reset_method` workaround is sufficient for testing and development.
-
+**Resolution path:** Needs firmware investigation. May require a VFIO reset quirk in the kernel or a firmware fix. Not in scope for the DRA driver — the driver defaults to VF-only mode.
