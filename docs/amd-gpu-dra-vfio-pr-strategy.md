@@ -203,11 +203,18 @@ For VF-only mode (the primary AMD path), KEP-4815 partitionable devices are suff
 
 ## Known Issue: PF Passthrough PCI Config Space Corruption
 
-When an AMD Instinct GPU PF is bound to `vfio-pci` and QEMU resets the device (FLR or bus reset), the PCI config space becomes permanently `0xFF`. The device cannot be recovered via PCI remove+rescan — only a full host reboot recovers it. Observed on MI300X and MI355X.
+**Filed:** [`amd/MxGPU-Virtualization` #25](https://github.com/amd/MxGPU-Virtualization/issues/25) (2026-07-27)
+
+When an AMD Instinct GPU PF is bound to `vfio-pci` and QEMU resets the device (FLR or bus reset), the PCI config space becomes permanently `0xFF`. The device cannot be recovered via PCI remove+rescan — only a full host reboot recovers it. Observed on MI300X (device `0x740f`) and MI355X (device `0x75a3`). GIM 9.1.0.K release notes confirm a related VF FLR issue ("SMU FW not responding").
+
+**Workarounds:**
+1. **sysfs** (per-device): `echo "" > /sys/bus/pci/devices/<bdf>/reset_method`
+2. **Kernel module**: Sets `PCI_DEV_FLAGS_NO_BUS_RESET` on MI355X/MI300X device IDs at load time (source in issue #25)
+3. **Proper fix**: PCI quirk in `drivers/pci/quirks.c` for these device IDs (not yet submitted upstream)
+
+With either workaround, PF passthrough works end-to-end (amdgpu → vfio-pci → VM → vfio-pci → amdgpu).
 
 **Impact:**
 - VF passthrough via GIM SR-IOV is **unaffected** and works correctly.
-- PF passthrough is gated behind the `VFIOPassthrough` feature gate (PR #50) precisely because of this issue.
-- Sibling mutual exclusion (Phase 3) is lower priority because PF passthrough is blocked by this bug.
-
-**Resolution path:** Needs firmware investigation. May require a VFIO reset quirk in the kernel or a firmware fix. Not in scope for the DRA driver — the driver defaults to VF-only mode.
+- PF passthrough works with the workaround and is gated behind `VFIOPassthrough` (PR #50).
+- Sibling mutual exclusion (Phase 3) is lower priority — PF passthrough is functional with workarounds.
