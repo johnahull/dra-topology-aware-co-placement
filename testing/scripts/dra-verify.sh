@@ -1399,11 +1399,15 @@ try:
         rname = req.get('name', '?')
         for dev in req.get('devices', []):
             driver = dev.get('driver', '?')
+            dname = dev.get('name', '?')
             attrs = dev.get('attributes', {})
-            pci = attrs.get('resource.kubernetes.io/pciBusID', {}).get('string', '-')
-            numa = attrs.get('numaNode', {}).get('int', '-')
-            model = attrs.get('productName', attrs.get('model', {})).get('string', '-')
-            print(f'    request={rname} driver={driver} pciBusID={pci} numaNode={numa} model={model}')
+            parts = []
+            for k, v in sorted(attrs.items()):
+                val = v.get('int', v.get('bool', v.get('string', '?')))
+                parts.append(f'{k}={val}')
+            attr_str = ' '.join(parts) if parts else '(none)'
+            print(f'    request={rname} driver={driver} device={dname}')
+            print(f'      {attr_str}')
 except:
     print('    (failed to parse)')
 " 2>/dev/null
