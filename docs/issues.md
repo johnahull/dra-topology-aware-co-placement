@@ -2,7 +2,7 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-07-10)
+## Upstream PR Status (as of 2026-08-04)
 
 ### KubeVirt
 
@@ -12,8 +12,8 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#17661](https://github.com/kubevirt/kubevirt/pull/17661) | VEP183: Add DRA-backed network devices (alpha) | Merged | — | Merged 2026-06-02. By oshoval. VEP-183 implementation. |
 | [#17797](https://github.com/kubevirt/kubevirt/pull/17797) | VEP-10: migrate away from k8sv1.PodResourceClaim to KubeVirt's own type | Merged | — | Merged 2026-06-08. By alaypatel07. VEP-10 implementation. |
 | [#17923](https://github.com/kubevirt/kubevirt/pull/17923) | VEP-10: add dra packages to lint configuration and fix linting errors | Merged | — | Merged 2026-06-15. By alaypatel07. VEP-10 cleanup. |
-| [#17957](https://github.com/kubevirt/kubevirt/pull/17957) | VM-scoped persistent ResourceClaims for DRA device passthrough | Open (hold) | [#18171](https://github.com/kubevirt/kubevirt/issues/18171) | By johnahull. `/hold` by jean-edouard (2026-07-21): VEP must be approved first. RBAC feedback addressed — removed unused `update`/`patch`/`delete` on resourceclaims and `resourceslices` entirely. Sourcery-ai feedback addressed (shared naming helper, validator refactor, unit tests). [VEP #344](https://github.com/kubevirt/enhancements/issues/344) filed, [VEP PR #345](https://github.com/kubevirt/enhancements/pull/345) open. Approver: enp0s3. |
-| [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Closed | KV-7 | Superseded by [`d951a72`](https://github.com/kubevirt/kubevirt/commit/d951a7224962e1be60fb83aeefd7c4f4119f5aed) (lyarwood, 2026-07-01) — sets unlimited memlock, eliminating the need for CAP_SYS_RESOURCE or root mode. |
+| [#17957](https://github.com/kubevirt/kubevirt/pull/17957) | VM-scoped persistent ResourceClaims for DRA device passthrough | Open (hold) | [#18171](https://github.com/kubevirt/kubevirt/issues/18171) | `/hold` by jean-edouard: VEP must merge first. jean-edouard reviewed (2026-07-31): feature gate guards added for informers/expectations, `persistWhenStopped` implemented with `reservedFor` mechanism. DCO fixed (removed co-author line). verify-go-mod failing. Blocked on VEP #345. Approver: iholder101. |
+| [#17696](https://github.com/kubevirt/kubevirt/pull/17696) | Force root mode + CAP_SYS_RESOURCE for VFIO | Closed | KV-7 | Superseded by [`d951a72`](https://github.com/kubevirt/kubevirt/commit/d951a7224962e1be60fb83aeefd7c4f4119f5aed) (lyarwood, 2026-07-01) — sets unlimited memlock. [#17674](https://github.com/kubevirt/kubevirt/issues/17674) closed 2026-07-31. |
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Closed | KV-7 | Superseded by #17696. |
 | [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). |
 
@@ -22,26 +22,26 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#344](https://github.com/kubevirt/enhancements/issues/344) | VEP #344: VM-Scoped Persistent ResourceClaims | Open (issue) | Enhancement tracking issue for persistent ResourceClaims. |
-| [#345](https://github.com/kubevirt/enhancements/pull/345) | VEP #344: VM-Scoped Persistent ResourceClaims | Open (PR) | jean-edouard reviewed (2026-07-21): (1) derived claim name can exceed 63-char k8s limit — add webhook validation, (2) wants dedicated feature gate (e.g. `PersistentDRAClaims`) instead of reusing existing DRA gates. Both addressed in replies, awaiting follow-up. enp0s3 CC'd, suggested bi-monthly VEP meeting. Approver: xpivarc. |
+| [#345](https://github.com/kubevirt/enhancements/pull/345) | VEP #344: VM-Scoped Persistent ResourceClaims | Open (PR) | jean-edouard approved (2026-07-31). VEP updated with `persistWhenStopped`, `PersistentDRAClaims` feature gate, name validation, `reservedFor` mechanism. enp0s3 asking about manual deallocation scenarios (2026-08-04). Approver: vladikr. |
 
 ### Kubernetes Enhancements
 
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
-| [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Tracked for v1.37 stable. Release comms team asking about DRA feature blog participation (deadline 2026-07-10). |
+| [#6072](https://github.com/kubernetes/enhancements/issues/6072) | KEP-6072: DRA Standard numaNode Device Attribute | Open (issue) | Tracked for v1.37 stable. Code frozen. Docs at risk for docs freeze (Aug 5). |
 | [#6073](https://github.com/kubernetes/enhancements/pull/6073) | KEP-6072: DRA Standard numaNode Device Attribute | Merged | KEP PR. Merged. Approved by mrunalp (sig-node), kannon92 (PRR). Direct to stable, no feature gate. |
 
 ### Kubernetes Website
 
 | PR | Title | State | Comments |
 |---|---|---|---|
-| [#56256](https://github.com/kubernetes/website/pull/56256) | Document standard device attributes for DRA (KEP-6072) | Open | Placeholder docs PR against dev-1.37. Documents `resource.kubernetes.io/numaNode`, `pciBusID`, `pcieRoot`. Past deadline (2026-07-02). No reviewer engagement. |
+| [#56256](https://github.com/kubernetes/website/pull/56256) | Document standard device attributes for DRA (KEP-6072) | Open | Moved to reference section per lmktfy. Approved by johnbelamaric. Needs `/lgtm` from lmktfy. Docs freeze Aug 5. |
 
 ### Kubernetes
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open | K-2, K-3 | ffromani assigned. Responded 2026-06-22 re: PreCreateContainer. No reply in 18 days. Tests failing. |
+| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open | K-2, K-3 | ffromani assigned. Responded 2026-06-22 re: PreCreateContainer. No reply in 43 days. Tests failing. |
 | [#139332](https://github.com/kubernetes/kubernetes/pull/139332) | DRA: pass ListTypeAttributes to AllocatorFeatures | Merged | U-2 | Merged 2026-06-01. pohly reviewed, test fix amended. |
 | [#139929](https://github.com/kubernetes/kubernetes/pull/139929) | dra: add standard numaNode device attribute with SLIT-based helpers | Merged | KEP-6072 | Merged 2026-07-16. Three rounds of ffromani review. Approved by pohly. |
 
@@ -49,7 +49,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
-| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Rebased onto nvpassthrough refactor 2026-06-19. D-15 dropped (upstream handled via configurable hostRoot). D-12/D-13/D-14 kept. No reviewer engagement since rebase (21 days). |
+| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Rebased onto nvpassthrough refactor 2026-06-19. D-15 dropped. D-12/D-13/D-14 kept. varunrsekar silent 46 days. |
 | [#1099](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1099) | Support GPUs pre-bound to vfio-pci via kernel cmdline | Open (feature request) | Filed per varunrsekar request to split from #1090. PR pending — waiting for #1090 acceptance first. |
 | [#1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089) | VFIO discovery advertises non-vfio GPUs and Unconfigure rebinds pre-bound GPUs | Open (bug) | Responded with logs and repro steps. Issues 1,4 resolved via config/helm. |
 | [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | shivamerla assigned varunrsekar |
@@ -58,8 +58,8 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open | — | Rebased 2026-06-17. yansun1996 + bhatnitish discussing feature gate approach. bhatnitish will push feature gate infra in separate PR. XE9785L MI355X testing results posted. |
-| [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Open | — | bhatnitish reviewed 2026-07-07 (CHANGES_REQUESTED): retarget to develop, add feature gate, use GetDevice() for attributes, fix gofmt. Non-gate feedback addressed 2026-07-08. Waiting on feature gate infra PR from bhatnitish. |
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open | — | Feature-gated `VFIOPassthrough` (alpha, default off). On-demand VF conversion added. XE9785L MI355X testing posted. Awaiting re-review (21 days). |
+| [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Merged | — | Merged 2026-07-27. Feature-gated `DeviceMetadata` (alpha, default off). |
 | [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Merged | — | Merged 2026-06-10. |
 
 ### SR-IOV DRA Driver
@@ -81,7 +81,10 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#173](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/173) | Expose finer-grained PCIe root locality data in CPU allocator | Open | Relates to matchAttribute pcieRoot and distance hierarchy work. |
 | [#181](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/181) | Support assigned.cpuset exposure via CDI (KEP-6122 parity) | Open | Affects how cpuset reaches the container. Relevant to K-3 fix. |
 | [#104](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/104) | Add L3 cache-aware CPU isolation and full L3 cache claims | Open | By SchSeba. Cache-aligned CPU pinning for VMs. Not blocking. |
-| [#219](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/219) | Publish standard resource.kubernetes.io/numaNode attribute | Open | By enoodle. Tracks adoption of KEP-6072 standard numaNode in the CPU driver. Blocked on K8s #139929 (helpers PR). |
+| [#219](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/219) | Publish standard resource.kubernetes.io/numaNode attribute | Open | By enoodle. Tracks adoption of KEP-6072 standard numaNode in the CPU driver. Helpers merged (K8s #139929). |
+| [#264](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/264) | Publish device attributes as KEP-5304 metadata | Open (issue) | By johnahull. Enable KEP-5304 device metadata downward API so consumers can read per-device topology attributes from metadata files. PR #265 open. |
+| [#265](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/265) | feat: publish device attributes as KEP-5304 metadata | Open (PR) | By johnahull. ffromani: LGTM once e2e tests added (2026-08-03). E2e tests added, all CI green (7/7 modes pass). Added `allocatedNumCPUs` metadata-only attribute per pravk03 feedback. Needs `/lgtm` + `/approve`. |
+| — | feat: add per-allocated-CPU metadata entries for grouped modes | Not submitted | By johnahull. Follow-on to #265 — adds per-CPU device entries with full topology attributes (cpuID, numaNodeID, socketID, coreID, etc.) in grouped modes. Eliminates sysfs dependency for all modes. Branch: [feature/kep-5304-per-cpu-metadata](https://github.com/johnahull/dra-driver-cpu/tree/feature/kep-5304-per-cpu-metadata). Blocked on #265 approval. |
 
 ### dranet
 
@@ -91,20 +94,21 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 ---
 
-## KubeVirt 1.9 VEP Tracking
+## KubeVirt VEP Tracking
 
-VEPs from the [KubeVirt 1.9 Enhancements Tracking](https://github.com/orgs/kubevirt/projects/21) board that relate to this project's steps.
+VEPs from the [KubeVirt 1.9 Enhancements Tracking](https://github.com/orgs/kubevirt/projects/21) and [1.10 Enhancements Tracking](https://github.com/orgs/kubevirt/projects/22) boards that relate to this project's steps.
 
 | VEP | Title | Owner | Stage | Project Step | Comments |
 |-----|-------|-------|-------|-------------|----------|
 | [VEP 10](https://github.com/kubevirt/enhancements/issues/10) | Support GPU DRA devices in KubeVirt | @alaypatel07 | New | Step 5, 6 | GPU passthrough via DRA. Feature gate `GPUsWithDRA`. Underpins our XE8640/R760xa end-to-end demos. |
-| [VEP 115](https://github.com/kubevirt/enhancements/issues/115) | PCIe NUMA Topology Awareness | @mresvanis, @fanzhangio | New | Step 7 | Phase 1 resolved via VEP-10. Phase 2 blocked on KEP-6072 (now merged, helpers PR lgtm'd). lyarwood posted about GB200 NUMA topology issues extending the VEP design. |
+| [VEP 115](https://github.com/kubevirt/enhancements/issues/115) | PCIe NUMA Topology Awareness | @mresvanis, @fanzhangio | New | Step 7 | Phase 1 resolved via VEP-10. Phase 2: KEP-6072 merged, helpers merged (#139929). lyarwood posted about GB200 NUMA topology issues extending the VEP design. |
 | [VEP 152](https://github.com/kubevirt/enhancements/issues/152) | Add support for CPU DRA Driver | @alaypatel07 | New | Step 3 | KubeVirt + DRA CPU driver integration. Feature gate `CPUsWithDRA`. ffromani: GA timeline still in flux (see dra-driver-cpu#153). cpumanager interaction (KV-8/#17708) does not need to wait for driver GA. |
 | [VEP 174](https://github.com/kubevirt/enhancements/issues/174) | HostDevicesWithDRA | @alaypatel07 | New | Step 5, 6 | Generic host device passthrough via DRA. Feature gate already alpha. Stale label removed 2026-06-25. No work since March. |
 | [VEP 183](https://github.com/kubevirt/enhancements/issues/183) | NetworkDevicesWithDRA | @oshoval | Complete | Step 5, 6 | Complete for v1.9. oshoval confirmed 2026-06-24. PR #17661 merged. |
 | [VEP 254](https://github.com/kubevirt/enhancements/issues/254) | Guest GPU Metrics via VSOCK | @machadovilaca | New | — | Not a dependency, but natural follow-on: observability for passthrough GPUs inside VMs. |
 | [VEP 266](https://github.com/kubevirt/enhancements/issues/266) | Host Devices Assignment with IOMMUFD | @fossedihelm | New | Step 5 | IOMMUFD replaces legacy `/dev/vfio/vfio`. Our D-18 (AMD GPU IOMMUFD) is the driver-side counterpart. |
 | [VEP 300](https://github.com/kubevirt/enhancements/issues/300) | Device manager like policies for DRA resources | — | New | Step 4 | KubeVirt-level DRA claim manager with policy-based claim generation. Overlaps with topology coordinator's partition DeviceClasses and webhook expansion. |
+| [VEP 344](https://github.com/kubevirt/enhancements/issues/344) | VM-Scoped Persistent ResourceClaims | @johnahull | New | — | VM-scoped DRA claims that persist across restarts. jean-edouard approved VEP PR #345. enp0s3 reviewing. Feature gate `PersistentDRAClaims`. Targets v1.10. |
 
 ---
 
