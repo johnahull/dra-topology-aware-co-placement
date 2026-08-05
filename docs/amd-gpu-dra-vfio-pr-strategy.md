@@ -29,11 +29,12 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 | KEP-5304 device metadata | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | `DeviceMetadata` | **Merged 2026-07-27** |
 | VFIO passthrough for SR-IOV VFs | [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | `VFIOPassthrough` | Awaiting re-review |
 
-### Phase 2 — Topology & IOMMUFD
+### Phase 2 — Per-VF Capacity & Topology
 
 | Item | Depends on | External blocker |
 |---|---|---|
-| KEP-4815 partitionable devices (multi-VF + mutual exclusion) | PR #50 | Beta in K8s 1.36 (available now). GIM 9.1.0.K multi-VF support depends on GPU firmware — see partition mode table below. |
+| Per-VF capacity and partition mode attributes | PR #50 | — |
+| KEP-4815 partitionable devices (counter sets) | Per-VF capacity PR | Beta in K8s 1.36 (available now). GIM 9.1.0.K multi-VF support depends on GPU firmware — see partition mode table below. |
 | Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | K8s helper merged ([#139929](https://github.com/kubernetes/kubernetes/pull/139929)), ready to implement. Requires `k8s.io/dynamic-resource-allocation` dependency bump. |
 | IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | — |
 
@@ -77,11 +78,39 @@ Opts into KEP-5304 device metadata so KubeVirt can read PCI address and NUMA top
 
 ## Phase 2 Detail
 
+### Per-VF Capacity and Partition Mode Attributes
+
+**Branch:** `feature/multi-vf-partitions` (based on `feature/vfio-passthrough-v2`)
+**Size:** ~120 lines
+**Depends on:** PR #50
+
+PR #50 publishes VFIO VFs with attributes (`type`, `numaNode`, `pciAddr`, etc.) but no capacity. Regular AmdGpu devices publish `memory`, `computeUnits`, `simdUnits` — VFIO VFs should too.
+
+**Why this is needed:**
+- **Heterogeneous nodes.** A node with MI300X (192GB/VF in SPX) and MI355X (~37GB/VF in CPX) — claims need capacity to distinguish VFs.
+- **KEP-4815 prerequisite.** Capacity-based counters require VFs to declare what they consume.
+- **Topology coordinator.** Partition DeviceClasses include `capacity` in sub-resources for proportioning.
+
+**What's implemented (code complete):**
+
+| Component | File | Change |
+|---|---|---|
+| `ReadSRIOVNumVFs()` | `pkg/amdgpu/vfio.go` | Read active VF count from parent PF |
+| `ReadPFCapacity()` | `pkg/amdgpu/vfio.go` | Read PF total memory from sysfs, CU/SIMD from device ID lookup |
+| `partitionMode()` | `cmd/gpu-kubeletplugin/deviceinfo.go` | Infers SPX/DPX/CPX from NumVFs (1→SPX, 2→DPX, 8→CPX) |
+| `partitionProfile` attribute | `cmd/gpu-kubeletplugin/deviceinfo.go` | Published on VFIO devices (e.g., `cpx_nps1`) |
+| Per-VF `Capacity` | `cmd/gpu-kubeletplugin/deviceinfo.go` | `memory`, `computeUnits`, `simdUnits` = PF capacity / NumVFs |
+| VF discovery | `cmd/gpu-kubeletplugin/discovery.go` | Propagates NumVFs, TotalVFs, ParentPFAddress, per-VF capacity |
+
+---
+
 ### KEP-4815 Partitionable Devices
 
 [KEP-4815](https://github.com/kubernetes/enhancements/issues/4815) (alpha K8s 1.35, beta 1.36) adds DRA support for partitionable devices. Drivers publish a parent device's total capacity as a `SharedCounterSet`, and each partition declares how much it consumes via `consumesCounters`. The scheduler tracks aggregate consumption and prevents over-subscription.
 
 This maps directly to AMD GPU SR-IOV: the PF's total capacity (memory, CU, SIMD) is the counter set, and each GIM VF consumes a fraction. It also handles PF/VF mutual exclusion — if the PF is allocatable as a VFIO device, it consumes all counter slots, preventing co-allocation with any VFs.
+
+**Depends on:** Per-VF capacity PR (above) — VFs must publish their capacity before counters can reference it.
 
 **GPU partition mode support (verified 2026-08-04):**
 
