@@ -61,14 +61,14 @@ fi
 set -uo pipefail
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-BOLD='\033[1m'
-DIM='\033[2m'
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-NC='\033[0m'
+BOLD='\x1b[1m'
+DIM='\x1b[2m'
+RED='\x1b[0;31m'
+GREEN='\x1b[0;32m'
+YELLOW='\x1b[0;33m'
+CYAN='\x1b[0;36m'
+MAGENTA='\x1b[0;35m'
+NC='\x1b[0m'
 
 OK="${GREEN}✓${NC}"
 WARN="${YELLOW}!${NC}"
@@ -140,7 +140,7 @@ else:
     for d in sorted(drivers):
         info = drivers[d]
         nodes = ', '.join(sorted(info['nodes']))
-        print(f'  \033[1m{d}\033[0m: {info[\"devices\"]} devices on {nodes}')
+        print(f'  \x1b[1m{d}\x1b[0m: {info[\"devices\"]} devices on {nodes}')
 " 2>/dev/null
     echo ""
 
@@ -178,7 +178,7 @@ for ds in data.get('items', []):
             elif a.startswith('--numa-list='):
                 numa_list = a.split('=', 1)[1]
         if mode or group_by or reserved or expose_pcie or numa_list:
-            print(f'  \033[1m{ns}/{name}\033[0m ({c[\"name\"]}):')
+            print(f'  \x1b[1m{ns}/{name}\x1b[0m ({c[\"name\"]}):')
             if mode:
                 print(f'    cpu-device-mode = {mode}')
             if group_by:
@@ -187,7 +187,7 @@ for ds in data.get('items', []):
                 if mode == 'grouped' or (mode is None and group_by is None and any(a.startswith('--group-by') for a in args)):
                     pass
                 elif mode == 'grouped' or mode is None:
-                    print(f'    group-by        = \033[2mnumanode (default)\033[0m')
+                    print(f'    group-by        = \x1b[2mnumanode (default)\x1b[0m')
             if reserved:
                 print(f'    reserved-cpus   = {reserved}')
             if expose_pcie:
@@ -292,15 +292,15 @@ for driver in sorted(drivers):
         has_machine = any(n == 'cpudevmachine' for n in names)
         has_individual = any(n.startswith('cpudev') and n[6:].isdigit() for n in names)
         if has_machine:
-            mode_info = ' \033[33m[grouped/machine]\033[0m'
+            mode_info = ' \x1b[33m[grouped/machine]\x1b[0m'
         elif has_socket:
-            mode_info = ' \033[33m[grouped/socket]\033[0m'
+            mode_info = ' \x1b[33m[grouped/socket]\x1b[0m'
         elif has_numa:
-            mode_info = ' \033[33m[grouped/numanode]\033[0m'
+            mode_info = ' \x1b[33m[grouped/numanode]\x1b[0m'
         elif has_individual:
-            mode_info = ' \033[33m[individual]\033[0m'
+            mode_info = ' \x1b[33m[individual]\x1b[0m'
 
-    print(f'\033[1m{driver}\033[0m ({len(devs)} devices):{mode_info}')
+    print(f'\x1b[1m{driver}\x1b[0m ({len(devs)} devices):{mode_info}')
 
     all_keys = set()
     for d in devs:
@@ -335,7 +335,7 @@ for driver in sorted(drivers):
             legend[display] = k
 
     if not keys:
-        print(f'  \033[2m(no attributes)\033[0m')
+        print(f'  \x1b[2m(no attributes)\x1b[0m')
         print()
         continue
 
@@ -348,7 +348,7 @@ for driver in sorted(drivers):
     hdr = f'  {\"Device\":<{dev_w}}'
     for k in keys:
         hdr += f'{short[k]:<{col_w[k]}}'
-    print(f'\033[2m{hdr}\033[0m')
+    print(f'\x1b[2m{hdr}\x1b[0m')
 
     for d in sorted(devs, key=lambda x: x['name']):
         line = f'  {d[\"name\"]:<{dev_w}}'
@@ -362,12 +362,12 @@ for driver in sorted(drivers):
             if 'numaNode' not in topo_bare:
                 missing.append('numaNode')
             if missing:
-                line += f'  \033[33m(missing: {\", \".join(missing)})\033[0m'
+                line += f'  \x1b[33m(missing: {\", \".join(missing)})\x1b[0m'
         print(line)
 
     if legend:
         parts = [f'{disp} = {full}' for disp, full in sorted(legend.items())]
-        print(f'  \033[2m[{\", \".join(parts)}]\033[0m')
+        print(f'  \x1b[2m[{\", \".join(parts)}]\x1b[0m')
     print()
 " 2>/dev/null
 }
@@ -414,13 +414,13 @@ for rs in data.get('items', []):
                 info['caps'][ck]['sample'] = str(cv.get('value', cv.get('quantity', '-')))
 
 TYPE_COLORS = {
-    'int': '\033[36m', 'string': '\033[32m', 'bool': '\033[33m',
-    'ints': '\033[36m', 'strings': '\033[32m',
-    'counter': '\033[35m', 'quantity': '\033[35m',
+    'int': '\x1b[36m', 'string': '\x1b[32m', 'bool': '\x1b[33m',
+    'ints': '\x1b[36m', 'strings': '\x1b[32m',
+    'counter': '\x1b[35m', 'quantity': '\x1b[35m',
 }
-NC = '\033[0m'
-DIM = '\033[2m'
-BOLD = '\033[1m'
+NC = '\x1b[0m'
+DIM = '\x1b[2m'
+BOLD = '\x1b[1m'
 
 for driver in sorted(drivers):
     info = drivers[driver]
@@ -574,7 +574,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
     reserved = c.get('status', {}).get('reservedFor', [])
 
     if not state:
-        print(f'\033[2m{ns}/{cname}: pending\033[0m')
+        print(f'\x1b[2m{ns}/{cname}: pending\x1b[0m')
         continue
 
     # Find pod/VM
@@ -585,11 +585,11 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
             vm_name = vmi_ref
             break
 
-    header = f'\033[1m{ns}/{cname}\033[0m'
+    header = f'\x1b[1m{ns}/{cname}\x1b[0m'
     if vm_name:
-        header += f'  →  VM \033[1;35m{vm_name}\033[0m'
+        header += f'  →  VM \x1b[1;35m{vm_name}\x1b[0m'
     else:
-        header += f'  →  pod \033[1;36m{pod_name}\033[0m'
+        header += f'  →  pod \x1b[1;36m{pod_name}\x1b[0m'
     print(header)
 
     constraints = c.get('spec', {}).get('devices', {}).get('constraints', [])
@@ -617,7 +617,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
             req_summaries.append(f'{name}: {count}x {dc_short}')
     if req_summaries:
         req_summary_str = ', '.join(req_summaries)
-        print(f'  \033[2mrequests: {req_summary_str}\033[0m')
+        print(f'  \x1b[2mrequests: {req_summary_str}\x1b[0m')
 
     results = state.get('devices', {}).get('results', [])
     if not results:
@@ -627,11 +627,11 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
 
     # Constraint color map: assign a color per matchAttribute
     COLORS = {
-        'pcieRoot': '\033[32m',   # green
-        'numaNode': '\033[36m',   # cyan
+        'pcieRoot': '\x1b[32m',   # green
+        'numaNode': '\x1b[36m',   # cyan
     }
-    DEFAULT_MATCH_COLOR = '\033[33m'  # yellow for others
-    RST = '\033[0m'
+    DEFAULT_MATCH_COLOR = '\x1b[33m'  # yellow for others
+    RST = '\x1b[0m'
 
     # Collect rows with topology data
     rows = []
@@ -717,7 +717,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
             color = matched_constraints[short_ma][1]
             print(f'  {color}{line}{RST}')
         else:
-            print(f'  \033[2m{line}\033[0m')
+            print(f'  \x1b[2m{line}\x1b[0m')
 
     has_consumed = any(row['consumed'] for row in rows)
     if has_consumed:
@@ -754,7 +754,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
         prod = row['product']
         consumed = row['consumed']
         if has_consumed:
-            consumed_col = f'\033[33m{consumed}\033[0m' + ' ' * max(0, 16 - len(consumed)) if consumed else f'{\"\":<16}'
+            consumed_col = f'\x1b[33m{consumed}\x1b[0m' + ' ' * max(0, 16 - len(consumed)) if consumed else f'{\"\":<16}'
             print(f'  {request_short:<32}{driver_short:<22}{dev:<24}{numa_col}{root_col}{consumed_col}{pci_val:<18}{prod:<30}')
         else:
             print(f'  {request_short:<32}{driver_short:<22}{dev:<24}{numa_col}{root_col}{pci_val:<18}{prod:<30}')
@@ -793,7 +793,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
                     pci_vals.append(f'{req}={raw}')
             if pci_vals:
                 mismatch_str = ', '.join(pci_vals)
-                print(f'  \033[33m! pcieRoot mismatch: {mismatch_str}{RST}')
+                print(f'  \x1b[33m! pcieRoot mismatch: {mismatch_str}{RST}')
         elif short == 'numaNode':
             numas = set()
             for row in rows:
@@ -803,7 +803,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
                     numas.add(str(row['numa']))
             if len(numas) > 1:
                 numa_list = ', '.join(sorted(numas))
-                print(f'  \033[33m! Multi-NUMA: devices on NUMA {numa_list}{RST}')
+                print(f'  \x1b[33m! Multi-NUMA: devices on NUMA {numa_list}{RST}')
     print()
 " 2>/dev/null
 }
@@ -883,7 +883,7 @@ if not pods:
 
 for pod_key in sorted(pods):
     devices = pods[pod_key]
-    print(f'\033[1m{pod_key}\033[0m')
+    print(f'\x1b[1m{pod_key}\x1b[0m')
     print(f'  {\"Request\":<25}{\"Driver\":<30}{\"Device\":<20}{\"NUMA\":<8}{\"Socket\":<10}{\"pcieRoot\":<18}{\"pciBusID\":<16}')
     print(f'  {\"─\"*25}{\"─\"*30}{\"─\"*20}{\"─\"*8}{\"─\"*10}{\"─\"*18}{\"─\"*16}')
 
@@ -900,24 +900,24 @@ for pod_key in sorted(pods):
 
     print()
     if len(numas) == 1:
-        print(f'  \033[32m✓ numaNode aligned: all on NUMA {numas.pop()}\033[0m')
+        print(f'  \x1b[32m✓ numaNode aligned: all on NUMA {numas.pop()}\x1b[0m')
     elif len(numas) > 1:
         numa_list = ', '.join(sorted(numas))
-        print(f'  \033[33m! numaNode SPLIT: devices on NUMA {numa_list}\033[0m')
+        print(f'  \x1b[33m! numaNode SPLIT: devices on NUMA {numa_list}\x1b[0m')
     else:
-        print(f'  \033[2m? numaNode unknown\033[0m')
+        print(f'  \x1b[2m? numaNode unknown\x1b[0m')
 
     if len(sockets) == 1:
-        print(f'  \033[32m✓ cpuSocketID aligned: all on socket {sockets.pop()}\033[0m')
+        print(f'  \x1b[32m✓ cpuSocketID aligned: all on socket {sockets.pop()}\x1b[0m')
     elif len(sockets) > 1:
         socket_list = ', '.join(sorted(sockets))
-        print(f'  \033[31m✗ cpuSocketID SPLIT: devices on sockets {socket_list}\033[0m')
+        print(f'  \x1b[31m✗ cpuSocketID SPLIT: devices on sockets {socket_list}\x1b[0m')
 
     if len(roots) == 1:
-        print(f'  \033[32m✓ pcieRoot aligned: all on {roots.pop()}\033[0m')
+        print(f'  \x1b[32m✓ pcieRoot aligned: all on {roots.pop()}\x1b[0m')
     elif len(roots) > 1:
         root_list = ', '.join(sorted(roots))
-        print(f'  \033[33m! pcieRoot differs: {root_list} (expected on most hardware)\033[0m')
+        print(f'  \x1b[33m! pcieRoot differs: {root_list} (expected on most hardware)\x1b[0m')
 
     print()
 " 2>/dev/null
@@ -959,7 +959,7 @@ for pod in data.get('items', []):
     node = pod['spec'].get('nodeName', '?')
     uid = pod['metadata']['uid']
 
-    print(f'\033[1m{ns}/{name}\033[0m (node: {node})')
+    print(f'\x1b[1m{ns}/{name}\x1b[0m (node: {node})')
 
     # Get container cpusets
     for cs in pod.get('status', {}).get('containerStatuses', []):
@@ -1015,11 +1015,11 @@ for pod in data.get('items', []):
             if cpu_numas:
                 numa_str = ', '.join(str(n) for n in sorted(cpu_numas))
                 if len(cpu_numas) == 1:
-                    print(f'  \033[32m✓ CPUs pinned to NUMA {numa_str}\033[0m')
+                    print(f'  \x1b[32m✓ CPUs pinned to NUMA {numa_str}\x1b[0m')
                 else:
-                    print(f'  \033[33m! CPUs span NUMA nodes: {numa_str}\033[0m')
+                    print(f'  \x1b[33m! CPUs span NUMA nodes: {numa_str}\x1b[0m')
         else:
-            print(f'  container {cname}: cpuset = \033[2m(run on node to read cgroup)\033[0m')
+            print(f'  container {cname}: cpuset = \x1b[2m(run on node to read cgroup)\x1b[0m')
     print()
 " 2>/dev/null
 }
@@ -1041,14 +1041,14 @@ try:
 except:
     claims_data = {'items': []}
 
-BOLD = '\033[1m'
-DIM = '\033[2m'
-GREEN = '\033[32m'
-YELLOW = '\033[33m'
-RED = '\033[31m'
-CYAN = '\033[36m'
-MAGENTA = '\033[35m'
-NC = '\033[0m'
+BOLD = '\x1b[1m'
+DIM = '\x1b[2m'
+GREEN = '\x1b[32m'
+YELLOW = '\x1b[33m'
+RED = '\x1b[31m'
+CYAN = '\x1b[36m'
+MAGENTA = '\x1b[35m'
+NC = '\x1b[0m'
 
 # Collect shared counter sets and devices per pool
 pools = {}  # pool_name -> {counter_sets: {name: {counters}}, devices: [{name, consumesCounters}]}
@@ -1588,7 +1588,7 @@ for rs in data.get('items', []):
         })
 
 for node in sorted(nodes):
-    print(f'\033[1mNode:\033[0m {node}')
+    print(f'\x1b[1mNode:\x1b[0m {node}')
     print()
 
 for driver in sorted(by_driver):
@@ -1598,8 +1598,8 @@ for driver in sorted(by_driver):
     free_count = total - alloc_count
     status = f'{total} devices'
     if alloc_count > 0:
-        status += f', \033[31m{alloc_count} used\033[0m, \033[32m{free_count} free\033[0m'
-    print(f'\033[1m{driver}\033[0m ({status}):')
+        status += f', \x1b[31m{alloc_count} used\x1b[0m, \x1b[32m{free_count} free\x1b[0m'
+    print(f'\x1b[1m{driver}\x1b[0m ({status}):')
     for numa in sorted(numas):
         devs = numas[numa]
         is_cpu = 'cpu' in driver.lower()
@@ -1608,8 +1608,8 @@ for driver in sorted(by_driver):
             free = len(devs) - used
             extra = ''
             if used > 0:
-                extra = f' \033[31m({used} used, {free} free)\033[0m'
-            print(f'  \033[2mNUMA {numa}:\033[0m {len(devs)} CPUs{extra}')
+                extra = f' \x1b[31m({used} used, {free} free)\x1b[0m'
+            print(f'  \x1b[2mNUMA {numa}:\x1b[0m {len(devs)} CPUs{extra}')
         else:
             parts = []
             for d in devs:
@@ -1627,15 +1627,15 @@ for driver in sorted(by_driver):
                     tags.append(d['product'][:35])
                 if tags:
                     tag_str = ', '.join(tags)
-                    label += f' \033[33m[{tag_str}]\033[0m'
+                    label += f' \x1b[33m[{tag_str}]\x1b[0m'
                 if d['pods']:
                     if len(d['pods']) == 1:
-                        label += f' \033[31m→{d[\"pods\"][0][:30]}\033[0m'
+                        label += f' \x1b[31m→{d[\"pods\"][0][:30]}\x1b[0m'
                     else:
-                        label += f' \033[31m→{len(d[\"pods\"])} pods\033[0m'
+                        label += f' \x1b[31m→{len(d[\"pods\"])} pods\x1b[0m'
                 parts.append(label)
             line = ', '.join(parts)
-            print(f'  \033[2mNUMA {numa}:\033[0m {line}')
+            print(f'  \x1b[2mNUMA {numa}:\x1b[0m {line}')
     print()
 " 2>/dev/null
 }
@@ -1786,7 +1786,7 @@ for d in devices:
     elif not d['socket']:
         d['socket'] = '?'
 if inferred and verbose:
-    print(f'\033[2m(inferred socket for {inferred} devices via NUMA list grouping)\033[0m')
+    print(f'\x1b[2m(inferred socket for {inferred} devices via NUMA list grouping)\x1b[0m')
 
 # ── Group by Socket → primary NUMA → pcieRoot ──
 sockets = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -1798,7 +1798,7 @@ def sock_key(s):
     except (ValueError, TypeError): return (1, s)
 
 for sock in sorted(sockets, key=sock_key):
-    print(f'\033[1m\033[36m╔══ Socket {sock} ══╗\033[0m')
+    print(f'\x1b[1m\x1b[36m╔══ Socket {sock} ══╗\x1b[0m')
     numas = sockets[sock]
     for numa in sorted(numas):
         roots = numas[numa]
@@ -1809,15 +1809,15 @@ for sock in sorted(sockets, key=sock_key):
                     secondary.add(n)
         numa_hdr = f'NUMA {numa}'
         if secondary:
-            numa_hdr += f' \033[2m(+{chr(44).join(sorted(secondary))})\033[0m'
-        print(f'\033[1m║ {numa_hdr}\033[0m')
+            numa_hdr += f' \x1b[2m(+{chr(44).join(sorted(secondary))})\x1b[0m'
+        print(f'\x1b[1m║ {numa_hdr}\x1b[0m')
         root_keys = sorted(roots)
         for ri, root in enumerate(root_keys):
             devs = roots[root]
             last_root = (ri == len(root_keys) - 1)
             if root != '-':
                 branch = '└─' if last_root else '├─'
-                print(f'\033[2m║   {branch} pcieRoot: {root}\033[0m')
+                print(f'\x1b[2m║   {branch} pcieRoot: {root}\x1b[0m')
             by_driver = defaultdict(list)
             for d in devs:
                 by_driver[d['driver']].append(d)
@@ -1844,12 +1844,12 @@ for sock in sorted(sockets, key=sock_key):
                         if d['product'] and (verbose or d['is_vf']):
                             tags.append(d['product'][:35])
                         if tags:
-                            label += f' \033[33m[{\", \".join(tags)}]\033[0m'
+                            label += f' \x1b[33m[{\", \".join(tags)}]\x1b[0m'
                         names.append(label)
                     label_str = ', '.join(names)
                     print(f'{indent} {drv_label}: {label_str}')
         print('║')
-    print(f'\033[36m╚{chr(9552) * 20}╝\033[0m')
+    print(f'\x1b[36m╚{chr(9552) * 20}╝\x1b[0m')
     print()
 " 2>/dev/null
 }
@@ -2017,7 +2017,7 @@ show_aggregates = dc_filter in ("all", "aggregates", "aggregate")
 
 # Display custom groupings (pairs)
 for grouping_name in sorted(by_grouping) if show_pairs else []:
-    print(f"\n\033[1mGrouping: {grouping_name}\033[0m")
+    print(f"\n\x1b[1mGrouping: {grouping_name}\x1b[0m")
     classes = by_grouping[grouping_name]
     classes.sort(key=lambda dc: (
         dc["metadata"]["labels"].get("nodepartition.dra.k8s.io/alignment", ""),
@@ -2064,14 +2064,14 @@ for grouping_name in sorted(by_grouping) if show_pairs else []:
         sub_summary = ", ".join(sub_parts)
 
         numa_str = f"NUMA {numa_label}" if numa_label else ""
-        status = "\033[32mfree\033[0m"
+        status = "\x1b[32mfree\x1b[0m"
 
         print(f"  {alignment} \xb7 {numa_str} → {name}  {status}")
         print(f"    {sub_summary}")
 
 # Display partitions
 for profile in sorted(by_profile) if show_partitions else []:
-    print(f"\n\033[1mProfile: {profile}\033[0m")
+    print(f"\n\x1b[1mProfile: {profile}\x1b[0m")
     classes = by_profile[profile]
     order = {"eighth": 0, "quarter": 1, "half": 2, "full": 3}
     classes.sort(key=lambda dc: (
@@ -2155,8 +2155,8 @@ for profile in sorted(by_profile) if show_partitions else []:
                     for pcie in sorted(pcie_groups[numa_val]):
                         slot_devs = pcie_groups[numa_val][pcie]
                         # Build slot header
-                        header = f"  \033[33m{pt}\033[0m"
-                        header += f" \033[2m\xb7\033[0m NUMA {numa_val} \033[2m\xb7\033[0m {pcie}"
+                        header = f"  \x1b[33m{pt}\x1b[0m"
+                        header += f" \x1b[2m\xb7\x1b[0m NUMA {numa_val} \x1b[2m\xb7\x1b[0m {pcie}"
 
                         # Check if any device in this slot is allocated
                         slot_consumer = None
@@ -2167,11 +2167,11 @@ for profile in sorted(by_profile) if show_partitions else []:
                                 break
 
                         if slot_consumer:
-                            header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
-                            header += f"  \033[33m⚡ {slot_consumer}\033[0m"
+                            header += f" \x1b[2m→\x1b[0m \x1b[1m{name}\x1b[0m"
+                            header += f"  \x1b[33m⚡ {slot_consumer}\x1b[0m"
                         else:
-                            header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
-                            header += f"  \033[32mfree\033[0m"
+                            header += f" \x1b[2m→\x1b[0m \x1b[1m{name}\x1b[0m"
+                            header += f"  \x1b[32mfree\x1b[0m"
                         print(header)
 
                         # Show devices in this slot
@@ -2194,12 +2194,12 @@ for profile in sorted(by_profile) if show_partitions else []:
                             if cap:
                                 cap_parts = [f"{v}" for _, v in sorted(cap.items())]
                                 cap_str = ", ".join(cap_parts)
-                                slot_parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
+                                slot_parts.append(f"\x1b[36m{drv}\x1b[0m: {count} ({cap_str})")
                             elif matching and drv != "dra.cpu":
                                 dev_str = ", ".join(sorted(matching)[:count]) if len(matching) > count else ", ".join(sorted(matching))
-                                slot_parts.append(f"\033[36m{drv}\033[0m: {dev_str}")
+                                slot_parts.append(f"\x1b[36m{drv}\x1b[0m: {dev_str}")
                             else:
-                                slot_parts.append(f"\033[36m{drv}\033[0m: {count}")
+                                slot_parts.append(f"\x1b[36m{drv}\x1b[0m: {count}")
                         if slot_parts:
                             line = ", ".join(slot_parts)
                             print(f"    {line}")
@@ -2207,13 +2207,13 @@ for profile in sorted(by_profile) if show_partitions else []:
                 continue
 
         # Fallback: show as single entry (half, full, or no PCIe subdivision)
-        header = f"  \033[33m{pt}\033[0m"
+        header = f"  \x1b[33m{pt}\x1b[0m"
         if numa_label:
             numa_display = numa_label.replace("_", ",").replace("numa", "")
-            header += f" \033[2m\xb7\033[0m NUMA {numa_display}"
+            header += f" \x1b[2m\xb7\x1b[0m NUMA {numa_display}"
         if coupling:
-            header += f" \033[2m\xb7\033[0m {coupling}"
-        header += f" \033[2m→\033[0m \033[1m{name}\033[0m"
+            header += f" \x1b[2m\xb7\x1b[0m {coupling}"
+        header += f" \x1b[2m→\x1b[0m \x1b[1m{name}\x1b[0m"
 
         # Check allocation status for this partition.
         # A partition is in-use if any device on its NUMA nodes from a
@@ -2238,9 +2238,9 @@ for profile in sorted(by_profile) if show_partitions else []:
 
         if partition_consumers:
             consumers_str = ", ".join(sorted(partition_consumers))
-            header += f"  \033[33m⚡ {consumers_str}\033[0m"
+            header += f"  \x1b[33m⚡ {consumers_str}\x1b[0m"
         else:
-            header += f"  \033[32mfree\033[0m"
+            header += f"  \x1b[32mfree\x1b[0m"
         print(header)
 
         slot_parts = []
@@ -2251,7 +2251,7 @@ for profile in sorted(by_profile) if show_partitions else []:
             if cap:
                 cap_parts = [f"{v}" for _, v in sorted(cap.items())]
                 cap_str = ", ".join(cap_parts)
-                slot_parts.append(f"\033[36m{drv}\033[0m: {count} ({cap_str})")
+                slot_parts.append(f"\x1b[36m{drv}\x1b[0m: {count} ({cap_str})")
             else:
                 # Look up device capacity from ResourceSlice for matching devices
                 tree_drv = drv
@@ -2276,9 +2276,9 @@ for profile in sorted(by_profile) if show_partitions else []:
                     if dev_cap_str:
                         break
                 if dev_cap_str:
-                    slot_parts.append(f"\033[36m{drv}\033[0m: {count} \033[2m({dev_cap_str} each)\033[0m")
+                    slot_parts.append(f"\x1b[36m{drv}\x1b[0m: {count} \x1b[2m({dev_cap_str} each)\x1b[0m")
                 else:
-                    slot_parts.append(f"\033[36m{drv}\033[0m: {count}")
+                    slot_parts.append(f"\x1b[36m{drv}\x1b[0m: {count}")
         if slot_parts:
             line = ", ".join(slot_parts)
             print(f"    {line}")
@@ -2297,10 +2297,10 @@ for profile in sorted(by_profile) if show_partitions else []:
                     matching = sorted(set(matching))
                 if drv == "dra.cpu" and len(matching) > 8:
                     count = sr.get("count", 0)
-                    print(f"    \033[2m{drv}: {len(matching)} CPUs available (need {count})\033[0m")
+                    print(f"    \x1b[2m{drv}: {len(matching)} CPUs available (need {count})\x1b[0m")
                 elif matching:
                     dev_str = ", ".join(matching)
-                    print(f"    \033[2m{drv}: {dev_str}\033[0m")
+                    print(f"    \x1b[2m{drv}: {dev_str}\x1b[0m")
     print()
 
 # Build set of allocated device keys from claims
@@ -2376,7 +2376,7 @@ if aggregates and show_aggregates:
         if instance_allocated:
             allocated_per_group[grp] += 1
 
-    print(f"\033[1mAggregate DeviceClasses\033[0m (scheduler-placed, no NUMA constraint):")
+    print(f"\x1b[1mAggregate DeviceClasses\x1b[0m (scheduler-placed, no NUMA constraint):")
     for dc in sorted(aggregates, key=lambda x: x["metadata"]["name"]):
         name = dc["metadata"]["name"]
         labels = dc.get("metadata", {}).get("labels", {})
@@ -2408,20 +2408,20 @@ if aggregates and show_aggregates:
                 aligns = params.get("alignments") or []
                 for a in aligns:
                     attr = a.get("attribute", "").split("/")[-1]
-                    sub_parts.append(f"\033[32m🔗 {attr}\033[0m")
+                    sub_parts.append(f"\x1b[32m🔗 {attr}\x1b[0m")
 
         desc = ", ".join(sub_parts) if sub_parts else ""
-        label = f"\033[35m{pt}\033[0m" if pt else f"\033[35m{grouping}\033[0m"
+        label = f"\x1b[35m{pt}\x1b[0m" if pt else f"\x1b[35m{grouping}\x1b[0m"
 
         if total > 0:
             if used > 0:
-                avail = f"\033[33m{free}/{total} free\033[0m"
+                avail = f"\x1b[33m{free}/{total} free\x1b[0m"
             else:
-                avail = f"\033[32m{free}/{total} free\033[0m"
+                avail = f"\x1b[32m{free}/{total} free\x1b[0m"
         else:
             avail = ""
 
-        print(f"  \033[1m{name}\033[0m  [{label}]  {avail}  {desc}")
+        print(f"  \x1b[1m{name}\x1b[0m  [{label}]  {avail}  {desc}")
     print()
 
 specific = [dc for dc in items if dc.get("metadata", {}).get("labels", {}).get(f"{COORD}/numa")]
@@ -2433,7 +2433,7 @@ if show_pairs and grouping_count: shown.append(f"{grouping_count} pairs")
 if show_partitions and partition_count: shown.append(f"{partition_count} partitions")
 if show_aggregates and agg_count: shown.append(f"{agg_count} aggregate")
 total_suffix = "es" if len(items) != 1 else ""
-filter_note = f" (showing: {', '.join(shown)})" if dc_filter != "all" and shown else f" ({agg_count} aggregate, {len(specific)} specific)"
+filter_note = f" (showing: {", ".join(shown)})" if dc_filter != "all" and shown else f" ({agg_count} aggregate, {len(specific)} specific)"
 print(f"Total: {len(items)} device class{total_suffix}{filter_note}")
 ' 2>/dev/null
 }
@@ -2457,14 +2457,14 @@ try:
 except:
     claims_data = {'items': []}
 
-BOLD = '\033[1m'
-DIM = '\033[2m'
-GREEN = '\033[32m'
-YELLOW = '\033[33m'
-RED = '\033[31m'
-CYAN = '\033[36m'
-MAGENTA = '\033[35m'
-NC = '\033[0m'
+BOLD = '\x1b[1m'
+DIM = '\x1b[2m'
+GREEN = '\x1b[32m'
+YELLOW = '\x1b[33m'
+RED = '\x1b[31m'
+CYAN = '\x1b[36m'
+MAGENTA = '\x1b[35m'
+NC = '\x1b[0m'
 
 def extract_value(val):
     for t in ('int', 'string', 'bool', 'ints', 'strings'):
