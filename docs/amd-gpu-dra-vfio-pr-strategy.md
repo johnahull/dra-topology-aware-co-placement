@@ -16,7 +16,7 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 |---|---|---|---|
 | [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64) | Feature gate infrastructure | — | **Merged.** |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata | `DeviceMetadata` (alpha, off) | **Merged 2026-07-27.** Publishes `pciBusID`, `productName`, `numaNode` for all device types. |
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | `VFIOPassthrough` (alpha, off) | Rebased, gate added. thc1006 review (2026-08-04) found two bugs — both fixed: (1) default VfioDeviceConfig routing regular GPUs to VFIO, (2) allocatable mutation not restored on unprepare. Tested on MI300X (XE9680) and MI355X (XE9785L). |
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | `VFIOPassthrough` (alpha, off) | All review items addressed. All VFIO code fully gated behind feature flag. Constants consolidated to `pkg/consts`. Restore only on successful Unconfigure. bhatnitish agreed dual-entry (KEP-4815) is a follow-up PR. Tested on MI300X and MI355X. |
 
 ---
 
@@ -34,9 +34,9 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 | Item | Depends on | External blocker |
 |---|---|---|
 | Per-VF capacity and partition mode attributes | PR #50 | — |
-| KEP-4815 partitionable devices (counter sets) | Per-VF capacity PR | Beta in K8s 1.36 (available now). GIM 9.1.0.K multi-VF support depends on GPU firmware — see partition mode table below. |
-| Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | K8s helper merged ([#139929](https://github.com/kubernetes/kubernetes/pull/139929)), ready to implement. Requires `k8s.io/dynamic-resource-allocation` dependency bump. |
-| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | — |
+| KEP-4815 partitionable devices + dual-entry + sibling exclusion | Per-VF capacity PR | Beta in K8s 1.36. GIM 9.1.0.K multi-VF support depends on GPU firmware. bhatnitish has a feature incoming that consumes KEP-4815. |
+| Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | Requires `k8s.io/dynamic-resource-allocation` v0.37+ dependency bump. |
+| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | KubeVirt needs libvirt 12.2+ for IOMMUFD domain XML. |
 
 ### Phase 3 — Polish
 
@@ -80,7 +80,7 @@ Opts into KEP-5304 device metadata so KubeVirt can read PCI address and NUMA top
 
 ### Per-VF Capacity and Partition Mode Attributes
 
-**Branch:** `feature/multi-vf-partitions` (based on `feature/vfio-passthrough-v2`)
+**Status:** Not yet PR'd
 **Size:** ~120 lines
 **Depends on:** PR #50
 
@@ -91,16 +91,11 @@ PR #50 publishes VFIO VFs with attributes (`type`, `numaNode`, `pciAddr`, etc.) 
 - **KEP-4815 prerequisite.** Capacity-based counters require VFs to declare what they consume.
 - **Topology coordinator.** Partition DeviceClasses include `capacity` in sub-resources for proportioning.
 
-**What's implemented (code complete):**
-
-| Component | File | Change |
-|---|---|---|
-| `ReadSRIOVNumVFs()` | `pkg/amdgpu/vfio.go` | Read active VF count from parent PF |
-| `ReadPFCapacity()` | `pkg/amdgpu/vfio.go` | Read PF total memory from sysfs, CU/SIMD from device ID lookup |
-| `partitionMode()` | `cmd/gpu-kubeletplugin/deviceinfo.go` | Infers SPX/DPX/CPX from NumVFs (1→SPX, 2→DPX, 8→CPX) |
-| `partitionProfile` attribute | `cmd/gpu-kubeletplugin/deviceinfo.go` | Published on VFIO devices (e.g., `cpx_nps1`) |
-| Per-VF `Capacity` | `cmd/gpu-kubeletplugin/deviceinfo.go` | `memory`, `computeUnits`, `simdUnits` = PF capacity / NumVFs |
-| VF discovery | `cmd/gpu-kubeletplugin/discovery.go` | Propagates NumVFs, TotalVFs, ParentPFAddress, per-VF capacity |
+**What needs to be implemented:**
+- Read `sriov_numvfs` (active VF count) and `sriov_totalvfs` from parent PF
+- Read PF total memory from sysfs, CU/SIMD from device ID or topology info
+- Infer partition mode (SPX/DPX/CPX) from NumVFs and publish as `partitionProfile` attribute
+- Divide PF capacity by NumVFs for per-VF `memory`, `computeUnits`, `simdUnits`
 
 ---
 
@@ -136,23 +131,28 @@ The hardware supports multiple compute/memory partition combinations, but GIM's 
 
 ### Standardized `numaNode` (KEP-6072)
 
+**Status:** Not yet PR'd
+**Depends on:** PR #48 (merged)
+
 The AMD driver publishes `numaNode` as a bare unqualified attribute. For cross-driver `matchAttribute: resource.kubernetes.io/numaNode` to work (aligning GPUs with NICs, CPUs, and memory from different DRA drivers), all drivers must use the standardized attribute name from [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) ([KEP PR](https://github.com/kubernetes/enhancements/pull/6073), merged).
 
-Implementation requires calling `deviceattribute.GetNUMANodeAttributeByPCIBusID()` for all device types (GPU, partition, VFIO) in `GetDevice()`. The helper is available in `k8s.io/dynamic-resource-allocation/deviceattribute` as of K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) (merged 2026-07-16). Requires a dependency bump to pick it up.
+Implementation requires bumping `k8s.io/dynamic-resource-allocation` to v0.37+ and calling `deviceattribute.GetNUMANodeAttributeByPCIBusID()` for all device types (GPU, partition, VFIO) in `GetDevice()`. The helper is available as of K8s PR [#139929](https://github.com/kubernetes/kubernetes/pull/139929) (merged 2026-07-16). A `--numa-list` flag controls scalar vs SLIT-based list form for backward compatibility with pre-1.37 clusters.
 
 ### IOMMUFD Support
 
-IOMMUFD (Linux 6.2+) enables per-device IOMMU isolation instead of per-group, required for confidential VMs (AMD SEV-SNP) and improved security for multi-device passthrough. See [KubeVirt VEP-266](https://github.com/kubevirt/enhancements/issues/266).
+**Status:** Not yet PR'd
+**Depends on:** PR #50
 
-The proposed implementation follows the pattern established by the NVIDIA DRA GPU driver (`kubernetes-sigs/dra-driver-nvidia-gpu`).
+IOMMUFD (Linux 6.2+) enables per-device IOMMU isolation instead of per-group, required for confidential VMs (AMD SEV-SNP) and improved security for multi-device passthrough. See [KubeVirt VEP-266](https://github.com/kubevirt/enhancements/issues/266). Follows the NVIDIA DRA GPU driver pattern.
 
 **What the driver needs to implement:**
 
-- Add `IOMMUConfig` to the existing `VfioDeviceConfig` API type with two fields: `BackendPolicy` (LegacyOnly or PreferIommuFD) and `EnableAPIDevice` (bool)
-- Detect IOMMUFD support at startup by checking for `/dev/iommu`
-- Publish `iommuFDEnabled` as a device attribute on VFIO devices in the ResourceSlice
-- Extend CDI spec generation: when IOMMUFD is preferred and available, inject `/dev/iommu` + `/dev/vfio/devices/vfioX` instead of the legacy `/dev/vfio/vfio` + `/dev/vfio/<group>`
-- Validate `IOMMUConfig` fields in the admission webhook
+- Add `IOMMUConfig` to `VfioDeviceConfig` with `BackendPolicy` (LegacyOnly/PreferIommuFD) and `EnableAPIDevice` (bool)
+- Detect IOMMUFD at startup via `/dev/iommu`, read cdev name from `vfio-dev/vfioN` after binding
+- CDI: `/dev/iommu` + `/dev/vfio/devices/vfioN` (IOMMUFD) vs `/dev/vfio/vfio` + `/dev/vfio/<group>` (legacy)
+- VFIO API device (`/dev/vfio/vfio` or `/dev/iommu`) must always be included in CDI spec (libvirt requires it)
+
+**KubeVirt dependency:** KubeVirt v1.9.0 has `IOMMUFDGate` (alpha) but requires libvirt 12.2+ in the virt-launcher image for IOMMUFD-aware domain XML. Current virt-launcher ships libvirt 11.10.
 
 User-facing config:
 
@@ -165,7 +165,6 @@ config:
       kind: VfioDeviceConfig
       iommu:
         backendPolicy: PreferIommuFD
-        enableAPIDevice: true
 ```
 
 ---
@@ -195,9 +194,11 @@ spec:
 
 Wire `VfioDeviceConfig` into the admission webhook (`cmd/webhook/main.go`). Validate `IOMMUConfig.BackendPolicy` enum and `EnableAPIDevice` bool. Depends on IOMMUFD PR landing first.
 
-### Sibling Mutual Exclusion
+### Dual-Entry Advertising and Sibling Mutual Exclusion
 
-Prevents the same PCI device from being allocated as both a compute device and a VFIO passthrough device. On prepare, remove the compute sibling from the ResourceSlice; on unprepare, re-discover and re-add it. Only relevant for PF passthrough mode — in the VF case, the PF stays on `amdgpu` and VFs have different PCI addresses, so KEP-4815 partitionable devices (Phase 2) handle the exclusion. Blocked on PF config corruption bug (see below).
+**Status:** Not yet PR'd (planned as part of KEP-4815 PR per bhatnitish agreement)
+
+Each compute GPU is advertised as both a compute device (`type=amdgpu`) and a VFIO device (`type=amdgpu-vfio`) in the ResourceSlice. The scheduler explicitly allocates either type. On Prepare, `RemoveSiblingDevices` removes the other type from the ResourceSlice; on Unprepare, `RestoreSiblingDevices` re-adds it. ResourceSlice is republished after each sibling change. Follows the NVIDIA `PerGPUAllocatableDevices` pattern.
 
 ### KubeVirt Example Manifests
 
