@@ -17,6 +17,14 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 | [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64) | Feature gate infrastructure | — | **Merged.** |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata | `DeviceMetadata` (alpha, off) | **Merged 2026-07-27.** Publishes `pciBusID`, `productName`, `numaNode` for all device types. |
 | [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | `VFIOPassthrough` (alpha, off) | All review items addressed. All VFIO code fully gated behind feature flag. Constants consolidated to `pkg/consts`. Restore only on successful Unconfigure. bhatnitish agreed dual-entry (KEP-4815) is a follow-up PR. Tested on MI300X and MI355X. |
+| [#88](https://github.com/ROCm/k8s-gpu-dra-driver/pull/88) | Auto-partition (dynamic GPU repartitioning) | `AutoPartition` (alpha, off) | bhatnitish's PR. Repartitions GPUs via amd-smi at Prepare time. Uses KEP-4815 mutex counters for one-mode-per-GPU. Compute-only (no VFIO). Hardware-validated on 8×MI300X. |
+
+### Related Issues
+
+| Issue | Title | Status |
+|---|---|---|
+| [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | KEP-4815 dual-entry advertising for VFIO | Open. Follow-up to PR #50. |
+| [#90](https://github.com/ROCm/k8s-gpu-dra-driver/issues/90) | Dynamic GPU repartitioning with VFIO passthrough | Open. Combines PR #50 + #88. Blocked on GIM hot-reconfiguration. |
 
 ---
 

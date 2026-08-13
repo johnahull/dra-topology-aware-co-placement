@@ -23,6 +23,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 |---|---|---|---|
 | [#344](https://github.com/kubevirt/enhancements/issues/344) | VEP #344: VM-Scoped Persistent ResourceClaims | Open (issue) | Enhancement tracking issue for persistent ResourceClaims. |
 | [#345](https://github.com/kubevirt/enhancements/pull/345) | VEP #344: VM-Scoped Persistent ResourceClaims | Open (PR) | jean-edouard approved (2026-07-31). VEP updated with `persistWhenStopped`, `PersistentDRAClaims` feature gate, name validation, `reservedFor` mechanism. enp0s3 asking about manual deallocation scenarios (2026-08-04). Approver: vladikr. |
+| [#414](https://github.com/kubevirt/enhancements/pull/414) | VEP-152: Add design to support CPU DRA driver in KubeVirt | Open (PR) | By Sreeja1725. VEP-152 design for `CPUsWithDRA` feature gate. jean-edouard CC'd. Relates to KV-8/#17708 (cpumanager skip). Approver: iholder101. |
 
 ### Kubernetes Enhancements
 
@@ -49,7 +50,8 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
-| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Rebased onto nvpassthrough refactor 2026-06-19. D-15 dropped. D-12/D-13/D-14 kept. varunrsekar silent 46 days. |
+| [#1261](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1261) | Publish standard NUMA node list attribute | Merged | Merged 2026-08-10. By killianmuldoon. Uses KEP-6072 helpers (#139929). Step 3 complete for NVIDIA GPU. |
+| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Rebased onto nvpassthrough refactor 2026-06-19. D-15 dropped. D-12/D-13/D-14 kept. varunrsekar silent 52 days. |
 | [#1099](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1099) | Support GPUs pre-bound to vfio-pci via kernel cmdline | Open (feature request) | Filed per varunrsekar request to split from #1090. PR pending — waiting for #1090 acceptance first. |
 | [#1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089) | VFIO discovery advertises non-vfio GPUs and Unconfigure rebinds pre-bound GPUs | Open (bug) | Responded with logs and repro steps. Issues 1,4 resolved via config/helm. |
 | [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | shivamerla assigned varunrsekar |
@@ -58,9 +60,12 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open | — | Feature-gated `VFIOPassthrough` (alpha, default off). On-demand VF conversion added. XE9785L MI355X testing posted. Awaiting re-review (21 days). |
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Open (LGTM) | — | Feature-gated `VFIOPassthrough`. All review items addressed. bhatnitish LGTM, dual-entry is follow-up (#89). CI pending approval. |
+| [#88](https://github.com/ROCm/k8s-gpu-dra-driver/pull/88) | Auto-partition (dynamic GPU repartitioning) | Open | — | bhatnitish. Feature-gated `AutoPartition`. Repartitions via amd-smi, KEP-4815 mutex counters. Compute-only (no VFIO). Hardware-validated 8×MI300X. |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Merged | — | Merged 2026-07-27. Feature-gated `DeviceMetadata` (alpha, default off). |
 | [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Merged | — | Merged 2026-06-10. |
+| [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | KEP-4815 dual-entry advertising for VFIO | Open (issue) | — | Follow-up to PR #50. Dual-entry + sibling exclusion + SharedCounters. |
+| [#90](https://github.com/ROCm/k8s-gpu-dra-driver/issues/90) | Dynamic repartitioning with VFIO passthrough | Open (issue) | — | Combines PR #50 + #88. Blocked on GIM hot-reconfiguration (no VF count change without full reload). |
 
 ### SR-IOV DRA Driver
 
@@ -82,9 +87,10 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#181](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/181) | Support assigned.cpuset exposure via CDI (KEP-6122 parity) | Open | Affects how cpuset reaches the container. Relevant to K-3 fix. |
 | [#104](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/104) | Add L3 cache-aware CPU isolation and full L3 cache claims | Open | By SchSeba. Cache-aligned CPU pinning for VMs. Not blocking. |
 | [#219](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/219) | Publish standard resource.kubernetes.io/numaNode attribute | Open | By enoodle. Tracks adoption of KEP-6072 standard numaNode in the CPU driver. Helpers merged (K8s #139929). |
-| [#264](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/264) | Publish device attributes as KEP-5304 metadata | Open (issue) | By johnahull. Enable KEP-5304 device metadata downward API so consumers can read per-device topology attributes from metadata files. PR #265 open. |
-| [#265](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/265) | feat: publish device attributes as KEP-5304 metadata | Open (PR) | By johnahull. ffromani: LGTM once e2e tests added (2026-08-03). E2e tests added, all CI green (7/7 modes pass). Added `allocatedNumCPUs` metadata-only attribute per pravk03 feedback. Needs `/lgtm` + `/approve`. |
-| — | feat: add per-allocated-CPU metadata entries for grouped modes | Not submitted | By johnahull. Follow-on to #265 — adds per-CPU device entries with full topology attributes (cpuID, numaNodeID, socketID, coreID, etc.) in grouped modes. Eliminates sysfs dependency for all modes. Branch: [feature/kep-5304-per-cpu-metadata](https://github.com/johnahull/dra-driver-cpu/tree/feature/kep-5304-per-cpu-metadata). Blocked on #265 approval. |
+| [#264](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/264) | Publish device attributes as KEP-5304 metadata | Closed | By johnahull. PR #265 merged 2026-08-06. |
+| [#265](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/265) | feat: publish device attributes as KEP-5304 metadata | Merged | Merged 2026-08-06. ffromani + pravk03 reviewed. E2e tests across all modes. Added `allocatedNumCPUs` metadata-only attribute. |
+| [#285](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/285) | Add per-allocated-CPU metadata entries for grouped modes | Open (issue) | By johnahull. Follow-up from #264. |
+| [#286](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/286) | feat: add per-allocated-CPU metadata entries for grouped modes | Open (PR) | By johnahull. Adds per-CPU device entries with full topology attributes in grouped modes. Extracts shared `CPUAttributes()` function. Verified on XE9680. Fixes #285. |
 
 ### dranet
 
@@ -120,7 +126,7 @@ The following work is sequenced behind [KEP-6072](https://github.com/kubernetes/
 |------|------|------|------------|
 | 1 | **KEP-6072 merges** | kubernetes/enhancements | ✅ Merged |
 | 2 | Helper functions (`GetNUMANodeAttributeByPCIBusID`, `GetNUMANodeAttribute`, `GetNUMANodeForCPU`) | kubernetes/kubernetes | ✅ Merged ([#139929](https://github.com/kubernetes/kubernetes/pull/139929)) |
-| 3 | NVIDIA GPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-nvidia-gpu | Step 2 (helper) |
+| 3 | NVIDIA GPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-nvidia-gpu | ✅ Merged ([#1261](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1261)) |
 | 3 | AMD GPU driver publishes `resource.kubernetes.io/numaNode` | ROCm/k8s-gpu-dra-driver | Step 2 (helper) |
 | 3 | dranet publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dranet | Step 2 (helper) |
 | 3 | SR-IOV NIC publishes `resource.kubernetes.io/numaNode` | k8snetworkplumbingwg/dra-driver-sriov | Step 2 (helper) |
