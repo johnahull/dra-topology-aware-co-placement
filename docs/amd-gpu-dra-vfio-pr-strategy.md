@@ -44,7 +44,6 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 |---|---|
 | VFIO DeviceClass Helm template | PR #50 |
 | Webhook validation for `VfioDeviceConfig` | IOMMUFD (Phase 2) |
-| Sibling mutual exclusion (PF passthrough only) | PR #50 + PF config bug resolution |
 | KubeVirt example manifests | PR #50 |
 | GPU Operator convergence | PR #50 validated (separate repo) |
 
