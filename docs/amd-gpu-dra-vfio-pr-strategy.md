@@ -128,6 +128,14 @@ The hardware supports multiple compute/memory partition combinations, but GIM's 
 - Unit tests covering discovery and capacity division across partition modes (SPX, DPX, CPX)
 - Validation against actual GIM 9.1.0.K DPX (2-VF) and CPX (8-VF) mode output — **requires firmware that supports `totalvfs > 1`**
 
+### Dual-Entry Advertising and Sibling Mutual Exclusion
+
+**Status:** Not yet PR'd (planned as part of KEP-4815 PR per bhatnitish agreement)
+
+Each compute GPU is advertised as both a compute device (`type=amdgpu`) and a VFIO device (`type=amdgpu-vfio`) in the ResourceSlice. The scheduler explicitly allocates either type. On Prepare, `RemoveSiblingDevices` removes the other type from the ResourceSlice; on Unprepare, `RestoreSiblingDevices` re-adds it. ResourceSlice is republished after each sibling change. Follows the NVIDIA `PerGPUAllocatableDevices` pattern.
+
+---
+
 ### Standardized `numaNode` (KEP-6072)
 
 **Status:** Not yet PR'd
@@ -192,12 +200,6 @@ spec:
 ### Webhook Validation
 
 Wire `VfioDeviceConfig` into the admission webhook (`cmd/webhook/main.go`). Validate `IOMMUConfig.BackendPolicy` enum and `EnableAPIDevice` bool. Depends on IOMMUFD PR landing first.
-
-### Dual-Entry Advertising and Sibling Mutual Exclusion
-
-**Status:** Not yet PR'd (planned as part of KEP-4815 PR per bhatnitish agreement)
-
-Each compute GPU is advertised as both a compute device (`type=amdgpu`) and a VFIO device (`type=amdgpu-vfio`) in the ResourceSlice. The scheduler explicitly allocates either type. On Prepare, `RemoveSiblingDevices` removes the other type from the ResourceSlice; on Unprepare, `RestoreSiblingDevices` re-adds it. ResourceSlice is republished after each sibling change. Follows the NVIDIA `PerGPUAllocatableDevices` pattern.
 
 ### KubeVirt Example Manifests
 
