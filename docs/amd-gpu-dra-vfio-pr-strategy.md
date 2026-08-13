@@ -237,7 +237,7 @@ These solve different problems at different levels of the hardware hierarchy:
 ```
 Physical GPU (PCI 0000:c1:00.0)                    Example: CPX mode (8 VFs)
 ├── gpu-0 (compute, type=amdgpu)          ─┐
-│                                           ├── Sibling exclusion (Phase 3)
+│                                           ├── Sibling exclusion (Phase 2)
 ├── gpu-vfio-0 (PF passthrough, type=vfio) ─┘─┐
 │                                              ├── Counter: consumes N/N vf-slots
 │   GIM SR-IOV creates N VFs (N=1,2,8):       │
@@ -278,4 +278,4 @@ With either workaround, PF passthrough works end-to-end (amdgpu → vfio-pci →
 **Impact:**
 - VF passthrough via GIM SR-IOV is **unaffected** and works correctly.
 - PF passthrough works with the workaround and is gated behind `VFIOPassthrough` (PR #50).
-- Sibling mutual exclusion (Phase 3) is lower priority — PF passthrough is functional with workarounds.
+- Sibling mutual exclusion (Phase 2, part of KEP-4815 PR) is lower priority — PF passthrough is functional with workarounds.
