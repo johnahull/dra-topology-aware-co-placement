@@ -64,8 +64,10 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#88](https://github.com/ROCm/k8s-gpu-dra-driver/pull/88) | Auto-partition (dynamic GPU repartitioning) | Open | — | bhatnitish. Feature-gated `AutoPartition`. Repartitions via amd-smi, KEP-4815 mutex counters. Compute-only (no VFIO). Hardware-validated 8×MI300X. |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Merged | — | Merged 2026-07-27. Feature-gated `DeviceMetadata` (alpha, default off). |
 | [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Merged | — | Merged 2026-06-10. |
-| [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | KEP-4815 dual-entry advertising for VFIO | Branch ready | — | Branch `feature/kep4815-dual-entry-v2` pushed, PR pending. Per-VF capacity + dual-entry (`type=vfio`) + sibling exclusion + `vf-slots` SharedCounters + unit tests. 3 bugs fixed (data race, name mismatch, spurious counters). |
+| [#91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91) | KEP-4815 dual-entry with per-VF capacity and sibling exclusion | Open | [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | Per-VF capacity + dual-entry (`type=vfio`) + sibling exclusion + `vf-slots` SharedCounters + unit tests. 3 bugs fixed (data race, name mismatch, spurious counters). Targets `develop`. |
 | [#90](https://github.com/ROCm/k8s-gpu-dra-driver/issues/90) | Dynamic repartitioning with VFIO passthrough | Open (issue) | — | Combines PR #50 + #88. Blocked on GIM hot-reconfiguration (no VF count change without full reload). |
+| [#92](https://github.com/ROCm/k8s-gpu-dra-driver/issues/92) | Standardized `numaNode` attribute (KEP-6072) | Open (issue) | — | Adopt `resource.kubernetes.io/numaNode` for cross-driver matchAttribute. Blocked on `k8s.io/dynamic-resource-allocation` v0.37+ bump. |
+| [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93) | IOMMUFD support (VEP-266) | Open (issue) | — | Per-device IOMMU isolation for confidential VMs. Blocked on KubeVirt libvirt 12.2+ in virt-launcher. |
 
 ### SR-IOV DRA Driver
 

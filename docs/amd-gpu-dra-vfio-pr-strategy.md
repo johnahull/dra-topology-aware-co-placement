@@ -41,10 +41,10 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 
 | Item | Depends on | Status |
 |---|---|---|
-| Per-VF capacity and partition mode attributes | PR #50 | **Implemented** on `feature/kep4815-dual-entry-v2`. PR pending (#89). |
-| KEP-4815 dual-entry + sibling exclusion | Per-VF capacity | **Implemented** on `feature/kep4815-dual-entry-v2`. PR pending (#89). |
-| Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | Requires `k8s.io/dynamic-resource-allocation` v0.37+ dependency bump. |
-| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | KubeVirt needs libvirt 12.2+ for IOMMUFD domain XML. |
+| Per-VF capacity and partition mode attributes | PR #50 | **Implemented** on `feature/kep4815-dual-entry-v2`. [PR #91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91). |
+| KEP-4815 dual-entry + sibling exclusion | Per-VF capacity | **Implemented** on `feature/kep4815-dual-entry-v2`. [PR #91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91). |
+| Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | [#92](https://github.com/ROCm/k8s-gpu-dra-driver/issues/92). Blocked on `k8s.io/dynamic-resource-allocation` v0.37+ bump. |
+| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93). Blocked on KubeVirt libvirt 12.2+. |
 
 ### Phase 3 — Polish
 
@@ -166,7 +166,7 @@ Three bugs were found and fixed during architect + code review of the combined b
 
 ### Standardized `numaNode` (KEP-6072)
 
-**Status:** Not yet PR'd
+**Status:** Issue [#92](https://github.com/ROCm/k8s-gpu-dra-driver/issues/92) filed. Blocked on dep bump.
 **Depends on:** PR #48 (merged)
 
 The AMD driver publishes `numaNode` as a bare unqualified attribute. For cross-driver `matchAttribute: resource.kubernetes.io/numaNode` to work (aligning GPUs with NICs, CPUs, and memory from different DRA drivers), all drivers must use the standardized attribute name from [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) ([KEP PR](https://github.com/kubernetes/enhancements/pull/6073), merged).
@@ -175,7 +175,7 @@ Implementation requires bumping `k8s.io/dynamic-resource-allocation` to v0.37+ a
 
 ### IOMMUFD Support
 
-**Status:** Not yet PR'd
+**Status:** Issue [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93) filed. Blocked on KubeVirt libvirt 12.2+.
 **Depends on:** PR #50
 
 IOMMUFD (Linux 6.2+) enables per-device IOMMU isolation instead of per-group, required for confidential VMs (AMD SEV-SNP) and improved security for multi-device passthrough. See [KubeVirt VEP-266](https://github.com/kubevirt/enhancements/issues/266). Follows the NVIDIA DRA GPU driver pattern.
