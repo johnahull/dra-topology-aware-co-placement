@@ -10,39 +10,39 @@ KubeVirt VMs require GPU passthrough via VFIO to access AMD Instinct GPUs with n
 
 ## Current State
 
-Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64)). KEP-5304 metadata merged. VFIO passthrough awaiting re-review:
+Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64)). KEP-5304 metadata merged. VFIO passthrough merged. Phase 1 complete:
 
 | PR | Title | Gate | Status |
 |---|---|---|---|
 | [#64](https://github.com/ROCm/k8s-gpu-dra-driver/pull/64) | Feature gate infrastructure | — | **Merged.** |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata | `DeviceMetadata` (alpha, off) | **Merged 2026-07-27.** Publishes `pciBusID`, `productName`, `numaNode` for all device types. |
-| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | `VFIOPassthrough` (alpha, off) | All review items addressed. All VFIO code fully gated behind feature flag. Constants consolidated to `pkg/consts`. Restore only on successful Unconfigure. bhatnitish agreed dual-entry (KEP-4815) is a follow-up PR. Tested on MI300X and MI355X. |
+| [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough for SR-IOV GPU VFs | `VFIOPassthrough` (alpha, off) | **Merged 2026-08-14.** VF discovery from GIM-managed PFs, vfio-pci binding, CDI specs. Tested on MI300X (XE9680) and MI355X (XE9785L). |
 | [#88](https://github.com/ROCm/k8s-gpu-dra-driver/pull/88) | Auto-partition (dynamic GPU repartitioning) | `AutoPartition` (alpha, off) | bhatnitish's PR. Repartitions GPUs via amd-smi at Prepare time. Uses KEP-4815 mutex counters for one-mode-per-GPU. Compute-only (no VFIO). Hardware-validated on 8×MI300X. |
 
 ### Related Issues
 
 | Issue | Title | Status |
 |---|---|---|
-| [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | KEP-4815 dual-entry advertising for VFIO | Open. Follow-up to PR #50. |
+| [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | KEP-4815 dual-entry advertising for VFIO | Branch ready (`feature/kep4815-dual-entry-v2`), PR pending. Combines per-VF capacity + KEP-4815 dual-entry + sibling exclusion + unit tests + bug fixes. |
 | [#90](https://github.com/ROCm/k8s-gpu-dra-driver/issues/90) | Dynamic GPU repartitioning with VFIO passthrough | Open. Combines PR #50 + #88. Blocked on GIM hot-reconfiguration. |
 
 ---
 
 ## Phased Roadmap
 
-### Phase 1 — Core VFIO + Metadata (in progress)
+### Phase 1 — Core VFIO + Metadata (complete)
 
 | Item | PR | Gate | Status |
 |---|---|---|---|
 | KEP-5304 device metadata | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | `DeviceMetadata` | **Merged 2026-07-27** |
-| VFIO passthrough for SR-IOV VFs | [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | `VFIOPassthrough` | Awaiting re-review |
+| VFIO passthrough for SR-IOV VFs | [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | `VFIOPassthrough` | **Merged 2026-08-14** |
 
 ### Phase 2 — Per-VF Capacity & Topology
 
-| Item | Depends on | External blocker |
+| Item | Depends on | Status |
 |---|---|---|
-| Per-VF capacity and partition mode attributes | PR #50 | — |
-| KEP-4815 partitionable devices + dual-entry + sibling exclusion | Per-VF capacity PR | Beta in K8s 1.36. GIM 9.1.0.K multi-VF support depends on GPU firmware. bhatnitish has a feature incoming that consumes KEP-4815. |
+| Per-VF capacity and partition mode attributes | PR #50 | **Implemented** on `feature/kep4815-dual-entry-v2`. PR pending (#89). |
+| KEP-4815 dual-entry + sibling exclusion | Per-VF capacity | **Implemented** on `feature/kep4815-dual-entry-v2`. PR pending (#89). |
 | Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | Requires `k8s.io/dynamic-resource-allocation` v0.37+ dependency bump. |
 | IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | KubeVirt needs libvirt 12.2+ for IOMMUFD domain XML. |
 
@@ -87,8 +87,7 @@ Opts into KEP-5304 device metadata so KubeVirt can read PCI address and NUMA top
 
 ### Per-VF Capacity and Partition Mode Attributes
 
-**Status:** Not yet PR'd
-**Size:** ~120 lines
+**Status:** Implemented on `feature/kep4815-dual-entry-v2` (PR pending, issue #89)
 **Depends on:** PR #50
 
 PR #50 publishes VFIO VFs with attributes (`type`, `numaNode`, `pciAddr`, etc.) but no capacity. Regular AmdGpu devices publish `memory`, `computeUnits`, `simdUnits` — VFIO VFs should too.
@@ -98,11 +97,13 @@ PR #50 publishes VFIO VFs with attributes (`type`, `numaNode`, `pciAddr`, etc.) 
 - **KEP-4815 prerequisite.** Capacity-based counters require VFs to declare what they consume.
 - **Topology coordinator.** Partition DeviceClasses include `capacity` in sub-resources for proportioning.
 
-**What needs to be implemented:**
-- Read `sriov_numvfs` (active VF count) and `sriov_totalvfs` from parent PF
-- Read PF total memory from sysfs, CU/SIMD from device ID or topology info
-- Infer partition mode (SPX/DPX/CPX) from NumVFs and publish as `partitionProfile` attribute
-- Divide PF capacity by NumVFs for per-VF `memory`, `computeUnits`, `simdUnits`
+**What was implemented:**
+- `ReadSRIOVNumVFs()` reads `sriov_numvfs` (active VF count) from parent PF sysfs
+- `ReadPFCapacity()` reads PF total memory from `mem_info_vram_total`, CU/SIMD from `gpuCapacityByDeviceID()` lookup (MI300X, MI355X, MI325X)
+- `partitionMode()` infers SPX/DPX/QPX/CPX from NumVFs, published as `partitionProfile` attribute (e.g., `cpx_nps1`)
+- Per-VF capacity: PF totals divided by NumVFs for `memory`, `computeUnits`, `simdUnits`
+- VFIO siblings for compute GPUs (dual-entry PFs) advertise full PF capacity
+- Unit tests for all new functions (partition mode, capacity, sysfs helpers)
 
 ---
 
@@ -126,21 +127,40 @@ The hardware supports multiple compute/memory partition combinations, but GIM's 
 
 **Note:** AMD docs list MI300X CPX as requiring NPS2, but actual testing shows NPS4 is required (NPS2 only allows DPX). The `available_compute_partition` sysfs file is the authoritative source.
 
-**What the driver needs to implement:**
+**What was implemented** (on `feature/kep4815-dual-entry-v2`):
 
-- Publish a `SharedCounterSet` per PF with counters for `memory`, `computeUnits`, `simdUnits` (or a single `vf-slots` counter — design TBD)
-- Each VF's `GetDevice()` declares `consumesCounters` for its share of the PF's capacity
-- Read `sriov_numvfs` (current active VF count) from sysfs to size the partition model — **not** `sriov_totalvfs` (max supported). `totalvfs` is firmware-dependent and may be 1 even on GPUs that support multi-VF in hardware (e.g., MI300X on XE9680). `numvfs` reflects the actual VFs created by GIM.
-- Derive per-VF capacity (memory, CU, SIMD) by dividing PF totals by VF count — needs a reliable way to read PF-level CU/SIMD capacity from sysfs rather than hardcoding per device ID
-- If the partition mode is reconfigured (changing the active VF count), re-publish the counter set and device list with updated capacity
-- Unit tests covering discovery and capacity division across partition modes (SPX, DPX, CPX)
-- Validation against actual GIM 9.1.0.K DPX (2-VF) and CPX (8-VF) mode output — **requires firmware that supports `totalvfs > 1`**
+- `SharedCounterSet` per PF with a single `vf-slots` counter (value = `TotalVFs`). Counter sets are deduplicated per PF address in `collectVFIOCounterSets()`.
+- Each VF's `GetDevice()` declares `ConsumesCounters`: VFs consume 1 slot, PFs consume all slots (mutual exclusion).
+- Non-SR-IOV GPUs (`ReadSRIOVTotalVFs` returns 0) get `TotalVFs=0` and no counter set — counter logic only activates for GPUs with actual SR-IOV capability.
+- `ReadSRIOVNumVFs` reads active VF count. `ReadPFCapacity` reads PF totals. Per-VF capacity = PF totals / NumVFs.
+- Unit tests for counter sets, consumption, partition mode, sysfs helpers.
+
+**Still needs:**
+- Hardware validation against GIM 9.1.0.K DPX (2-VF) and CPX (8-VF) mode — **requires firmware that supports `totalvfs > 1`**
+- Dynamic repartitioning (changing VF count at runtime) — blocked on GIM hot-reconfiguration (issue #90)
 
 ### Dual-Entry Advertising and Sibling Mutual Exclusion
 
-**Status:** Not yet PR'd (planned as part of KEP-4815 PR per bhatnitish agreement)
+**Status:** Implemented on `feature/kep4815-dual-entry-v2` (PR pending, issue #89)
 
-Each compute GPU is advertised as both a compute device (`type=amdgpu`) and a VFIO device (`type=amdgpu-vfio`) in the ResourceSlice. The scheduler explicitly allocates either type. On Prepare, `RemoveSiblingDevices` removes the other type from the ResourceSlice; on Unprepare, `RestoreSiblingDevices` re-adds it. ResourceSlice is republished after each sibling change. Follows the NVIDIA `PerGPUAllocatableDevices` pattern.
+Each compute GPU is advertised as both a compute device (`type=amdgpu`) and a VFIO device (`type=vfio`) in the ResourceSlice. The scheduler explicitly allocates either type. On Prepare, `RemoveSiblingDevices` removes the other type from the ResourceSlice; on Unprepare, `RestoreSiblingDevices` re-adds it. ResourceSlice is republished after each sibling change via `republishResources()`. Follows the NVIDIA `PerGPUAllocatableDevices` pattern.
+
+**Implementation details:**
+- `RemoveSiblingDevices` takes an explicit map key parameter (not `CanonicalName()`) to correctly handle on-demand VFIO conversion where the device type changes in-place
+- `republishResources` acquires the state lock while building the resources snapshot, preventing data races with concurrent Prepare/Unprepare
+- VFIO VFs (`IsVF=true`) return `""` from `GetSiblingLookupPCIAddress()` — they have different PCI addresses from the PF, so sibling exclusion does not apply to VFs
+- Sibling removal happens before checkpoint write; rollback restores siblings if checkpoint fails
+- Unit tests cover sibling removal/restoration, PCI index construction, capacity preservation, and edge cases (no siblings, empty cache)
+
+### Bug Fixes Found During Code Review (2026-08-19)
+
+Three bugs were found and fixed during architect + code review of the combined branch:
+
+1. **Data race in `republishResources`** — `buildDriverResources` iterated `d.state.allocatable` without holding the state lock while concurrent `Prepare`/`Unprepare` calls mutated the map (via `delete` in `RemoveSiblingDevices` and insert in `RestoreSiblingDevices`). Go's concurrent map read+write causes a runtime panic. Fixed by acquiring the state lock in `republishResources` while building the snapshot.
+
+2. **VFIO conversion name mismatch in `RemoveSiblingDevices`** — After on-demand VFIO conversion (VfioDeviceConfig on a compute GPU), the device's `CanonicalName()` changed from `gpu-0-128` to `gpu-vfio-0`, but the device remained in `allocatable` under the original key. `RemoveSiblingDevices` used `CanonicalName()` to exclude the prepared device from removal — with the wrong name, it deleted the prepared device itself and kept the sibling. Fixed by passing the map key as an explicit parameter.
+
+3. **Spurious counter sets for non-SR-IOV GPUs** — `max(ReadSRIOVTotalVFs, 1)` forced `TotalVFs=1` for GPUs without SR-IOV, creating a pointless `SharedCounterSet` with 1 slot. Fixed by using `ReadSRIOVTotalVFs` directly; non-SR-IOV GPUs get `TotalVFs=0` and no counter set.
 
 ---
 
@@ -201,7 +221,7 @@ spec:
   - cel:
       expression: >-
         device.driver == 'gpu.amd.com' &&
-        device.attributes['gpu.amd.com'].type == 'amdgpu-vfio'
+        device.attributes['gpu.amd.com'].type == 'vfio'
 {{- end }}
 ```
 
