@@ -236,25 +236,40 @@ Example ResourceClaim and VirtualMachine YAML for VFIO GPU passthrough and IOMMU
 ### GPU Operator Convergence
 
 **Target:** `ROCm/gpu-operator` `develop` (separate repo)
+**Status:** Analysis complete (2026-08-20). No issue filed yet.
 
 The GPU Operator manages the full GPU lifecycle for passthrough today:
 
-1. **KMM builds and loads GIM** — `kmmmodule.go` compiles `gim.ko` from source via KMM, loads with `modprobe gim`. The `vf_num` parameter comes from the user's `DeviceConfig.spec.driver.kernelModuleConfig.parameters`.
-2. **Blacklists `amdgpu`** — for `vf-passthrough` mode, writes `blacklist amdgpu` to `/etc/modprobe.d/` so GIM gets the PF.
-3. **Waits for GIM** — init containers poll `/sys/module/gim/drivers/` before starting the DRA plugin.
-4. **VFIO bind worker pods** — `workermgr.go` creates pods that run `vfio_bind.sh`/`vfio_unbind.sh` to bind VFs to `vfio-pci` after GIM creates them.
+1. **KMM builds and loads GIM** — `kmmmodule.go` compiles `gim.ko` from source via KMM, loads with `modprobe gim`. The `vf_num` parameter comes from the user's `DeviceConfig.spec.driver.kernelModuleConfig.parameters` and determines partition mode (1=SPX, 2=DPX, 3=TPX, 4=QPX, 8=CPX).
+2. **Blacklists `amdgpu`** — `nodelabeller.go` writes `blacklist amdgpu` to `/etc/modprobe.d/` for `vf-passthrough` mode so GIM gets the PF directly.
+3. **Waits for GIM** — init containers in `plugin.go` poll `/sys/module/gim/drivers/` before starting the device plugin.
+4. **VFIO bind worker pods** — `node.go` triggers `workerMgr.Work()` which creates pods running `vfio_bind.sh` to pre-bind all VFs to `vfio-pci` at boot.
 
-Once the DRA driver handles VFIO natively (PR #50), the VFIO bind worker pods conflict — the operator binds VFs at boot, but the DRA driver expects them unbound for on-demand binding during Prepare.
+**Conflict with DRA VFIO:** The DRA driver (PR #50) handles VFIO binding on-demand during Prepare and expects VFs unbound. Dual-entry advertising (PR #91) requires `amdgpu` to be loaded for compute GPU discovery. Both conflict with the operator's current flow.
 
 **What needs to change:**
 
-| Area | Change |
-|---|---|
-| Skip VFIO bind worker pods | `workermgr.go`: when `draVfioEnabled: true`, skip `vfio_bind.sh`/`vfio_unbind.sh` worker pod creation |
-| Pass feature gate to DRA driver | Helm: add `--feature-gates=VFIOPassthrough=true` to DRA driver DaemonSet args |
-| Conditional init container | `plugin.go`: for `pf-passthrough` with `draVfioEnabled`, don't wait for `/sys/module/gim/drivers/` |
+| Area | File | Change |
+|---|---|---|
+| Add DRA VFIO config flag | `api/v1alpha1/deviceconfig_types.go` | Add `VFIOEnabled bool` to `DRADriverSpec`. Controls all items below. |
+| Skip VFIO bind worker pods | `internal/controllers/watchers/node.go` (line 233) | When `DRADriverSpec.VFIOEnabled`: skip `workerMgr.Work()`. DRA binds on demand. |
+| Do NOT blacklist amdgpu | `internal/nodelabeller/nodelabeller.go` | When `DRADriverSpec.VFIOEnabled`: skip blacklist. `amdgpu` must load for dual-entry compute discovery. |
+| Pass VFIOPassthrough gate | `internal/plugin/plugin.go` | Add `--feature-gates=VFIOPassthrough=true` to DRA driver DaemonSet args. |
+| Wait for GIM in DRA init | `internal/plugin/plugin.go` (line 330) | DRA init container waits for `amdgpu` only. Add GIM wait (`/sys/module/gim/drivers/`) when VF passthrough + DRA VFIO. |
 
-**What stays the same:** KMM GIM loading, `vf_num` parameter, `amdgpu` blacklisting, DeviceClass creation, CDI spec generation.
+**New flow with DRA VFIO enabled:**
+1. `amdgpu` loads and binds PFs (compute discovery works)
+2. KMM loads GIM on top with `vf_num` (VFs created)
+3. DRA driver init waits for both `amdgpu` and GIM
+4. DRA discovers compute GPUs + GIM VFs, advertises dual-entry (`type=amdgpu` + `type=vfio`)
+5. On Prepare: DRA binds specific VF to `vfio-pci`
+6. On Unprepare: DRA unbinds back to original driver
+
+**What stays the same:**
+- KMM GIM loading with `vf_num` parameter (DRA needs GIM for VF creation)
+- `vf_num` is admin-configured in DeviceConfig CRD
+- VFIO unbind script (for cleanup when DRA driver is removed)
+- Node labelling (driver type labels still useful)
 
 ---
 
