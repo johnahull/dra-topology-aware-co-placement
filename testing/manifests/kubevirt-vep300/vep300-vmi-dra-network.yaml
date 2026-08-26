@@ -1,0 +1,49 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  name: vmi-dra-network
+  namespace: default
+spec:
+  terminationGracePeriodSeconds: 0
+  domain:
+    devices:
+      disks:
+      - name: containerdisk
+        disk:
+          bus: virtio
+      - name: cloudinitdisk
+        disk:
+          bus: virtio
+      rng: {}
+      interfaces:
+      - name: default
+        masquerade: {}
+      - name: vfnet
+        sriov: {}
+    resources:
+      requests:
+        memory: 2Gi
+  networks:
+  - name: default
+    pod: {}
+  - name: vfnet
+    resourceClaim:
+      claimName: vfclaim
+      requestName: vfreq
+  resourceClaims:
+  - name: vfclaim
+    managedClaimProvisionerName: sriov-network
+  volumes:
+  - name: containerdisk
+    containerDisk:
+      image: quay.io/containerdisks/fedora:42
+  - name: cloudinitdisk
+    cloudInitNoCloud:
+      userData: |-
+        #cloud-config
+        password: fedora
+        chpasswd:
+          expire: false
+        ssh_pwauth: true
+        ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILRotRucj6NmoMQJAA6fXaBVGVfKilf58Hguzm6fgNk jhull@ff37-h10-000-r760.rdu3.labs.perfscale.redhat.com

@@ -1,0 +1,16 @@
+apiVersion: kubevirt.io/v1alpha1
+kind: ManagedClaimProvisioner
+metadata:
+  name: sriov-hostdevice
+spec:
+  provisioner: policy.kubevirt.io/aligner
+  deviceTypes:
+  - name: hostDevice
+    deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+    opaque:
+      driver: sriovnetwork.k8snetworkplumbingwg.io
+      parameters:
+        apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
+        kind: VfConfig
+        driver: vfio-pci
+        addVhostMount: true

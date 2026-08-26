@@ -1,0 +1,39 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  name: vmi-dra-hostdevice
+  namespace: default
+spec:
+  terminationGracePeriodSeconds: 0
+  domain:
+    devices:
+      disks:
+      - name: containerdisk
+        disk:
+          bus: virtio
+      - name: cloudinitdisk
+        disk:
+          bus: virtio
+      rng: {}
+      hostDevices:
+      - name: vf0
+        claimName: vfclaim
+        requestName: vfreq
+    resources:
+      requests:
+        memory: 2Gi
+  resourceClaims:
+  - name: vfclaim
+    managedClaimProvisionerName: sriov-hostdevice
+  volumes:
+  - name: containerdisk
+    containerDisk:
+      image: quay.io/containerdisks/fedora:42
+  - name: cloudinitdisk
+    cloudInitNoCloud:
+      userData: |-
+        #cloud-config
+        password: fedora
+        chpasswd:
+          expire: false
+        ssh_pwauth: true
