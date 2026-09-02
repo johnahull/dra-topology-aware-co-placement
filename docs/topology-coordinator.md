@@ -10,7 +10,9 @@
 
 The topology coordinator automatically discovers devices from 4 DRA drivers (CPU, GPU, NIC, memory), computes proportional partitions at multiple granularities, and exposes them as DeviceClasses. A mutating webhook expands simple one-line claims into multi-driver sub-requests with NUMA alignment constraints and `DRAConsumableCapacity` capacity sharing.
 
-**Platform:** Fedora 43 + K8s 1.36.0-rc.0, Dell XE9680
+**Platforms tested:**
+- Dell XE9680 — 8× AMD Instinct GPU, 2× EPYC (SNC off, 2 NUMA), Fedora 43 + K8s 1.36.0-rc.0
+- Dell XE9785L — 8× AMD Instinct MI355X, 2× EPYC 9575F (NPS4, 8 NUMA), Fedora 44 + K8s 1.37.0-alpha.1
 
 The upstream community is developing an alternative alignment mode: CPUs publish `resource.kubernetes.io/pcieRoot` as a list via [KEP-5491](https://github.com/kubernetes/enhancements/issues/5491) list-typed attributes, enabling alignment through the existing standard attribute instead of the informal `dra.net/numaNode` convention. This document covers both modes and the changes needed to support them.
 
@@ -93,6 +95,140 @@ graph TB
     WH -->|expands claims| EIGHTH & QUARTER
 ```
 
+---
+
+## Hardware Platforms
+
+The coordinator adapts to different hardware topologies automatically. The same partition names ("eighth", "quarter", "half") map to different device counts depending on the PCIe root layout and NUMA configuration.
+
+### Dell XE9680
+
+- **CPU:** 2× AMD EPYC (SNC off → 2 NUMA nodes)
+- **GPU:** 8× AMD Instinct (MI250X or MI300X)
+- **NIC:** 16× SR-IOV VFs (2 per PCIe root)
+- **Layout:** 4 PCIe roots per NUMA, 1 GPU per root
+
+```mermaid
+graph TB
+    subgraph "Socket 0 — NUMA 0"
+        subgraph "pcieRoot 0x15"
+            G0["GPU 1b"]
+            N0a["NIC 1d:00.5"]
+            N0b["NIC 1d:00.6"]
+        end
+        subgraph "pcieRoot 0x37"
+            G1["GPU 9"]
+            N1a["NIC 1d:00.4"]
+            N1b["NIC 1d:00.7"]
+        end
+        subgraph "pcieRoot 0x48"
+            G2["GPU 17"]
+            N2a["NIC 1d:00.2"]
+            N2b["NIC 1d:01.0"]
+        end
+        subgraph "pcieRoot 0x59"
+            G3["GPU 25"]
+            N3a["NIC 1d:00.3"]
+            N3b["NIC 1d:01.1"]
+        end
+    end
+
+    subgraph "Socket 1 — NUMA 1"
+        subgraph "pcieRoot 0x97"
+            G4["GPU 49"]
+            N4a["NIC 9f:00.6"]
+            N4b["NIC 9f:01.1"]
+        end
+        subgraph "pcieRoot 0xa8"
+            G5["GPU 57"]
+            N5a["NIC 9f:00.3"]
+            N5b["NIC 9f:00.5"]
+        end
+        subgraph "pcieRoot 0xb9"
+            G6["GPU 33"]
+            N6a["NIC 9f:00.7"]
+            N6b["NIC 9f:01.0"]
+        end
+        subgraph "pcieRoot 0xca"
+            G7["GPU 41"]
+            N7a["NIC 9f:00.2"]
+            N7b["NIC 9f:00.4"]
+        end
+    end
+```
+
+### Dell XE9785L
+
+- **CPU:** 2× AMD EPYC 9575F 64-Core (NPS4 → 8 NUMA nodes, 4 per socket)
+- **GPU:** 8× AMD Instinct MI355X
+- **NIC:** 8× AMD Pensando DSC3 (1:1 with GPUs) + 8× Mellanox ConnectX-6 Dx VFs
+- **NVMe:** 4× Micron 9550 PRO (on NUMA 2, 3, 6, 7)
+- **Layout:** 1 PCIe root per NUMA, 1 GPU + 1 Pensando NIC per root
+
+```mermaid
+graph TB
+    subgraph "Socket 0"
+        subgraph "NUMA 0 — pci0000:d0"
+            G0L["GPU"]
+            N0L["Pensando NIC"]
+            M0L["4× Mellanox VFs"]
+        end
+        subgraph "NUMA 1 — pci0000:00"
+            G1L["GPU"]
+            N1L["Pensando NIC"]
+        end
+        subgraph "NUMA 2 — pci0000:32"
+            G2L["GPU"]
+            N2L["Pensando NIC"]
+            D2L["NVMe"]
+        end
+        subgraph "NUMA 3 — pci0000:a0"
+            G3L["GPU"]
+            N3L["Pensando NIC"]
+            D3L["NVMe"]
+        end
+    end
+
+    subgraph "Socket 1"
+        subgraph "NUMA 4 — pci0001:d0"
+            G4L["GPU"]
+            N4L["Pensando NIC"]
+        end
+        subgraph "NUMA 5 — pci0001:00"
+            G5L["GPU"]
+            N5L["Pensando NIC"]
+            M5L["4× Mellanox VFs"]
+        end
+        subgraph "NUMA 6 — pci0001:32"
+            G6L["GPU"]
+            N6L["Pensando NIC"]
+            D6L["NVMe"]
+        end
+        subgraph "NUMA 7 — pci0001:a0"
+            G7L["GPU"]
+            N7L["Pensando NIC"]
+            D7L["NVMe"]
+        end
+    end
+```
+
+### Partition Comparison
+
+The same fraction names produce different device counts per platform because `buildProportionalPartitions()` divides by PCIe root count per NUMA:
+
+| Fraction | XE9680 (SNC off, 2 NUMA) | XE9785L (NPS4, 8 NUMA) |
+|----------|--------------------------|------------------------|
+| **Eighth** | 1 GPU + 2 NICs + 8 cores | 1 GPU + 1 NIC + 16 cores |
+| **Quarter** | 2 GPUs + 4 NICs + 16 cores | 2 GPUs + 2 NICs + 32 cores |
+| **Half** | 4 GPUs + 8 NICs + 32 cores | 4 GPUs + 4 NICs + 64 cores |
+| **Full** | 8 GPUs + 16 NICs + 64 cores | 8 GPUs + 8 NICs + 128 cores |
+
+On the XE9680, eighth and quarter produce the same subdivision because there are 4 PCIe roots per NUMA — both are 1/4 of a NUMA node. On the XE9785L, an eighth IS one NUMA node (1 PCIe root per NUMA), so quarter spans 2 NUMA nodes within the same socket.
+
+The XE9785L also illustrates multi-device-type partitions: each eighth includes a GPU, a Pensando NIC, proportional CPU cores, memory, and (on NUMA 2,3,6,7) an NVMe drive. The coordinator handles this automatically via proportional subdivision.
+
+---
+
 ### Claim Expansion Flow
 
 ```mermaid
@@ -117,7 +253,7 @@ sequenceDiagram
     Note over Sched: CPU shared 4 ways per NUMA:<br/>cpudevnuma000: 8+8+8+8 = 32 cores<br/>cpudevnuma001: 8+8+8+8 = 32 cores
 ```
 
-### NUMA Layout
+### NUMA Layout — XE9680 (SNC off, 2 NUMA)
 
 ```mermaid
 graph LR
@@ -152,11 +288,54 @@ graph LR
     end
 ```
 
+### NUMA Layout — XE9785L (NPS4, 8 NUMA)
+
+```mermaid
+graph LR
+    subgraph "Socket 0"
+        subgraph "e0 — NUMA 0"
+            E0L["GPU<br/>Pensando NIC<br/>Mellanox VFs<br/>16 CPUs"]
+        end
+        subgraph "e1 — NUMA 1"
+            E1L["GPU<br/>Pensando NIC<br/>16 CPUs"]
+        end
+        subgraph "e2 — NUMA 2"
+            E2L["GPU<br/>Pensando NIC<br/>NVMe<br/>16 CPUs"]
+        end
+        subgraph "e3 — NUMA 3"
+            E3L["GPU<br/>Pensando NIC<br/>NVMe<br/>16 CPUs"]
+        end
+    end
+
+    subgraph "Socket 1"
+        subgraph "e4 — NUMA 4"
+            E4L["GPU<br/>Pensando NIC<br/>16 CPUs"]
+        end
+        subgraph "e5 — NUMA 5"
+            E5L["GPU<br/>Pensando NIC<br/>Mellanox VFs<br/>16 CPUs"]
+        end
+        subgraph "e6 — NUMA 6"
+            E6L["GPU<br/>Pensando NIC<br/>NVMe<br/>16 CPUs"]
+        end
+        subgraph "e7 — NUMA 7"
+            E7L["GPU<br/>Pensando NIC<br/>NVMe<br/>16 CPUs"]
+        end
+    end
+```
+
 ---
 
 ## Partition Abstraction
 
-The coordinator computes three partition granularities plus full:
+The coordinator computes partition granularities (eighth, quarter, half, full) from the actual hardware topology using `buildProportionalPartitions()`:
+
+1. Counts unique PCIe roots per NUMA node
+2. Divides all device types proportionally by that count
+3. For shared devices (count=1 per NUMA), uses `DRAConsumableCapacity` to divide capacity
+
+The result is hardware-adaptive — the same partition name maps to different device counts on different platforms:
+
+**XE9680 (SNC off)** — 4 PCIe roots per NUMA → eighth = 1/4 of a NUMA node:
 
 | Level | GPU | NICs | CPU | Memory | Partitions per Machine |
 |-------|-----|------|-----|--------|----------------------|
@@ -164,12 +343,18 @@ The coordinator computes three partition granularities plus full:
 | **Quarter** | 1 | 2 | 1 (16 cores) | 1 (8 GiB) | 8 (4 per NUMA)* |
 | **Full** | 8 | 16 | 2 | 4 | 1 |
 
-*On this hardware, eighth and quarter produce the same subdivision factor (4 PCIe roots per NUMA). They differ on systems where PCIe roots group multiple devices.
+*On the XE9680, eighth and quarter produce the same subdivision factor (4 PCIe roots per NUMA = same result for both).
 
-Both eighth and quarter use `buildProportionalPartitions()` which:
-1. Counts unique PCIe roots per NUMA node
-2. Divides all device types proportionally by that count
-3. For shared devices (count=1 per NUMA), uses `DRAConsumableCapacity` to divide capacity
+**XE9785L (NPS4)** — 1 PCIe root per NUMA → eighth = one entire NUMA node:
+
+| Level | GPU | Pensando NICs | NVMe | CPU | Memory | Partitions per Machine |
+|-------|-----|---------------|------|-----|--------|----------------------|
+| **Eighth** | 1 | 1 | 0-1 | 1 (16 cores) | 1 | 8 (1 per NUMA) |
+| **Quarter** | 2 | 2 | 0-2 | 2 (32 cores) | 2 | 4 (2 per socket) |
+| **Half** | 4 | 4 | 2 | 4 (64 cores) | 4 | 2 (1 per socket) |
+| **Full** | 8 | 8 | 4 | 8 (128 cores) | 8 | 1 |
+
+The XE9785L shows the partition builder handling asymmetric device distribution: NVMe drives are only on NUMA 2, 3, 6, 7, so an eighth on NUMA 0 gets no NVMe while an eighth on NUMA 2 gets one. The Mellanox ConnectX-6 VFs are similarly asymmetric (only on NUMA 0 and 5).
 
 ---
 

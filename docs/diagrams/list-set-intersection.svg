@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 908.4 615.5" width="908.4" height="615.5">
+<rect x="20" y="-10" width="908.4" height="615.5" fill="#ffffff"/>
+<style>text { font-family: monospace; }</style>
+<text x="50" y="34.0" fill="#1e1e1e" font-size="24" font-family="monospace">List matchAttribute: Set Intersection</text>
+<text x="50" y="59.0" fill="#868e96" font-size="14" font-family="monospace">How list-typed numaNode solves the SNC/NPS problem via set intersection</text>
+<rect x="40" y="90" width="860" height="140" rx="8" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="50" y="114.0" fill="#2f9e44" font-size="16" font-family="monospace">Same socket, different sub-NUMA nodes</text>
+<rect x="60" y="125" width="230" height="45" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="70" y="142.0" fill="#1971c2" font-size="12" font-family="monospace">GPU (NUMA 0)</text>
+<text x="70" y="161.0" fill="#1e1e1e" font-size="14" font-family="monospace">numaNode: [0, 1, 2, 3]</text>
+<rect x="60" y="180" width="230" height="45" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="70" y="197.0" fill="#6741d9" font-size="12" font-family="monospace">NIC (NUMA 1)</text>
+<text x="70" y="216.0" fill="#1e1e1e" font-size="14" font-family="monospace">numaNode: [1, 0, 2, 3]</text>
+<rect x="360" y="140" width="280" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="370" y="157.0" fill="#495057" font-size="12" font-family="monospace">Intersection:</text>
+<text x="370" y="176.0" fill="#1e1e1e" font-size="14" font-family="monospace">{0,1,2,3} ∩ {1,0,2,3} = {0,1,2,3}</text>
+<text x="370" y="194.0" fill="#2f9e44" font-size="12" font-family="monospace">Non-empty</text>
+<rect x="710" y="145" width="170" height="50" rx="8" fill="#b2f2bb" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="740" y="172.0" fill="#2f9e44" font-size="20" font-family="monospace">PASSES</text>
+<text x="740" y="190.0" fill="#495057" font-size="12" font-family="monospace">co-placement OK</text>
+<rect x="40" y="240" width="860" height="140" rx="8" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="50" y="264.0" fill="#2f9e44" font-size="16" font-family="monospace">Same NUMA node (trivial case)</text>
+<rect x="60" y="275" width="230" height="45" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="70" y="292.0" fill="#1971c2" font-size="12" font-family="monospace">GPU (NUMA 0)</text>
+<text x="70" y="311.0" fill="#1e1e1e" font-size="14" font-family="monospace">numaNode: [0, 1, 2, 3]</text>
+<rect x="60" y="330" width="230" height="45" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="70" y="347.0" fill="#6741d9" font-size="12" font-family="monospace">NIC (NUMA 0)</text>
+<text x="70" y="366.0" fill="#1e1e1e" font-size="14" font-family="monospace">numaNode: [0, 1, 2, 3]</text>
+<rect x="360" y="290" width="280" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="370" y="307.0" fill="#495057" font-size="12" font-family="monospace">Intersection:</text>
+<text x="370" y="326.0" fill="#1e1e1e" font-size="14" font-family="monospace">{0,1,2,3} ∩ {0,1,2,3} = {0,1,2,3}</text>
+<text x="370" y="344.0" fill="#2f9e44" font-size="12" font-family="monospace">Non-empty</text>
+<rect x="710" y="295" width="170" height="50" rx="8" fill="#b2f2bb" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="740" y="322.0" fill="#2f9e44" font-size="20" font-family="monospace">PASSES</text>
+<text x="740" y="340.0" fill="#495057" font-size="12" font-family="monospace">co-placement OK</text>
+<rect x="40" y="390" width="860" height="140" rx="8" fill="#fff5f5" stroke="#e03131" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="50" y="414.0" fill="#e03131" font-size="16" font-family="monospace">Different sockets (cross-socket)</text>
+<rect x="60" y="425" width="230" height="45" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="70" y="442.0" fill="#1971c2" font-size="12" font-family="monospace">GPU (NUMA 0, Socket 0)</text>
+<text x="70" y="461.0" fill="#1e1e1e" font-size="14" font-family="monospace">numaNode: [0, 1, 2, 3]</text>
+<rect x="60" y="480" width="230" height="45" rx="8" fill="#ffc9c9" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="70" y="497.0" fill="#e03131" font-size="12" font-family="monospace">NIC (NUMA 5, Socket 1)</text>
+<text x="70" y="516.0" fill="#1e1e1e" font-size="14" font-family="monospace">numaNode: [5, 4, 6, 7]</text>
+<rect x="360" y="440" width="280" height="55" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="370" y="457.0" fill="#495057" font-size="12" font-family="monospace">Intersection:</text>
+<text x="370" y="476.0" fill="#1e1e1e" font-size="14" font-family="monospace">{0,1,2,3} ∩ {5,4,6,7} = {}</text>
+<text x="370" y="494.0" fill="#e03131" font-size="12" font-family="monospace">Empty!</text>
+<rect x="710" y="445" width="170" height="50" rx="8" fill="#ffc9c9" stroke="#e03131" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="740" y="472.0" fill="#e03131" font-size="20" font-family="monospace">FAILS</text>
+<text x="728" y="490.0" fill="#495057" font-size="12" font-family="monospace">correct rejection</text>
+<rect x="40" y="540" width="860" height="45" rx="8" fill="#e7f5ff" stroke="#1971c2" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="60" y="564.0" fill="#1971c2" font-size="14" font-family="monospace">The list boundary IS the socket boundary. Set intersection rejects cross-socket, allows intra-socket.</text>
+<text x="60" y="582.0" fill="#1971c2" font-size="14" font-family="monospace">No separate cpuSocketID attribute needed.</text>
+</svg>

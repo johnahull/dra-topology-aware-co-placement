@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 -10 832.8 685.0" width="832.8" height="685.0">
+<rect x="30" y="-10" width="832.8" height="685.0" fill="#ffffff"/>
+<style>text { font-family: monospace; }</style>
+<text x="50" y="34.0" fill="#1e1e1e" font-size="24" font-family="monospace">SLIT-Based List Expansion</text>
+<text x="50" y="59.0" fill="#868e96" font-size="14" font-family="monospace">How the kernel's SLIT distance table expands scalar numaNode into a list</text>
+<text x="50" y="106.0" fill="#1e1e1e" font-size="16" font-family="monospace">2-Socket Server (NPS4 Enabled)</text>
+<rect x="50" y="120" width="340" height="200" rx="8" fill="#ebfbee" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="60" y="146.0" fill="#2f9e44" font-size="16" font-family="monospace">Socket 0</text>
+<text x="60" y="164.0" fill="#868e96" font-size="12" font-family="monospace">10 = self, 12 = cross-NUMA in socket</text>
+<rect x="65" y="175" width="70" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="73" y="196.0" fill="#2f9e44" font-size="14" font-family="monospace">NUMA 0</text>
+<text x="73" y="212.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="73" y="224.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="145" y="175" width="70" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="153" y="196.0" fill="#2f9e44" font-size="14" font-family="monospace">NUMA 1</text>
+<text x="153" y="212.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="153" y="224.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="225" y="175" width="70" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="233" y="196.0" fill="#2f9e44" font-size="14" font-family="monospace">NUMA 2</text>
+<text x="233" y="212.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="233" y="224.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="305" y="175" width="70" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="313" y="196.0" fill="#2f9e44" font-size="14" font-family="monospace">NUMA 3</text>
+<text x="313" y="212.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="313" y="224.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="67" y="235" width="66" height="22" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="73" y="250.0" fill="#1971c2" font-size="12" font-family="monospace">GPU 0</text>
+<rect x="147" y="235" width="66" height="22" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="158" y="250.0" fill="#6741d9" font-size="12" font-family="monospace">NIC 0</text>
+<text x="115" y="279.0" fill="#2f9e44" font-size="11" font-family="monospace">cross-NUMA dist = 12 (fast)</text>
+<rect x="50" y="340" width="340" height="160" rx="8" fill="#fff5f5" stroke="#e03131" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="60" y="366.0" fill="#e03131" font-size="16" font-family="monospace">Socket 1</text>
+<text x="60" y="384.0" fill="#868e96" font-size="12" font-family="monospace">10 = self, 12 = cross-NUMA in socket</text>
+<rect x="65" y="395" width="70" height="55" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="73" y="416.0" fill="#e03131" font-size="14" font-family="monospace">NUMA 4</text>
+<text x="73" y="432.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="73" y="444.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="145" y="395" width="70" height="55" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="153" y="416.0" fill="#e03131" font-size="14" font-family="monospace">NUMA 5</text>
+<text x="153" y="432.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="153" y="444.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="225" y="395" width="70" height="55" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="233" y="416.0" fill="#e03131" font-size="14" font-family="monospace">NUMA 6</text>
+<text x="233" y="432.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="233" y="444.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<rect x="305" y="395" width="70" height="55" rx="8" fill="#ffe3e3" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="313" y="416.0" fill="#e03131" font-size="14" font-family="monospace">NUMA 7</text>
+<text x="313" y="432.0" fill="#495057" font-size="10" font-family="monospace">16 CPUs</text>
+<text x="313" y="444.5" fill="#495057" font-size="10" font-family="monospace">128 GiB</text>
+<text x="115" y="471.0" fill="#e03131" font-size="11" font-family="monospace">cross-socket dist = 32 (slow)</text>
+<polyline points="220,320 220,340" fill="none" stroke="#e03131" stroke-width="2" stroke-dasharray="5,5"/>
+<text x="230" y="334.0" fill="#e03131" font-size="12" font-family="monospace">cross-socket: dist = 32</text>
+<text x="440" y="106.0" fill="#1e1e1e" font-size="16" font-family="monospace">sysfs Read</text>
+<rect x="430" y="120" width="220" height="70" rx="8" fill="#e7f5ff" stroke="#1971c2" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="445" y="142.0" fill="#1971c2" font-size="14" font-family="monospace">GPU 0 on NUMA 0</text>
+<text x="445" y="164.0" fill="#495057" font-size="12" font-family="monospace">/sys/.../numa_node</text>
+<text x="445" y="182.0" fill="#1e1e1e" font-size="14" font-family="monospace">returns: 0</text>
+<rect x="430" y="250" width="230" height="150" rx="8" fill="#fff9db" stroke="#e8590c" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="445" y="272.0" fill="#e8590c" font-size="14" font-family="monospace">SLIT Distance Table</text>
+<text x="445" y="288.0" fill="#495057" font-size="10" font-family="monospace">     0   1   2   3   4   5   6   7</text>
+<text x="445" y="302.0" fill="#495057" font-size="10" font-family="monospace"> 0: 10  12  12  12  32  32  32  32</text>
+<text x="445" y="316.0" fill="#495057" font-size="10" font-family="monospace"> 1: 12  10  12  12  32  32  32  32</text>
+<text x="445" y="330.0" fill="#495057" font-size="10" font-family="monospace"> 2: 12  12  10  12  32  32  32  32</text>
+<text x="445" y="344.0" fill="#495057" font-size="10" font-family="monospace"> 3: 12  12  12  10  32  32  32  32</text>
+<text x="445" y="358.0" fill="#868e96" font-size="10" font-family="monospace"> 4: 32  32  32  32  10  12  12  12</text>
+<text x="445" y="372.0" fill="#868e96" font-size="10" font-family="monospace"> 5: 32  32  32  32  12  10  12  12</text>
+<text x="445" y="386.0" fill="#868e96" font-size="10" font-family="monospace">  ...</text>
+<text x="440" y="416.0" fill="#e8590c" font-size="11" font-family="monospace">Row 0: self=10, same-socket=12, cross=32</text>
+<text x="440" y="431.0" fill="#e8590c" font-size="11" font-family="monospace">Helper includes nodes with dist &lt;= 12</text>
+<text x="440" y="496.0" fill="#1e1e1e" font-size="16" font-family="monospace">Published Attribute</text>
+<rect x="430" y="510" width="230" height="55" rx="8" fill="#dee2e6" stroke="#868e96" stroke-width="2" stroke-dasharray="5,5" opacity="1.0"/>
+<text x="445" y="530.0" fill="#868e96" font-size="12" font-family="monospace">Scalar (K8s &lt; 1.37)</text>
+<text x="445" y="554.0" fill="#1e1e1e" font-size="16" font-family="monospace">numaNode: 0</text>
+<rect x="430" y="580" width="230" height="55" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="445" y="600.0" fill="#2f9e44" font-size="12" font-family="monospace">List (K8s 1.37+)</text>
+<text x="445" y="624.0" fill="#2f9e44" font-size="16" font-family="monospace">numaNode: [0, 1, 2, 3]</text>
+<text x="670" y="602.0" fill="#2f9e44" font-size="12" font-family="monospace">NUMA 1,2,3 included</text>
+<text x="670" y="617.0" fill="#2f9e44" font-size="12" font-family="monospace">(dist 12 = same socket)</text>
+<text x="670" y="637.0" fill="#e03131" font-size="12" font-family="monospace">NUMA 4,5,6,7 excluded</text>
+<text x="670" y="652.0" fill="#e03131" font-size="12" font-family="monospace">(dist 32 = cross-socket)</text>
+<rect x="50" y="530" width="340" height="45" rx="8" fill="#e7f5ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="60" y="548.0" fill="#1971c2" font-size="13" font-family="monospace">The list boundary IS the socket boundary.</text>
+<text x="60" y="566.0" fill="#1971c2" font-size="13" font-family="monospace">No separate cpuSocketID attribute needed.</text>
+</svg>

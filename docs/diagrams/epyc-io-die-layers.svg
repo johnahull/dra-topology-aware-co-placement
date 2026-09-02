@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 -5 780 616.2" width="780" height="616.2">
+<rect x="30" y="-5" width="780" height="616.2" fill="#ffffff"/>
+<style>text { font-family: monospace; }</style>
+<text x="50" y="37.0" fill="#1e1e1e" font-size="22" font-family="monospace">AMD EPYC IO Die: Why Cross-NUMA Is Equidistant</text>
+<text x="50" y="59.0" fill="#868e96" font-size="14" font-family="monospace">NPS4 -- one socket, 4 NUMA nodes, 4 PCIe roots, 4 memory controllers</text>
+<text x="50" y="119.0" fill="#495057" font-size="14" font-family="monospace">Compute</text>
+<text x="50" y="135.0" fill="#868e96" font-size="12" font-family="monospace">(CCDs)</text>
+<text x="50" y="259.0" fill="#e8590c" font-size="14" font-family="monospace">IO Die</text>
+<text x="50" y="444.0" fill="#495057" font-size="14" font-family="monospace">Devices</text>
+<polyline points="130,185 790,185" fill="none" stroke="#dee2e6" stroke-width="1" stroke-dasharray="5,5"/>
+<polyline points="130,395 790,395" fill="none" stroke="#dee2e6" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="145" y="85" width="140" height="70" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="5,5" opacity="1.0"/>
+<text x="190" y="146.0" fill="#2f9e44" font-size="11" font-family="monospace">NUMA 0</text>
+<rect x="150" y="90" width="60" height="40" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="155" y="105.0" fill="#2f9e44" font-size="10" font-family="monospace">CCD 0</text>
+<text x="155" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="180,130 180,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="220" y="90" width="60" height="40" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="225" y="105.0" fill="#2f9e44" font-size="10" font-family="monospace">CCD 1</text>
+<text x="225" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="250,130 250,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="305" y="85" width="140" height="70" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="5,5" opacity="1.0"/>
+<text x="350" y="146.0" fill="#1971c2" font-size="11" font-family="monospace">NUMA 1</text>
+<rect x="310" y="90" width="60" height="40" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="315" y="105.0" fill="#1971c2" font-size="10" font-family="monospace">CCD 2</text>
+<text x="315" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="340,130 340,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="380" y="90" width="60" height="40" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="385" y="105.0" fill="#1971c2" font-size="10" font-family="monospace">CCD 3</text>
+<text x="385" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="410,130 410,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="465" y="85" width="140" height="70" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="5,5" opacity="1.0"/>
+<text x="510" y="146.0" fill="#6741d9" font-size="11" font-family="monospace">NUMA 2</text>
+<rect x="470" y="90" width="60" height="40" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="475" y="105.0" fill="#6741d9" font-size="10" font-family="monospace">CCD 4</text>
+<text x="475" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="500,130 500,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="540" y="90" width="60" height="40" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="545" y="105.0" fill="#6741d9" font-size="10" font-family="monospace">CCD 5</text>
+<text x="545" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="570,130 570,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="625" y="85" width="140" height="70" rx="8" fill="#ffc9c9" stroke="#e03131" stroke-width="1" stroke-dasharray="5,5" opacity="1.0"/>
+<text x="670" y="146.0" fill="#e03131" font-size="11" font-family="monospace">NUMA 3</text>
+<rect x="630" y="90" width="60" height="40" rx="8" fill="#ffc9c9" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="635" y="105.0" fill="#e03131" font-size="10" font-family="monospace">CCD 6</text>
+<text x="635" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="660,130 660,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<rect x="700" y="90" width="60" height="40" rx="8" fill="#ffc9c9" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="705" y="105.0" fill="#e03131" font-size="10" font-family="monospace">CCD 7</text>
+<text x="705" y="119.0" fill="#495057" font-size="9" font-family="monospace">8 cores</text>
+<polyline points="730,130 730,205" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<text x="150" y="184.0" fill="#e8590c" font-size="12" font-family="monospace">all same distance (Infinity Fabric)</text>
+<rect x="140" y="205" width="650" height="165" rx="8" fill="#fff3bf" stroke="#e8590c" stroke-width="3" stroke-dasharray="none" opacity="1.0"/>
+<text x="425" y="228.0" fill="#e8590c" font-size="18" font-family="monospace">IO Die</text>
+<text x="380" y="244.0" fill="#868e96" font-size="12" font-family="monospace">(single piece of silicon)</text>
+<rect x="160" y="255" width="120" height="30" rx="8" fill="#ffe8cc" stroke="#e8590c" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="170" y="274.0" fill="#e8590c" font-size="13" font-family="monospace">mem ctrl 0</text>
+<rect x="160" y="300" width="120" height="28" rx="8" fill="#f8f9fa" stroke="#2f9e44" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="175" y="317.0" fill="#2f9e44" font-size="11" font-family="monospace">pci:root0</text>
+<polyline points="220,285 220,300" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="320" y="255" width="120" height="30" rx="8" fill="#ffe8cc" stroke="#e8590c" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="330" y="274.0" fill="#e8590c" font-size="13" font-family="monospace">mem ctrl 1</text>
+<rect x="320" y="300" width="120" height="28" rx="8" fill="#f8f9fa" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="335" y="317.0" fill="#1971c2" font-size="11" font-family="monospace">pci:root1</text>
+<polyline points="380,285 380,300" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="480" y="255" width="120" height="30" rx="8" fill="#ffe8cc" stroke="#e8590c" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="490" y="274.0" fill="#e8590c" font-size="13" font-family="monospace">mem ctrl 2</text>
+<rect x="480" y="300" width="120" height="28" rx="8" fill="#f8f9fa" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="495" y="317.0" fill="#6741d9" font-size="11" font-family="monospace">pci:root2</text>
+<polyline points="540,285 540,300" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="640" y="255" width="120" height="30" rx="8" fill="#ffe8cc" stroke="#e8590c" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="650" y="274.0" fill="#e8590c" font-size="13" font-family="monospace">mem ctrl 3</text>
+<rect x="640" y="300" width="120" height="28" rx="8" fill="#f8f9fa" stroke="#e03131" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="655" y="317.0" fill="#e03131" font-size="11" font-family="monospace">pci:root3</text>
+<polyline points="700,285 700,300" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="5,5"/>
+<polyline points="280,270 320,270" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<polyline points="440,270 480,270" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<polyline points="600,270 640,270" fill="none" stroke="#e8590c" stroke-width="1" stroke-dasharray="none"/>
+<text x="155" y="362.0" fill="#868e96" font-size="10" font-family="monospace">internal fabric -- any root can reach any mem ctrl</text>
+<polyline points="220,328 220,415" fill="none" stroke="#868e96" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="165" y="415" width="50" height="30" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="170" y="433.0" fill="#1971c2" font-size="11" font-family="monospace">GPU 0</text>
+<rect x="225" y="415" width="50" height="30" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="230" y="433.0" fill="#6741d9" font-size="11" font-family="monospace">NIC 0</text>
+<polyline points="380,328 380,415" fill="none" stroke="#868e96" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="325" y="415" width="50" height="30" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="330" y="433.0" fill="#1971c2" font-size="11" font-family="monospace">GPU 1</text>
+<rect x="385" y="415" width="50" height="30" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="390" y="433.0" fill="#6741d9" font-size="11" font-family="monospace">NIC 1</text>
+<polyline points="540,328 540,415" fill="none" stroke="#868e96" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="485" y="415" width="50" height="30" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="490" y="433.0" fill="#1971c2" font-size="11" font-family="monospace">GPU 2</text>
+<rect x="545" y="415" width="50" height="30" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="550" y="433.0" fill="#6741d9" font-size="11" font-family="monospace">NIC 2</text>
+<polyline points="700,328 700,415" fill="none" stroke="#868e96" stroke-width="1" stroke-dasharray="5,5"/>
+<rect x="645" y="415" width="50" height="30" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="650" y="433.0" fill="#1971c2" font-size="11" font-family="monospace">GPU 3</text>
+<rect x="705" y="415" width="50" height="30" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="1" stroke-dasharray="none" opacity="1.0"/>
+<text x="710" y="433.0" fill="#6741d9" font-size="11" font-family="monospace">NIC 3</text>
+<rect x="162" y="412" width="56" height="36" rx="8" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="5,5" opacity="1.0"/>
+<polyline points="220,300 220,285" fill="none" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none"/>
+<polyline points="220,300 380,285" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<polyline points="220,300 540,285" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<polyline points="220,300 700,285" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<text x="140" y="473.0" fill="#1e1e1e" font-size="13" font-family="monospace">Distance from GPU 0 to each memory controller:</text>
+<text x="160" y="492.0" fill="#2f9e44" font-size="12" font-family="monospace">mem ctrl 0</text>
+<text x="160" y="509.0" fill="#2f9e44" font-size="13" font-family="monospace">dist = 10</text>
+<text x="160" y="523.0" fill="#868e96" font-size="11" font-family="monospace">(local)</text>
+<text x="320" y="492.0" fill="#1971c2" font-size="12" font-family="monospace">mem ctrl 1</text>
+<text x="320" y="509.0" fill="#e8590c" font-size="13" font-family="monospace">dist = 12</text>
+<text x="320" y="523.0" fill="#868e96" font-size="11" font-family="monospace">(same die)</text>
+<text x="480" y="492.0" fill="#6741d9" font-size="12" font-family="monospace">mem ctrl 2</text>
+<text x="480" y="509.0" fill="#e8590c" font-size="13" font-family="monospace">dist = 12</text>
+<text x="480" y="523.0" fill="#868e96" font-size="11" font-family="monospace">(same die)</text>
+<text x="640" y="492.0" fill="#e03131" font-size="12" font-family="monospace">mem ctrl 3</text>
+<text x="640" y="509.0" fill="#e8590c" font-size="13" font-family="monospace">dist = 12</text>
+<text x="640" y="523.0" fill="#868e96" font-size="11" font-family="monospace">(same die)</text>
+<rect x="140" y="535" width="650" height="55" rx="8" fill="#fff3bf" stroke="#e8590c" stroke-width="2" stroke-dasharray="none" opacity="1.0"/>
+<text x="155" y="554.0" fill="#e8590c" font-size="14" font-family="monospace">All 4 mem ctrls are inside the same IO die.</text>
+<text x="155" y="571.0" fill="#495057" font-size="13" font-family="monospace">GPU 0 reaches mem ctrl 1, 2, 3 at the same cost (dist 12).</text>
+<text x="155" y="588.0" fill="#2f9e44" font-size="13" font-family="monospace">numaNode list: [0, 1, 2, 3] -- all equidistant, all in the list.</text>
+</svg>

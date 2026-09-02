@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 -5 810 559.0" width="810" height="559.0">
+<style>text { font-family: monospace; }</style>
+<text x="50" y="37.0" fill="#1e1e1e" font-size="22" font-family="monospace">AMD EPYC IO Die: Why Cross-NUMA Is Equidistant</text>
+<rect x="230" y="270" width="140" height="60" rx="8" fill="#fff3bf" stroke="#e8590c" stroke-width="3" stroke-dasharray="none"/>
+<text x="248" y="300.0" fill="#e8590c" font-size="18" font-family="monospace">IO Die</text>
+<text x="238" y="319.0" fill="#495057" font-size="13" font-family="monospace">mem ctrls</text>
+<text x="238" y="335.0" fill="#495057" font-size="13" font-family="monospace">PCIe roots</text>
+<rect x="235.0" y="98.0" width="130" height="65" rx="8" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2" stroke-dasharray="none"/>
+<text x="247.0" y="122.0" fill="#2f9e44" font-size="16" font-family="monospace">NUMA 0</text>
+<text x="247.0" y="139.0" fill="#495057" font-size="11" font-family="monospace">16 cores</text>
+<text x="247.0" y="153.0" fill="#495057" font-size="11" font-family="monospace">GPU 0, GPU 1</text>
+<polyline points="300.0,167.0 300.0,268.0" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<rect x="405.0" y="268.0" width="130" height="65" rx="8" fill="#a5d8ff" stroke="#1971c2" stroke-width="2" stroke-dasharray="none"/>
+<text x="417.0" y="292.0" fill="#1971c2" font-size="16" font-family="monospace">NUMA 1</text>
+<text x="417.0" y="309.0" fill="#495057" font-size="11" font-family="monospace">16 cores</text>
+<text x="417.0" y="323.0" fill="#495057" font-size="11" font-family="monospace">GPU 2, GPU 3</text>
+<polyline points="400.0,300.0 372.0,300.0" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<rect x="235.0" y="438.0" width="130" height="65" rx="8" fill="#d0bfff" stroke="#6741d9" stroke-width="2" stroke-dasharray="none"/>
+<text x="247.0" y="462.0" fill="#6741d9" font-size="16" font-family="monospace">NUMA 2</text>
+<text x="247.0" y="479.0" fill="#495057" font-size="11" font-family="monospace">16 cores</text>
+<text x="247.0" y="493.0" fill="#495057" font-size="11" font-family="monospace">NIC</text>
+<polyline points="300.0,433.0 300.0,332.0" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<rect x="65.0" y="268.0" width="130" height="65" rx="8" fill="#ffc9c9" stroke="#e03131" stroke-width="2" stroke-dasharray="none"/>
+<text x="77.0" y="292.0" fill="#e03131" font-size="16" font-family="monospace">NUMA 3</text>
+<text x="77.0" y="309.0" fill="#495057" font-size="11" font-family="monospace">16 cores</text>
+<text x="77.0" y="323.0" fill="#495057" font-size="11" font-family="monospace">(no PCIe)</text>
+<polyline points="200.0,300.0 228.0,300.0" fill="none" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<text x="205" y="192.0" fill="#e8590c" font-size="12" font-family="monospace">dist 12</text>
+<text x="340" y="277.0" fill="#e8590c" font-size="12" font-family="monospace">dist 12</text>
+<text x="205" y="362.0" fill="#e8590c" font-size="12" font-family="monospace">dist 12</text>
+<text x="145" y="277.0" fill="#e8590c" font-size="12" font-family="monospace">dist 12</text>
+<text x="550" y="116.0" fill="#495057" font-size="16" font-family="monospace">Every path goes through</text>
+<text x="550" y="138.0" fill="#495057" font-size="16" font-family="monospace">the IO die.</text>
+<text x="550" y="174.0" fill="#495057" font-size="14" font-family="monospace">NUMA 0 to NUMA 1:</text>
+<text x="550" y="194.0" fill="#1e1e1e" font-size="14" font-family="monospace">CCD -&gt; IO die -&gt; mem ctrl 1</text>
+<text x="550" y="224.0" fill="#495057" font-size="14" font-family="monospace">NUMA 0 to NUMA 3:</text>
+<text x="550" y="244.0" fill="#1e1e1e" font-size="14" font-family="monospace">CCD -&gt; IO die -&gt; mem ctrl 3</text>
+<text x="550" y="274.0" fill="#e8590c" font-size="14" font-family="monospace">Same number of hops.</text>
+<text x="550" y="294.0" fill="#e8590c" font-size="14" font-family="monospace">Same latency.</text>
+<text x="550" y="314.0" fill="#e8590c" font-size="14" font-family="monospace">Same SLIT distance: 12.</text>
+<rect x="540" y="340" width="280" height="110" rx="8" fill="#f8f9fa" stroke="#495057" stroke-width="1" stroke-dasharray="none"/>
+<text x="550" y="364.0" fill="#1e1e1e" font-size="14" font-family="monospace">SLIT distances:</text>
+<text x="550" y="388.0" fill="#2f9e44" font-size="13" font-family="monospace">10  self (same NUMA)</text>
+<text x="550" y="408.0" fill="#1971c2" font-size="13" font-family="monospace">12  any other NUMA</text>
+<text x="550" y="428.0" fill="#1971c2" font-size="13" font-family="monospace">    on this socket</text>
+<text x="550" y="448.0" fill="#e03131" font-size="13" font-family="monospace">32  cross-socket</text>
+<rect x="540" y="470" width="280" height="50" rx="8" fill="#fff3bf" stroke="#e8590c" stroke-width="2" stroke-dasharray="none"/>
+<text x="550" y="492.0" fill="#e8590c" font-size="14" font-family="monospace">List includes all nodes</text>
+<text x="550" y="512.0" fill="#e8590c" font-size="14" font-family="monospace">with dist &lt;= min cross-NUMA.</text>
+</svg>
