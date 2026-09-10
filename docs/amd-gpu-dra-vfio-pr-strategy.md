@@ -44,7 +44,7 @@ Feature gate infrastructure merged (PR [#64](https://github.com/ROCm/k8s-gpu-dra
 | Per-VF capacity and partition mode attributes | PR #50 | **Implemented** on `feature/kep4815-dual-entry-v2`. [PR #91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91). |
 | KEP-4815 dual-entry + sibling exclusion | Per-VF capacity | **Implemented** on `feature/kep4815-dual-entry-v2`. [PR #91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91). |
 | Standardized `resource.kubernetes.io/numaNode` attribute (KEP-6072) | PR #48 (merged) | [#92](https://github.com/ROCm/k8s-gpu-dra-driver/issues/92). Blocked on `k8s.io/dynamic-resource-allocation` v0.37+ bump. |
-| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93). Blocked on KubeVirt libvirt 12.2+. |
+| IOMMUFD support ([VEP-266](https://github.com/kubevirt/enhancements/issues/266)) | PR #50 | [PR #114](https://github.com/ROCm/k8s-gpu-dra-driver/pull/114) submitted. E2E blocked on KubeVirt libvirt 12.2+. |
 
 ### Phase 3 — Polish
 
@@ -175,7 +175,7 @@ Implementation requires bumping `k8s.io/dynamic-resource-allocation` to v0.37+ a
 
 ### IOMMUFD Support
 
-**Status:** Issue [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93) filed. Blocked on KubeVirt libvirt 12.2+.
+**Status:** [PR #114](https://github.com/ROCm/k8s-gpu-dra-driver/pull/114) submitted. E2E blocked on KubeVirt libvirt 12.2+.
 **Depends on:** PR #50
 
 IOMMUFD (Linux 6.2+) enables per-device IOMMU isolation instead of per-group, required for confidential VMs (AMD SEV-SNP) and improved security for multi-device passthrough. See [KubeVirt VEP-266](https://github.com/kubevirt/enhancements/issues/266). Follows the NVIDIA DRA GPU driver pattern.
