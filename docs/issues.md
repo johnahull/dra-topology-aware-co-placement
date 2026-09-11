@@ -2,12 +2,13 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-09-10)
+## Upstream PR Status (as of 2026-09-11)
 
 ### KubeVirt
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
+| [#19104](https://github.com/kubevirt/kubevirt/pull/19104) | Group PCI passthrough devices by PCIe root complex | Open (PR) | [#19103](https://github.com/kubevirt/kubevirt/issues/19103) | By johnahull, opened 2026-09-11. Bug fix in the VEP-115 area (design PR enhancements#424); the full VEP-115 implementation comes later. Fixes existing `PCINUMAAwareTopology` grouping devices by NUMA node instead of PCIe root complex: adds `GetDevicePCIeRoot()` sysfs helper and `groupDevicesByTopology()` keying `pxb-pcie` by PCIe root BDF with NUMA fallback. No API changes, no new gate. E2e verified on XE8640 (E810 + CX6DX on separate roots, same NUMA). `/cc alaypatel07`. `check-vep` green, rest of CI pending; no reviews yet. |
 | [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (ready) | KV-8 | thc1006 reproduced the bug; ffromani noted `cpu_manager_state` reading is unsupported (K8s #139102). Needs a response to thc1006 + ffromani. Approver: xpivarc. |
 | [#17661](https://github.com/kubevirt/kubevirt/pull/17661) | VEP183: Add DRA-backed network devices (alpha) | Merged | — | Merged 2026-06-02. By oshoval. VEP-183 implementation. |
 | [#17797](https://github.com/kubevirt/kubevirt/pull/17797) | VEP-10: migrate away from k8sv1.PodResourceClaim to KubeVirt's own type | Merged | — | Merged 2026-06-08. By alaypatel07. VEP-10 implementation. |
