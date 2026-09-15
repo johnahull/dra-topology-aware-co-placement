@@ -1184,64 +1184,43 @@ if not found:
 
 # ── vfio ──────────────────────────────────────────────────────────────────────
 
-# Decides whether the per-device "in use" check below can be trusted.
-# fuser exits 1 both when nobody has the node open AND when the caller simply
-# can't see the owning process's fds (non-root looking at a root-owned QEMU),
-# so we must establish up front that the check is meaningful. Returns 0 if
-# so; otherwise prints a one-line human-readable reason on stdout and
-# returns 1, in which case every device is reported as "in-use unknown"
-# rather than misleadingly "available".
+# Lists the major:minor (hex, as stat %t:%T) of every character device held
+# open by any process, one per line. Empty output means the scan could not
+# run (e.g. sudo refused) — on a live host at least /dev/null is always open.
 #
-# $1 = "sudo" when not running as root, empty otherwise.
-_vfio_inuse_check_available() {
+# Why not fuser: fuser matches by filesystem inode, but QEMU in a KubeVirt
+# virt-launcher opens a *separate* node that CDI mknod'd into the container's
+# own tmpfs /dev. That node shares the host node's major:minor but not its
+# inode, so `fuser /dev/vfio/devices/vfioN` on the host exits 1 even as root.
+# /proc/<pid>/fd/N resolves to the real open file across namespaces, and
+# major:minor names the kernel device regardless of which /dev it came from.
+#
+# $1 = "sudo" when not running as root, empty otherwise. This single call
+# may prompt for a password (on the tty, so the capture doesn't hide it).
+_vfio_held_rdevs() {
     local use_sudo="$1"
-    if ! command -v fuser &>/dev/null; then
-        echo "fuser not installed (psmisc)"
-        return 1
-    fi
-    [[ -z "$use_sudo" ]] && return 0
-    if ! command -v sudo &>/dev/null; then
-        echo "not root and sudo not installed"
-        return 1
-    fi
-    # Probe the exact capability fuser needs: reading a root-owned process's
-    # fd table. This single call may prompt for a password (on the tty, so
-    # the redirect doesn't hide it); the per-device calls then use -n and
-    # ride the cached sudo timestamp.
-    if ! sudo ls /proc/1/fd &>/dev/null; then
-        echo "sudo failed (no tty for a password prompt, or not permitted) — re-run as root or run 'sudo -v' first"
-        return 1
-    fi
-    # Now verify the exact shape the per-device calls use: non-interactive
-    # sudo running fuser. This fails if credential caching is disabled
-    # (timestamp_timeout=0), if sudoers permits 'ls' but not 'fuser', or if
-    # fuser isn't on sudo's secure_path. Without this check those failures
-    # exit 1, exactly like "nobody has the node open", and every device
-    # would be reported as "available".
-    if ! sudo -n fuser -V &>/dev/null; then
-        echo "'sudo -n fuser' not usable (credential caching disabled, or fuser not permitted/found under sudo) — re-run as root"
-        return 1
-    fi
-    return 0
+    $use_sudo sh -c 'find -L /proc/[0-9]*/fd -maxdepth 1 -type c -printf "%p\n" 2>/dev/null \
+        | xargs -r stat -L -c "%t:%T" 2>/dev/null | sort -u'
 }
 
 # Reports whether a VFIO device node is held open ("inuse"), present but not
 # open ("available"), present but uncheckable ("unknown"), or absent (empty).
-# $3 is non-empty only when _vfio_inuse_check_available succeeded; without it
-# we never claim "available", since fuser's exit 1 would be meaningless.
+# $2 is the output of _vfio_held_rdevs; $3 is non-empty only when that scan
+# produced results, so we never claim "available" from an empty scan.
 _vfio_node_status() {
-    local node="$1" use_sudo="$2" can_check="$3"
+    local node="$1" held="$2" can_check="$3"
     [[ -c "$node" ]] || return
-    if [[ -z "$can_check" ]]; then
+    local rdev
+    rdev=$(stat -L -c '%t:%T' "$node" 2>/dev/null)
+    if [[ -z "$can_check" || -z "$rdev" ]]; then
         echo "unknown"
         return
     fi
-    if [[ -n "$use_sudo" ]]; then
-        sudo -n fuser "$node" &>/dev/null && { echo "inuse"; return; }
+    if grep -qx "$rdev" <<<"$held"; then
+        echo "inuse"
     else
-        fuser "$node" &>/dev/null && { echo "inuse"; return; }
+        echo "available"
     fi
-    echo "available"
 }
 
 cmd_vfio() {
@@ -1291,14 +1270,15 @@ cmd_vfio() {
     local found=0
     local _sudo=""
     [[ $(id -u) -ne 0 ]] && _sudo="sudo"
-    # Probe once, not per device: the answer is the same for every node, and
-    # a per-device sudo call would be slow and could prompt repeatedly.
-    local can_check="" check_reason=""
-    if check_reason=$(_vfio_inuse_check_available "$_sudo"); then
+    # Scan once, not per device: one sudo call, one password prompt at most.
+    local held_rdevs="" can_check=""
+    held_rdevs=$(_vfio_held_rdevs "$_sudo")
+    if [[ -n "$held_rdevs" ]]; then
         can_check=1
     else
-        echo -e "  ${YELLOW}⚠ cannot tell which devices are held open: ${check_reason}${NC}"
-        echo -e "  ${DIM}  (devices are shown as 'in-use unknown' instead of 'available')${NC}"
+        echo -e "  ${YELLOW}⚠ cannot tell which devices are held open: /proc fd scan returned nothing${NC}"
+        echo -e "  ${DIM}  (sudo refused or no tty for its prompt? re-run as root or run 'sudo -v' first;${NC}"
+        echo -e "  ${DIM}   devices are shown as 'in-use unknown' instead of 'available')${NC}"
     fi
     for dev in /sys/bus/pci/devices/*/driver; do
         local driver_name
@@ -1329,8 +1309,8 @@ cmd_vfio() {
             # (e.g. virt-launcher/qemu). "unknown" outranks "available": if we
             # couldn't check, we must not imply the device is free.
             local iommufd_status="" legacy_status=""
-            [[ -n "$iommufd_node" ]] && iommufd_status=$(_vfio_node_status "$iommufd_node" "$_sudo" "$can_check")
-            legacy_status=$(_vfio_node_status "$legacy_node" "$_sudo" "$can_check")
+            [[ -n "$iommufd_node" ]] && iommufd_status=$(_vfio_node_status "$iommufd_node" "$held_rdevs" "$can_check")
+            legacy_status=$(_vfio_node_status "$legacy_node" "$held_rdevs" "$can_check")
 
             local backend=""
             if [[ "$iommufd_status" == "inuse" ]]; then
