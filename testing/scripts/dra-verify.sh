@@ -1278,7 +1278,7 @@ cmd_vfio() {
     else
         echo -e "  ${YELLOW}⚠ cannot tell which devices are held open: /proc fd scan returned nothing${NC}"
         echo -e "  ${DIM}  (sudo refused or no tty for its prompt? re-run as root or run 'sudo -v' first;${NC}"
-        echo -e "  ${DIM}   devices are shown as 'in-use unknown' instead of 'available')${NC}"
+        echo -e "  ${DIM}   devices are shown as 'in-use unknown' instead of 'not in use')${NC}"
     fi
     for dev in /sys/bus/pci/devices/*/driver; do
         local driver_name
@@ -1312,19 +1312,21 @@ cmd_vfio() {
             [[ -n "$iommufd_node" ]] && iommufd_status=$(_vfio_node_status "$iommufd_node" "$held_rdevs" "$can_check")
             legacy_status=$(_vfio_node_status "$legacy_node" "$held_rdevs" "$can_check")
 
+            # Only name a backend when a process actually holds its node: the
+            # backend is chosen at open() time by the consumer, so an idle
+            # device is on neither. Otherwise just say which nodes exist.
+            local present=""
+            [[ -n "$iommufd_status" ]] && present="iommufd"
+            [[ -n "$legacy_status" ]] && present="${present:+$present+}legacy"
             local backend=""
             if [[ "$iommufd_status" == "inuse" ]]; then
                 backend=" ${GREEN}[iommufd, in use]${NC}"
             elif [[ "$legacy_status" == "inuse" ]]; then
                 backend=" ${GREEN}[legacy, in use]${NC}"
-            elif [[ "$iommufd_status" == "unknown" ]]; then
-                backend=" ${YELLOW}[iommufd, in-use unknown]${NC}"
-            elif [[ "$legacy_status" == "unknown" ]]; then
-                backend=" ${YELLOW}[legacy, in-use unknown]${NC}"
-            elif [[ "$iommufd_status" == "available" ]]; then
-                backend=" ${DIM}[iommufd, available]${NC}"
-            elif [[ "$legacy_status" == "available" ]]; then
-                backend=" ${DIM}[legacy, available]${NC}"
+            elif [[ "$iommufd_status" == "unknown" || "$legacy_status" == "unknown" ]]; then
+                backend=" ${YELLOW}[in-use unknown; ${present} nodes present]${NC}"
+            elif [[ -n "$present" ]]; then
+                backend=" ${DIM}[not in use; ${present} nodes present]${NC}"
             fi
             echo -e "  ${BOLD}$bdf${NC}  NUMA=$numa  IOMMU=$iommu_grp${backend}  ${DIM}$desc${NC}"
             found=1
