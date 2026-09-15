@@ -1184,20 +1184,62 @@ if not found:
 
 # ── vfio ──────────────────────────────────────────────────────────────────────
 
-# Reports whether a VFIO device node is held open ("inuse"), merely present
-# ("available"), or absent (empty). fuser's exit code can't tell "not open"
-# apart from "caller can't see the owning process's fds", so this shells out
-# via sudo (like the CDI reader below) rather than trusting a bare non-root
-# fuser call.
+# Decides whether the per-device "in use" check below can be trusted.
+# fuser exits 1 both when nobody has the node open AND when the caller simply
+# can't see the owning process's fds (non-root looking at a root-owned QEMU),
+# so we must establish up front that the check is meaningful. Returns 0 if
+# so; otherwise prints a one-line human-readable reason on stdout and
+# returns 1, in which case every device is reported as "in-use unknown"
+# rather than misleadingly "available".
+#
+# $1 = "sudo" when not running as root, empty otherwise.
+_vfio_inuse_check_available() {
+    local use_sudo="$1"
+    if ! command -v fuser &>/dev/null; then
+        echo "fuser not installed (psmisc)"
+        return 1
+    fi
+    [[ -z "$use_sudo" ]] && return 0
+    if ! command -v sudo &>/dev/null; then
+        echo "not root and sudo not installed"
+        return 1
+    fi
+    # Probe the exact capability fuser needs: reading a root-owned process's
+    # fd table. This single call may prompt for a password (on the tty, so
+    # the redirect doesn't hide it); the per-device calls then use -n and
+    # ride the cached sudo timestamp.
+    if ! sudo ls /proc/1/fd &>/dev/null; then
+        echo "sudo failed (no tty for a password prompt, or not permitted) — re-run as root or run 'sudo -v' first"
+        return 1
+    fi
+    # Now verify the exact shape the per-device calls use: non-interactive
+    # sudo running fuser. This fails if credential caching is disabled
+    # (timestamp_timeout=0), if sudoers permits 'ls' but not 'fuser', or if
+    # fuser isn't on sudo's secure_path. Without this check those failures
+    # exit 1, exactly like "nobody has the node open", and every device
+    # would be reported as "available".
+    if ! sudo -n fuser -V &>/dev/null; then
+        echo "'sudo -n fuser' not usable (credential caching disabled, or fuser not permitted/found under sudo) — re-run as root"
+        return 1
+    fi
+    return 0
+}
+
+# Reports whether a VFIO device node is held open ("inuse"), present but not
+# open ("available"), present but uncheckable ("unknown"), or absent (empty).
+# $3 is non-empty only when _vfio_inuse_check_available succeeded; without it
+# we never claim "available", since fuser's exit 1 would be meaningless.
 _vfio_node_status() {
-    local node="$1" use_sudo="$2" have_fuser="$3"
+    local node="$1" use_sudo="$2" can_check="$3"
     [[ -c "$node" ]] || return
-    if [[ -n "$have_fuser" ]]; then
-        if [[ -n "$use_sudo" ]]; then
-            sudo fuser "$node" &>/dev/null && { echo "inuse"; return; }
-        else
-            fuser "$node" &>/dev/null && { echo "inuse"; return; }
-        fi
+    if [[ -z "$can_check" ]]; then
+        echo "unknown"
+        return
+    fi
+    if [[ -n "$use_sudo" ]]; then
+        sudo -n fuser "$node" &>/dev/null && { echo "inuse"; return; }
+    else
+        fuser "$node" &>/dev/null && { echo "inuse"; return; }
     fi
     echo "available"
 }
@@ -1249,8 +1291,15 @@ cmd_vfio() {
     local found=0
     local _sudo=""
     [[ $(id -u) -ne 0 ]] && _sudo="sudo"
-    local has_fuser=""
-    command -v fuser &>/dev/null && has_fuser=1
+    # Probe once, not per device: the answer is the same for every node, and
+    # a per-device sudo call would be slow and could prompt repeatedly.
+    local can_check="" check_reason=""
+    if check_reason=$(_vfio_inuse_check_available "$_sudo"); then
+        can_check=1
+    else
+        echo -e "  ${YELLOW}⚠ cannot tell which devices are held open: ${check_reason}${NC}"
+        echo -e "  ${DIM}  (devices are shown as 'in-use unknown' instead of 'available')${NC}"
+    fi
     for dev in /sys/bus/pci/devices/*/driver; do
         local driver_name
         driver_name=$(basename "$(readlink "$dev" 2>/dev/null)")
@@ -1277,16 +1326,21 @@ cmd_vfio() {
             [[ -n "$vfio_dev_name" ]] && iommufd_node="/dev/vfio/devices/${vfio_dev_name}"
 
             # Prefer showing which backend is actually held open by a process
-            # (e.g. virt-launcher/qemu); fall back to "available" if neither is.
+            # (e.g. virt-launcher/qemu). "unknown" outranks "available": if we
+            # couldn't check, we must not imply the device is free.
             local iommufd_status="" legacy_status=""
-            [[ -n "$iommufd_node" ]] && iommufd_status=$(_vfio_node_status "$iommufd_node" "$_sudo" "$has_fuser")
-            legacy_status=$(_vfio_node_status "$legacy_node" "$_sudo" "$has_fuser")
+            [[ -n "$iommufd_node" ]] && iommufd_status=$(_vfio_node_status "$iommufd_node" "$_sudo" "$can_check")
+            legacy_status=$(_vfio_node_status "$legacy_node" "$_sudo" "$can_check")
 
             local backend=""
             if [[ "$iommufd_status" == "inuse" ]]; then
                 backend=" ${GREEN}[iommufd, in use]${NC}"
             elif [[ "$legacy_status" == "inuse" ]]; then
                 backend=" ${GREEN}[legacy, in use]${NC}"
+            elif [[ "$iommufd_status" == "unknown" ]]; then
+                backend=" ${YELLOW}[iommufd, in-use unknown]${NC}"
+            elif [[ "$legacy_status" == "unknown" ]]; then
+                backend=" ${YELLOW}[legacy, in-use unknown]${NC}"
             elif [[ "$iommufd_status" == "available" ]]; then
                 backend=" ${DIM}[iommufd, available]${NC}"
             elif [[ "$legacy_status" == "available" ]]; then
