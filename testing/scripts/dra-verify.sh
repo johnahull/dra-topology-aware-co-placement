@@ -1184,6 +1184,24 @@ if not found:
 
 # ── vfio ──────────────────────────────────────────────────────────────────────
 
+# Reports whether a VFIO device node is held open ("inuse"), merely present
+# ("available"), or absent (empty). fuser's exit code can't tell "not open"
+# apart from "caller can't see the owning process's fds", so this shells out
+# via sudo (like the CDI reader below) rather than trusting a bare non-root
+# fuser call.
+_vfio_node_status() {
+    local node="$1" use_sudo="$2" have_fuser="$3"
+    [[ -c "$node" ]] || return
+    if [[ -n "$have_fuser" ]]; then
+        if [[ -n "$use_sudo" ]]; then
+            sudo fuser "$node" &>/dev/null && { echo "inuse"; return; }
+        else
+            fuser "$node" &>/dev/null && { echo "inuse"; return; }
+        fi
+    fi
+    echo "available"
+}
+
 cmd_vfio() {
     section "VFIO / IOMMUFD Devices"
 
@@ -1229,6 +1247,10 @@ cmd_vfio() {
 
     echo -e "${BOLD}Devices bound to vfio-pci:${NC}"
     local found=0
+    local _sudo=""
+    [[ $(id -u) -ne 0 ]] && _sudo="sudo"
+    local has_fuser=""
+    command -v fuser &>/dev/null && has_fuser=1
     for dev in /sys/bus/pci/devices/*/driver; do
         local driver_name
         driver_name=$(basename "$(readlink "$dev" 2>/dev/null)")
@@ -1245,12 +1267,30 @@ cmd_vfio() {
             if command -v lspci &>/dev/null; then
                 desc=$(lspci -s "$bdf" 2>/dev/null | sed 's/^[^ ]* //')
             fi
-            # Check if this device has an iommufd or legacy vfio group device node
+            # Per-device cdev name lives in sysfs (vfio-dev/vfioN) and is NOT the
+            # same number as the IOMMU group, so it must be read, not assumed.
+            local vfio_dev_name=""
+            if [[ -d "/sys/bus/pci/devices/$bdf/vfio-dev" ]]; then
+                vfio_dev_name=$(basename "$(find "/sys/bus/pci/devices/$bdf/vfio-dev" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1)")
+            fi
+            local iommufd_node="" legacy_node="/dev/vfio/${iommu_grp}"
+            [[ -n "$vfio_dev_name" ]] && iommufd_node="/dev/vfio/devices/${vfio_dev_name}"
+
+            # Prefer showing which backend is actually held open by a process
+            # (e.g. virt-launcher/qemu); fall back to "available" if neither is.
+            local iommufd_status="" legacy_status=""
+            [[ -n "$iommufd_node" ]] && iommufd_status=$(_vfio_node_status "$iommufd_node" "$_sudo" "$has_fuser")
+            legacy_status=$(_vfio_node_status "$legacy_node" "$_sudo" "$has_fuser")
+
             local backend=""
-            if [[ -c "/dev/vfio/devices/vfio${iommu_grp}" ]] || [[ -c "/dev/iommu" ]]; then
-                backend=" ${DIM}[iommufd]${NC}"
-            elif [[ -c "/dev/vfio/${iommu_grp}" ]]; then
-                backend=" ${DIM}[legacy]${NC}"
+            if [[ "$iommufd_status" == "inuse" ]]; then
+                backend=" ${GREEN}[iommufd, in use]${NC}"
+            elif [[ "$legacy_status" == "inuse" ]]; then
+                backend=" ${GREEN}[legacy, in use]${NC}"
+            elif [[ "$iommufd_status" == "available" ]]; then
+                backend=" ${DIM}[iommufd, available]${NC}"
+            elif [[ "$legacy_status" == "available" ]]; then
+                backend=" ${DIM}[legacy, available]${NC}"
             fi
             echo -e "  ${BOLD}$bdf${NC}  NUMA=$numa  IOMMU=$iommu_grp${backend}  ${DIM}$desc${NC}"
             found=1
