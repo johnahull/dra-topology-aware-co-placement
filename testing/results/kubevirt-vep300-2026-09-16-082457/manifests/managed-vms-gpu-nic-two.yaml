@@ -1,0 +1,87 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: amd-managed-gpu-nic-a
+  namespace: default
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/memfd: "false"
+    spec:
+      terminationGracePeriodSeconds: 0
+      domain:
+        resources:
+          requests:
+            memory: 4Gi
+        devices:
+          disks:
+          - name: containerdisk
+            disk:
+              bus: virtio
+          interfaces:
+          - name: default
+            masquerade: {}
+          hostDevices:
+          - name: connectx-vf
+            claimName: gpu-nic-a
+            requestName: nic0
+          gpus:
+          - name: amd-gpu
+            claimName: gpu-nic-a
+            requestName: gpu0
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: gpu-nic-a
+        managedClaimProvisionerName: vep300-gpu-nic-aligner
+      volumes:
+      - name: containerdisk
+        containerDisk:
+          image: quay.io/containerdisks/fedora:42
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: amd-managed-gpu-nic-b
+  namespace: default
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/memfd: "false"
+    spec:
+      terminationGracePeriodSeconds: 0
+      domain:
+        resources:
+          requests:
+            memory: 4Gi
+        devices:
+          disks:
+          - name: containerdisk
+            disk:
+              bus: virtio
+          interfaces:
+          - name: default
+            masquerade: {}
+          hostDevices:
+          - name: connectx-vf
+            claimName: gpu-nic-b
+            requestName: nic0
+          gpus:
+          - name: amd-gpu
+            claimName: gpu-nic-b
+            requestName: gpu0
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: gpu-nic-b
+        managedClaimProvisionerName: vep300-gpu-nic-aligner
+      volumes:
+      - name: containerdisk
+        containerDisk:
+          image: quay.io/containerdisks/fedora:42

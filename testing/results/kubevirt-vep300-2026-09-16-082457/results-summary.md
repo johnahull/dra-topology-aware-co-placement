@@ -62,4 +62,4 @@ The AMD GPU DRA driver was not the failing component. Existing AMD operator `Con
 | Two-GPU `matchAttribute: numaNode` claim | PASS | Existing `vm-amd-vfio-2gpu-numa` claim allocated `gpu-vfio-3` and `gpu-vfio-6`; both expose scalar NUMA `3` and list NUMA `[3,2]`. |
 | Two-GPU VFIO VM launch | PASS | `amd-vfio-vm-2gpu-numa` remained `Running` and virt-launcher injected both GPU host devices. |
 | Unsatisfiable GPU claim | PARTIAL | A claim selecting nonexistent PCI address `0000:00:00.0` remained unallocated, but this cluster emitted no claim event or human-readable allocation reason. |
-| Two fresh GPU+NIC VMIs | PASS | `amd-managed-gpu-nic-a` allocated GPU `gpu-vfio-2` + NIC `0000-9f-01-4`, both on `pci0000:97`; `amd-managed-gpu-nic-b` allocated GPU `gpu-vfio-4` + NIC `0000-1d-01-2`, both on `pci0000:15`. Both VMIs reached `Running`/`Ready=True`. |
+| Two fresh GPU+NIC VMs | PASS | `amd-managed-gpu-nic-a` and `amd-managed-gpu-nic-b` are `Running`/`Ready=True`; their VMIs allocated GPU/NIC pairs on `pci0000:97` and `pci0000:15`, respectively. |
