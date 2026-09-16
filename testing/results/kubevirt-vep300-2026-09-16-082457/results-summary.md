@@ -53,3 +53,12 @@ The AMD GPU DRA driver was not the failing component. Existing AMD operator `Con
 - NRI log: `Created plugin 42-dra-driver-sriov` and `NRI plugin started`.
 - SR-IOV log: `GetVFIODeviceFile()` resolved `/dev/vfio/373`; `NetAttachDefConfig:""`; `Skipping CNI attachment for device without NAD config (VFIO passthrough)`.
 - KubeVirt launcher log: QEMU received VFIO host devices for `0000:1d:01.2` and `0000:1b:02.0`, then failed during KVM memory registration.
+
+## Follow-up tests after the PCI-hole fix
+
+| Test | Result | Evidence |
+|---|---|---|
+| Delete and recreate GPU+NIC VMI | PASS | The claim released and the recreated VMI reached `Running`/`Ready=True` with a new pod IP. |
+| Two-GPU `matchAttribute: numaNode` claim | PASS | Existing `vm-amd-vfio-2gpu-numa` claim allocated `gpu-vfio-3` and `gpu-vfio-6`; both expose scalar NUMA `3` and list NUMA `[3,2]`. |
+| Two-GPU VFIO VM launch | PASS | `amd-vfio-vm-2gpu-numa` remained `Running` and virt-launcher injected both GPU host devices. |
+| Unsatisfiable GPU claim | PARTIAL | A claim selecting nonexistent PCI address `0000:00:00.0` remained unallocated, but this cluster emitted no claim event or human-readable allocation reason. |
