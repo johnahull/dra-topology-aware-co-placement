@@ -67,3 +67,6 @@ The AMD GPU DRA driver was not the failing component. Existing AMD operator `Con
 | VM restart and claim reacquisition | PASS | VM `amd-managed-gpu-nic-a` was halted and restarted; it returned `Running`/`Ready=True` with a new allocation timestamp, while VM `amd-managed-gpu-nic-b` stayed Running. |
 | AMD GPU DRA driver restart | PASS | `default-dra-driver` DaemonSet rolled out successfully; both VMs remained Ready. |
 | SR-IOV DRA driver restart | PASS | `dra-driver-sriov` DaemonSet rolled out successfully; both GPU/NIC claims remained allocated and both VMs remained Ready. |
+| Guest PCI topology | PASS | Both guests placed the NIC at `0000:08:00.0` below root port `00:02.7` and the GPU at `0000:09:00.0` below root port `00:03.0`. |
+| VM cleanup and reacquisition | PASS | Halting VM `amd-managed-gpu-nic-a` removed its VMI and managed claim without affecting VM `amd-managed-gpu-nic-b`; `runStrategy: Always` recreated it successfully. |
+| KubeVirt converter regression tests | PASS | `go test ./pkg/virt-launcher/virtwrap/libvirtxml ./pkg/virt-launcher/virtwrap/converter ./pkg/virt-launcher/virtwrap/api` passed. |

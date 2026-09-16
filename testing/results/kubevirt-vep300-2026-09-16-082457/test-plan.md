@@ -17,9 +17,12 @@ The GPU+NIC managed claim and PCI-root co-placement criteria passed. Two persist
 ## Follow-up execution
 
 - Guest PCI validation: PASS. Both guests exposed AMD `0x1002:0x74b5` and Mellanox `0x15b3:0x101e` devices under `/sys/bus/pci/devices`.
+- Guest PCI topology validation: PASS. In both guests, the NIC appeared at `0000:08:00.0` below guest root port `00:02.7`, and the GPU appeared at `0000:09:00.0` below guest root port `00:03.0`.
 - VM restart and claim reacquisition: PASS. VM `amd-managed-gpu-nic-a` was halted and restarted; its claim allocation timestamp changed, while VM `amd-managed-gpu-nic-b` remained Running.
 - AMD GPU DRA driver restart: PASS. The driver DaemonSet rolled out successfully and both VMs remained Ready.
 - SR-IOV DRA driver restart: PASS. The driver DaemonSet rolled out successfully and both VMs remained Ready with their GPU/NIC claims allocated.
+- VM cleanup and reacquisition: PASS. Halting VM `amd-managed-gpu-nic-a` removed its VMI and managed claim while VM `amd-managed-gpu-nic-b` remained Running; setting `runStrategy: Always` recreated the claim and VMI successfully.
+- KubeVirt converter regression tests: PASS. The focused `api`, `converter`, and `libvirtxml` Go packages passed.
 
 ## Limitations
 
