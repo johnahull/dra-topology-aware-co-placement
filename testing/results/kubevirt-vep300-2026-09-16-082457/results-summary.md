@@ -63,3 +63,7 @@ The AMD GPU DRA driver was not the failing component. Existing AMD operator `Con
 | Two-GPU VFIO VM launch | PASS | `amd-vfio-vm-2gpu-numa` remained `Running` and virt-launcher injected both GPU host devices. |
 | Unsatisfiable GPU claim | PARTIAL | A claim selecting nonexistent PCI address `0000:00:00.0` remained unallocated, but this cluster emitted no claim event or human-readable allocation reason. |
 | Two fresh GPU+NIC VMs | PASS | `amd-managed-gpu-nic-a` and `amd-managed-gpu-nic-b` are `Running`/`Ready=True`; their VMIs allocated GPU/NIC pairs on `pci0000:97` and `pci0000:15`, respectively. |
+| Guest PCI visibility | PASS | QEMU guest-agent inspection found AMD `0x1002:0x74b5` and Mellanox `0x15b3:0x101e` devices in both guests. |
+| VM restart and claim reacquisition | PASS | VM `amd-managed-gpu-nic-a` was halted and restarted; it returned `Running`/`Ready=True` with a new allocation timestamp, while VM `amd-managed-gpu-nic-b` stayed Running. |
+| AMD GPU DRA driver restart | PASS | `default-dra-driver` DaemonSet rolled out successfully; both VMs remained Ready. |
+| SR-IOV DRA driver restart | PASS | `dra-driver-sriov` DaemonSet rolled out successfully; both GPU/NIC claims remained allocated and both VMs remained Ready. |

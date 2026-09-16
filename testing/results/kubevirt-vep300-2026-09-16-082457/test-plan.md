@@ -12,10 +12,17 @@ This run validates managed DRA claims through AMD GPU VF allocation, SR-IOV VF a
 
 ## Execution status
 
-The GPU+NIC managed claim and PCI-root co-placement criteria passed. VM launch was blocked during SR-IOV DRA preparation because the deployed standalone SR-IOV driver attempted to read `default/` as a NetworkAttachmentDefinition; this cluster has no NetworkAttachmentDefinition CRD. See `results-summary.md` for the complete result matrix and cleanup verification.
+The GPU+NIC managed claim and PCI-root co-placement criteria passed. Two persistent `VirtualMachine` objects were created; both reached `Running`/`Ready=True`, and each guest exposed one AMD GPU VF and one ConnectX VF through the QEMU guest agent. Restarting one VM released and reacquired its claim while the other VM remained Running. Restarting the AMD GPU and SR-IOV DRA driver DaemonSets also left both VMs Running and their claims allocated. See `results-summary.md` for the complete result matrix and evidence.
+
+## Follow-up execution
+
+- Guest PCI validation: PASS. Both guests exposed AMD `0x1002:0x74b5` and Mellanox `0x15b3:0x101e` devices under `/sys/bus/pci/devices`.
+- VM restart and claim reacquisition: PASS. VM `amd-managed-gpu-nic-a` was halted and restarted; its claim allocation timestamp changed, while VM `amd-managed-gpu-nic-b` remained Running.
+- AMD GPU DRA driver restart: PASS. The driver DaemonSet rolled out successfully and both VMs remained Ready.
+- SR-IOV DRA driver restart: PASS. The driver DaemonSet rolled out successfully and both VMs remained Ready with their GPU/NIC claims allocated.
 
 ## Limitations
 
 - The cluster is single-node; migration is not tested.
-- NUMA scalar/list values are evidence only, not an alignment assertion.
+- NUMA scalar/list values are evidence only, not an alignment assertion for this GPU+NIC test.
 - Pre-existing failed AMD operator pods are recorded as environmental noise.
