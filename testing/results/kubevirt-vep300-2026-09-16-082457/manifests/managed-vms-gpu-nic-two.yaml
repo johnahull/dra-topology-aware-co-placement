@@ -20,6 +20,9 @@ spec:
           - name: containerdisk
             disk:
               bus: virtio
+          - name: cloudinitdisk
+            disk:
+              bus: virtio
           interfaces:
           - name: default
             masquerade: {}
@@ -41,6 +44,18 @@ spec:
       - name: containerdisk
         containerDisk:
           image: quay.io/containerdisks/fedora:42
+      - name: cloudinitdisk
+        cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            users:
+              - name: jhull
+                groups: [wheel]
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                shell: /bin/bash
+                lock_passwd: true
+                ssh_authorized_keys:
+                  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/DOpMOHeqfjgoMaLACgZuIwQS8q+NZzY1DHEt5aiAY kubevirt-gpu-vm
 ---
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
