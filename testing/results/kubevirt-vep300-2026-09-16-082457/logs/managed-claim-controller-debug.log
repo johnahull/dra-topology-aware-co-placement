@@ -1,0 +1,37 @@
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272263'","pos":"configuration.go:367","timestamp":"2026-09-16T13:33:40.054525Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272263'","pos":"configuration.go:367","timestamp":"2026-09-16T13:33:40.054614Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:33:40.054636Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:33:40.054723Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272427'","pos":"configuration.go:367","timestamp":"2026-09-16T13:33:49.415125Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272427'","pos":"configuration.go:367","timestamp":"2026-09-16T13:33:49.415399Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:33:49.415539Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:33:49.415606Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272649'","pos":"configuration.go:367","timestamp":"2026-09-16T13:33:54.362282Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:33:54.362377Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:33:54.362436Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272649'","pos":"configuration.go:367","timestamp":"2026-09-16T13:33:54.362401Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272734'","pos":"configuration.go:367","timestamp":"2026-09-16T13:34:11.577097Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272734'","pos":"configuration.go:367","timestamp":"2026-09-16T13:34:11.577219Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:34:11.577306Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:34:11.577360Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272887'","pos":"configuration.go:367","timestamp":"2026-09-16T13:34:49.241163Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '272887'","pos":"configuration.go:367","timestamp":"2026-09-16T13:34:49.241197Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:34:49.241279Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:34:49.241357Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '273044'","pos":"configuration.go:367","timestamp":"2026-09-16T13:34:57.749776Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '273044'","pos":"configuration.go:367","timestamp":"2026-09-16T13:34:57.749877Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:34:57.749963Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:34:57.750033Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '273233'","pos":"configuration.go:367","timestamp":"2026-09-16T13:35:02.635156Z"}
+{"component":"virt-controller","level":"info","msg":"Updating cluster config from KubeVirt to resource version '273233'","pos":"configuration.go:367","timestamp":"2026-09-16T13:35:02.635327Z"}
+{"component":"virt-controller","level":"info","msg":"setting rate limiter to 200 QPS and 400 Burst","pos":"application.go:567","timestamp":"2026-09-16T13:35:02.635406Z"}
+{"component":"virt-controller","level":"info","msg":"set log verbosity to 2","pos":"application.go:576","timestamp":"2026-09-16T13:35:02.635468Z"}
+{"component":"virt-controller","level":"info","msg":"certificate with common name 'export.kubevirt.io@1789565697' retrieved.","pos":"cert-manager.go:198","timestamp":"2026-09-16T13:35:13.814439Z"}
+{"component":"virt-controller","level":"info","msg":"certificate with common name 'export.kubevirt.io@1789565697' retrieved.","pos":"cert-manager.go:198","timestamp":"2026-09-16T13:35:13.814716Z"}
+{"component":"virt-controller","level":"info","msg":"certificate with common name 'virt-controller.kubevirt.pod.cluster.local' retrieved.","pos":"cert-manager.go:198","timestamp":"2026-09-16T13:35:13.815152Z"}
+{"component":"virt-controller","level":"info","msg":"certificate with common name 'backup.kubevirt.io@1789565697' retrieved.","pos":"cert-manager.go:198","timestamp":"2026-09-16T13:35:13.815227Z"}
+{"component":"virt-controller","level":"info","msg":"certificate with common name 'virt-controller.kubevirt.pod.cluster.local' retrieved.","pos":"cert-manager.go:198","timestamp":"2026-09-16T13:35:13.815404Z"}
+{"component":"virt-controller","level":"info","msg":"certificate with common name 'backup.kubevirt.io@1789565697' retrieved.","pos":"cert-manager.go:198","timestamp":"2026-09-16T13:35:13.815504Z"}
+W0916 13:33:50.661176       1 client_config.go:683] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0916 13:33:50.665387       1 leaderelection.go:258] "Attempting to acquire leader lease..." lock="kubevirt/virt-managed-claim-controller"
+I0916 13:33:50.681746       1 leaderelection.go:272] "Successfully acquired lease" lock="kubevirt/virt-managed-claim-controller"

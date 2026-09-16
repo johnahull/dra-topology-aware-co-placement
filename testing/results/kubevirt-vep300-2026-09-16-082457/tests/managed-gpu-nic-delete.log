@@ -1,0 +1,2 @@
+virtualmachineinstance.kubevirt.io "amd-managed-gpu-nic" deleted from default namespace
+Error from server (NotFound): resourceclaims.resource.k8s.io "amd-managed-gpu-nic-gpu-nic" not found

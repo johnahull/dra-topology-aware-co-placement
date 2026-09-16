@@ -1,0 +1,101 @@
+virtualmachineinstance.kubevirt.io/amd-managed-gpu-nic created
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"kubevirt.io/v1","kind":"VirtualMachineInstance","metadata":{"annotations":{},"name":"amd-managed-gpu-nic","namespace":"default"},"spec":{"domain":{"devices":{"disks":[{"disk":{"bus":"virtio"},"name":"containerdisk"}],"gpus":[{"claimName":"gpu-nic","name":"amd-gpu","requestName":"gpu0"}],"hostDevices":[{"claimName":"gpu-nic","name":"connectx-vf","requestName":"nic0"}],"interfaces":[{"masquerade":{},"name":"default"}]},"resources":{"requests":{"memory":"2Gi"}}},"networks":[{"name":"default","pod":{}}],"resourceClaims":[{"managedClaimProvisionerName":"vep300-gpu-nic-aligner","name":"gpu-nic"}],"terminationGracePeriodSeconds":0,"volumes":[{"containerDisk":{"image":"quay.io/containerdisks/fedora:42"},"name":"containerdisk"}]}}
+    kubevirt.io/latest-observed-api-version: v1
+    kubevirt.io/pci-topology-version: v3
+    kubevirt.io/storage-observed-api-version: v1
+  creationTimestamp: "2026-09-16T13:35:08Z"
+  finalizers:
+  - kubevirt.io/foregroundDeleteVirtualMachine
+  generation: 2
+  name: amd-managed-gpu-nic
+  namespace: default
+  resourceVersion: "273266"
+  uid: 61595f64-05f7-4d95-b20c-2aaeb150bba7
+spec:
+  architecture: amd64
+  domain:
+    cpu:
+      cores: 1
+      maxSockets: 4
+      model: host-model
+      sockets: 1
+      threads: 1
+    devices:
+      disks:
+      - disk:
+          bus: virtio
+        name: containerdisk
+      gpus:
+      - claimName: gpu-nic
+        name: amd-gpu
+        requestName: gpu0
+      hostDevices:
+      - claimName: gpu-nic
+        name: connectx-vf
+        requestName: nic0
+      interfaces:
+      - masquerade: {}
+        name: default
+    features:
+      acpi:
+        enabled: true
+    firmware:
+      uuid: 3550a5a9-7f42-49c7-b6ea-dcf48101af2a
+    machine:
+      type: q35
+    memory:
+      guest: 2Gi
+      maxGuest: 8Gi
+    resources:
+      requests:
+        memory: 2Gi
+  evictionStrategy: None
+  networks:
+  - name: default
+    pod: {}
+  resourceClaims:
+  - managedClaimProvisionerName: vep300-gpu-nic-aligner
+    name: gpu-nic
+  terminationGracePeriodSeconds: 0
+  volumes:
+  - containerDisk:
+      image: quay.io/containerdisks/fedora:42
+      imagePullPolicy: IfNotPresent
+    name: containerdisk
+status:
+  conditions:
+  - lastProbeTime: "2026-09-16T13:35:08Z"
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    message: Guest VM is not reported as running
+    reason: GuestNotRunning
+    status: "False"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: null
+    message: Not all of the VMI's managed ResourceClaims are created and allocated
+    reason: NotAllManagedClaimsReady
+    status: "False"
+    type: ManagedClaimsReady
+  currentCPUTopology:
+    cores: 1
+    sockets: 1
+    threads: 1
+  guestOSInfo: {}
+  launcherContainerImageVersion: localhost:5000/kubevirt/virt-launcher:vep300
+  memory:
+    guestAtBoot: 2Gi
+    guestCurrent: 2Gi
+    guestRequested: 2Gi
+    memoryOverhead: 1316Mi
+  phase: Scheduling
+  phaseTransitionTimestamps:
+  - phase: Pending
+    phaseTransitionTimestamp: "2026-09-16T13:35:08Z"
+  - phase: Scheduling
+    phaseTransitionTimestamp: "2026-09-16T13:35:08Z"
+  runtimeUser: 107

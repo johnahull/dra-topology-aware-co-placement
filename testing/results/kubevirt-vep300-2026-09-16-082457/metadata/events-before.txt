@@ -1,0 +1,10 @@
+NAMESPACE   LAST SEEN   TYPE      REASON    OBJECT                                                                MESSAGE
+default     16m         Normal    Pulling   pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Pulling image "docker.io/rocm/amd-gpu-operator:latest"
+default     6m9s        Warning   Failed    pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Failed to pull image "docker.io/rocm/amd-gpu-operator:latest": failed to pull and unpack image "docker.io/rocm/amd-gpu-operator:latest": failed to resolve image: pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+default     5m36s       Normal    Pulled    pod/default-node-labeller-x52h9                                       Container image "rocm/k8s-device-plugin:labeller-latest" already present on machine and can be accessed by the pod
+default     5m36s       Normal    Created   pod/default-node-labeller-x52h9                                       Container created
+default     3m35s       Warning   BackOff   pod/default-node-labeller-x52h9                                       Back-off restarting failed container node-labeller-container in pod default-node-labeller-x52h9_default(e7799190-1fa5-4ce2-a664-b9f3282e2fc8)
+default     84s         Normal    BackOff   pod/default-metrics-exporter-r228q                                    Back-off pulling image "docker.io/rocm/device-metrics-exporter:latest"
+default     84s         Warning   Failed    pod/default-metrics-exporter-r228q                                    Error: ImagePullBackOff
+default     80s         Normal    BackOff   pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Back-off pulling image "docker.io/rocm/amd-gpu-operator:latest"
+default     80s         Warning   Failed    pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Error: ImagePullBackOff

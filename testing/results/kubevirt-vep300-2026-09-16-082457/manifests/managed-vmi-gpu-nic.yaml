@@ -1,0 +1,37 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachineInstance
+metadata:
+  name: amd-managed-gpu-nic
+  namespace: default
+spec:
+  terminationGracePeriodSeconds: 0
+  domain:
+    resources:
+      requests:
+        memory: 2Gi
+    devices:
+      disks:
+      - name: containerdisk
+        disk:
+          bus: virtio
+      interfaces:
+      - name: default
+        masquerade: {}
+      hostDevices:
+      - name: connectx-vf
+        claimName: gpu-nic
+        requestName: nic0
+      gpus:
+      - name: amd-gpu
+        claimName: gpu-nic
+        requestName: gpu0
+  networks:
+  - name: default
+    pod: {}
+  resourceClaims:
+  - name: gpu-nic
+    managedClaimProvisionerName: vep300-gpu-nic-aligner
+  volumes:
+  - name: containerdisk
+    containerDisk:
+      image: quay.io/containerdisks/fedora:42

@@ -1,0 +1,144 @@
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   4s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   9s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   14s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   20s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   25s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   30s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   35s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   41s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   46s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   51s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   56s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   62s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   67s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   72s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   77s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   82s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   88s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   93s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   98s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   103s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   109s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   114s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   119s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h
+phase=Scheduling managed=True message=All of the VMI's managed ResourceClaims are created and allocated\nNAME                          STATE                AGE
+amd-managed-gpu-nic-gpu-nic   allocated,reserved   2m4s
+gpu-vf-claim                  pending              19h
+vm-amd-vfio                   allocated,reserved   17h
+vm-amd-vfio-2gpu              allocated,reserved   17h
+vm-amd-vfio-2gpu-numa         allocated,reserved   17h

@@ -1,0 +1,3 @@
+managedclaimprovisioner.kubevirt.io/vep300-gpu-nic-aligner configured
+The request is invalid: spec.HostDevices: Host Devices feature gate is not enabled in kubevirt-config
+Error from server (NotFound): virtualmachineinstances.kubevirt.io "amd-managed-gpu-nic" not found

@@ -1,0 +1,834 @@
+apiVersion: v1
+items:
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-09-15T23:44:28Z"
+    generateName: 00000-gpu.amd.com-j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com-
+    generation: 1
+    name: 00000-gpu.amd.com-j42-h01-000-xe9680.rdu3.labs.perfscale.rjc44w
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      uid: d1c8a550-242f-4cf1-acb7-530700d5fb7c
+    resourceVersion: "89538"
+    uid: e49f71c4-2051-4972-a223-a3d17ee770f9
+  spec:
+    driver: gpu.amd.com
+    nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    pool:
+      generation: 1
+      name: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      resourceSliceCount: 2
+    sharedCounters:
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-1b-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-3d-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-4e-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-5f-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-9d-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-bd-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-cd-00-0-counter-set
+    - counters:
+        vf-slots:
+          value: "1"
+      name: pf-0000-dd-00-0-counter-set
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-09-15T23:44:28Z"
+    generateName: 00000-sriovnetwork.k8snetworkplumbingwg.io-j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com-
+    generation: 1
+    name: 00000-sriovnetwork.k8snetworkplumbingwg.io-j42-h01-000-xe958cht
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      uid: d1c8a550-242f-4cf1-acb7-530700d5fb7c
+    resourceVersion: "89540"
+    uid: 4e12e371-c240-4cc9-9db0-517c2e72c69b
+  spec:
+    devices:
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:00.4
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:00.4
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:00.4
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 2
+      name: 0000-1d-00-4
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:01.2
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:01.2
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:01.2
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 0
+      name: 0000-1d-01-2
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:01.3
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:01.3
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:01.3
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 1
+      name: 0000-9f-01-3
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:00.4
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:00.4
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:00.4
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 2
+      name: 0000-9f-00-4
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:01.2
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:01.2
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:01.2
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 0
+      name: 0000-9f-01-2
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:01.5
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:01.5
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:01.5
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 3
+      name: 0000-1d-01-5
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:00.2
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:00.2
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:00.2
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 0
+      name: 0000-9f-00-2
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:00.3
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:00.3
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:00.3
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 1
+      name: 0000-9f-00-3
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:01.3
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:01.3
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:01.3
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 1
+      name: 0000-1d-01-3
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:00.3
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:00.3
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:00.3
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 1
+      name: 0000-1d-00-3
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:00.5
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:00.5
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:00.5
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 3
+      name: 0000-1d-00-5
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:00.5
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:00.5
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:00.5
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 3
+      name: 0000-9f-00-5
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:00.2
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:00.2
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f0np0
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:00.2
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.0
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 0
+      name: 0000-1d-00-2
+    - attributes:
+        dra.net/numaNode:
+          int: 0
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:1d:01.4
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1d:01.4
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens40f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:1d:01.4
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:1d:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 2
+      name: 0000-1d-01-4
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:01.4
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:01.4
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:01.4
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 2
+      name: 0000-9f-01-4
+    - attributes:
+        dra.net/numaNode:
+          int: 2
+        k8s.cni.cncf.io/deviceID:
+          string: 0000:9f:01.5
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9f:01.5
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        sriovnetwork.k8snetworkplumbingwg.io/EswitchMode:
+          string: legacy
+        sriovnetwork.k8snetworkplumbingwg.io/PFName:
+          string: ens31f1np1
+        sriovnetwork.k8snetworkplumbingwg.io/deviceID:
+          string: 101e
+        sriovnetwork.k8snetworkplumbingwg.io/linkType:
+          string: ethernet
+        sriovnetwork.k8snetworkplumbingwg.io/pciAddress:
+          string: 0000:9f:01.5
+        sriovnetwork.k8snetworkplumbingwg.io/pfDeviceID:
+          string: 101d
+        sriovnetwork.k8snetworkplumbingwg.io/pfPciAddress:
+          string: 0000:9f:00.1
+        sriovnetwork.k8snetworkplumbingwg.io/rdmaCapable:
+          bool: true
+        sriovnetwork.k8snetworkplumbingwg.io/vendor:
+          string: 15b3
+        sriovnetwork.k8snetworkplumbingwg.io/vfID:
+          int: 3
+      name: 0000-9f-01-5
+    driver: sriovnetwork.k8snetworkplumbingwg.io
+    nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    pool:
+      generation: 1
+      name: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      resourceSliceCount: 1
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceSlice
+  metadata:
+    creationTimestamp: "2026-09-15T23:44:28Z"
+    generateName: 00001-gpu.amd.com-j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com-
+    generation: 1
+    name: 00001-gpu.amd.com-j42-h01-000-xe9680.rdu3.labs.perfscale.rqgfsl
+    ownerReferences:
+    - apiVersion: v1
+      controller: true
+      kind: Node
+      name: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      uid: d1c8a550-242f-4cf1-acb7-530700d5fb7c
+    resourceVersion: "89539"
+    uid: ac8a8ce3-9f83-418b-aa6c-f897cb869024
+  spec:
+    devices:
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "361"
+        isVF:
+          bool: true
+        numaNode:
+          int: 0
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:5f:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 0
+          - 1
+        resource.kubernetes.io/pciBusID:
+          string: 0000:5f:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:59
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-5f-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-0
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "362"
+        isVF:
+          bool: true
+        numaNode:
+          int: 1
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:3d:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 1
+          - 0
+        resource.kubernetes.io/pciBusID:
+          string: 0000:3d:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:37
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-3d-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-1
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "363"
+        isVF:
+          bool: true
+        numaNode:
+          int: 2
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:9d:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 2
+          - 3
+        resource.kubernetes.io/pciBusID:
+          string: 0000:9d:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:97
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-9d-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-2
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "364"
+        isVF:
+          bool: true
+        numaNode:
+          int: 3
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:bd:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 3
+          - 2
+        resource.kubernetes.io/pciBusID:
+          string: 0000:bd:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:b7
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-bd-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-3
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "365"
+        isVF:
+          bool: true
+        numaNode:
+          int: 0
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:1b:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 0
+          - 1
+        resource.kubernetes.io/pciBusID:
+          string: 0000:1b:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:15
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-1b-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-4
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "366"
+        isVF:
+          bool: true
+        numaNode:
+          int: 1
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:4e:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 1
+          - 0
+        resource.kubernetes.io/pciBusID:
+          string: 0000:4e:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:48
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-4e-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-5
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "367"
+        isVF:
+          bool: true
+        numaNode:
+          int: 3
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:cd:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 3
+          - 2
+        resource.kubernetes.io/pciBusID:
+          string: 0000:cd:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:c7
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-cd-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-6
+    - attributes:
+        deviceID:
+          string: "0x74b5"
+        iommuGroup:
+          string: "368"
+        isVF:
+          bool: true
+        numaNode:
+          int: 2
+        partitionProfile:
+          string: spx
+        pciAddr:
+          string: 0000:dd:02.0
+        resource.kubernetes.io/numaNode:
+          ints:
+          - 2
+          - 3
+        resource.kubernetes.io/pciBusID:
+          string: 0000:dd:02.0
+        resource.kubernetes.io/pcieRoot:
+          string: pci0000:d7
+        type:
+          string: vfio
+        vendorID:
+          string: "0x1002"
+      consumesCounters:
+      - counterSet: pf-0000-dd-00-0-counter-set
+        counters:
+          vf-slots:
+            value: "1"
+      name: gpu-vfio-7
+    driver: gpu.amd.com
+    nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    pool:
+      generation: 1
+      name: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      resourceSliceCount: 2
+kind: List
+metadata:
+  resourceVersion: ""

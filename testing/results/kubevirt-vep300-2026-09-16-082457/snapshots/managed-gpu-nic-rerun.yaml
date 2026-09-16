@@ -1,0 +1,132 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim
+metadata:
+  creationTimestamp: "2026-09-16T13:38:01Z"
+  finalizers:
+  - kubevirt.io/managed-claim-protection
+  - resource.kubernetes.io/delete-protection
+  labels:
+    kubevirt.io/managed-claim: gpu-nic
+    kubevirt.io/managed-claim-provisioner: vep300-gpu-nic-aligner
+    kubevirt.io/managed-claim-vmi: amd-managed-gpu-nic
+  name: amd-managed-gpu-nic-gpu-nic
+  namespace: default
+  ownerReferences:
+  - apiVersion: kubevirt.io/v1
+    controller: true
+    kind: VirtualMachineInstance
+    name: amd-managed-gpu-nic
+    uid: 80e95710-c9ac-4dda-9bf5-f2f53f53f9c1
+  resourceVersion: "274039"
+  uid: c35eeb72-e08d-4904-aeb0-7f82c0350a04
+spec:
+  devices:
+    config:
+    - opaque:
+        driver: gpu.amd.com
+        parameters:
+          apiVersion: gpu.resource.amd.com/v1alpha1
+          iommu:
+            backendPolicy: LegacyOnly
+          kind: VfioDeviceConfig
+      requests:
+      - gpu0
+    - opaque:
+        driver: sriovnetwork.k8snetworkplumbingwg.io
+        parameters:
+          apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
+          driver: vfio-pci
+          kind: VfConfig
+      requests:
+      - nic0
+    constraints:
+    - matchAttribute: resource.kubernetes.io/pcieRoot
+      requests:
+      - gpu0
+      - nic0
+    requests:
+    - exactly:
+        allocationMode: ExactCount
+        count: 1
+        deviceClassName: gpu.amd.com
+      name: gpu0
+    - exactly:
+        allocationMode: ExactCount
+        count: 1
+        deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+      name: nic0
+status:
+  allocation:
+    allocationTimestamp: "2026-09-16T13:38:02Z"
+    devices:
+      config:
+      - opaque:
+          driver: gpu.amd.com
+          parameters:
+            apiVersion: gpu.resource.amd.com/v1alpha1
+            iommu:
+              backendPolicy: LegacyOnly
+            kind: VfioDeviceConfig
+        requests:
+        - gpu0
+        source: FromClaim
+      - opaque:
+          driver: sriovnetwork.k8snetworkplumbingwg.io
+          parameters:
+            apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
+            driver: vfio-pci
+            kind: VfConfig
+        requests:
+        - nic0
+        source: FromClaim
+      results:
+      - device: gpu-vfio-4
+        driver: gpu.amd.com
+        pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+        request: gpu0
+      - device: 0000-1d-00-4
+        driver: sriovnetwork.k8snetworkplumbingwg.io
+        pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+        request: nic0
+    nodeSelector:
+      nodeSelectorTerms:
+      - matchFields:
+        - key: metadata.name
+          operator: In
+          values:
+          - j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+  reservedFor:
+  - name: virt-launcher-amd-managed-gpu-nic-2dlxq
+    resource: pods
+    uid: c92e725e-f4eb-4fed-a62c-fc5a221be796
+phase=Scheduling ready=False managed=True\ndefault            virt-launcher-amd-managed-gpu-nic-2dlxq                                     0/2     Init:0/2                 0                4m5s    <none>        j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com   <none>           1/1
+NAMESPACE   LAST SEEN   TYPE      REASON                          OBJECT                                                                MESSAGE
+default     4m5s        Normal    Scheduled                       pod/virt-launcher-amd-managed-gpu-nic-2dlxq                           Successfully assigned default/virt-launcher-amd-managed-gpu-nic-2dlxq to j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+kubevirt    8m18s       Normal    Scheduled                       pod/virt-managed-claim-controller-6dbc9877c7-mtzch                    Successfully assigned kubevirt/virt-managed-claim-controller-6dbc9877c7-mtzch to j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+kubevirt    8m18s       Normal    Scheduled                       pod/virt-managed-claim-controller-6dbc9877c7-lpgrl                    Successfully assigned kubevirt/virt-managed-claim-controller-6dbc9877c7-lpgrl to j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+default     6m59s       Normal    Scheduled                       pod/virt-launcher-amd-managed-gpu-nic-vjxnn                           Successfully assigned default/virt-launcher-amd-managed-gpu-nic-vjxnn to j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+default     33m         Normal    Pulling                         pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Pulling image "docker.io/rocm/amd-gpu-operator:latest"
+default     22m         Warning   Failed                          pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Failed to pull image "docker.io/rocm/amd-gpu-operator:latest": failed to pull and unpack image "docker.io/rocm/amd-gpu-operator:latest": failed to resolve image: pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+kubevirt    8m19s       Normal    ScalingReplicaSet               deployment/virt-managed-claim-controller                              Scaled up replica set virt-managed-claim-controller-6dbc9877c7 from 0 to 2
+kubevirt    8m19s       Normal    NoPods                          poddisruptionbudget/virt-managed-claim-controller-pdb                 No matching pods found
+kubevirt    8m19s       Normal    SuccessfulCreate                replicaset/virt-managed-claim-controller-6dbc9877c7                   Created pod: virt-managed-claim-controller-6dbc9877c7-lpgrl
+kubevirt    8m19s       Normal    SuccessfulCreate                replicaset/virt-managed-claim-controller-6dbc9877c7                   Created pod: virt-managed-claim-controller-6dbc9877c7-mtzch
+kubevirt    8m18s       Normal    Pulled                          pod/virt-managed-claim-controller-6dbc9877c7-mtzch                    Container image "localhost:5000/kubevirt/virt-managed-claim-controller:vep300" already present on machine and can be accessed by the pod
+kubevirt    8m18s       Normal    Started                         pod/virt-managed-claim-controller-6dbc9877c7-mtzch                    Container started
+kubevirt    8m18s       Normal    LeaderElection                  lease/virt-managed-claim-controller                                   virt-managed-claim-controller-6dbc9877c7-lpgrl became leader
+kubevirt    8m18s       Normal    Created                         pod/virt-managed-claim-controller-6dbc9877c7-mtzch                    Container created
+kubevirt    8m18s       Normal    Started                         pod/virt-managed-claim-controller-6dbc9877c7-lpgrl                    Container started
+kubevirt    8m18s       Normal    Created                         pod/virt-managed-claim-controller-6dbc9877c7-lpgrl                    Container created
+kubevirt    8m18s       Normal    Pulled                          pod/virt-managed-claim-controller-6dbc9877c7-lpgrl                    Container image "localhost:5000/kubevirt/virt-managed-claim-controller:vep300" already present on machine and can be accessed by the pod
+default     8m9s        Normal    Created                         pod/default-node-labeller-x52h9                                       Container created
+default     7m          Normal    SuccessfulCreate                virtualmachineinstance/amd-managed-gpu-nic                            Created virtual machine pod virt-launcher-amd-managed-gpu-nic-vjxnn
+default     6m8s        Warning   BackOff                         pod/default-node-labeller-x52h9                                       Back-off restarting failed container node-labeller-container in pod default-node-labeller-x52h9_default(e7799190-1fa5-4ce2-a664-b9f3282e2fc8)
+default     4m15s       Warning   FailedPrepareDynamicResources   pod/virt-launcher-amd-managed-gpu-nic-vjxnn                           Failed to prepare dynamic resources: prepare dynamic resources: NodePrepareResources: rpc error: code = Unknown desc = prepare resource claims: no prepared devices found for pod dacc268f-6334-4d25-8e72-589aac75badd
+default     4m13s       Normal    SuccessfulDelete                virtualmachineinstance/amd-managed-gpu-nic                            Deleted virtual machine pod virt-launcher-amd-managed-gpu-nic-vjxnn
+default     4m6s        Normal    SuccessfulCreate                virtualmachineinstance/amd-managed-gpu-nic                            Created virtual machine pod virt-launcher-amd-managed-gpu-nic-2dlxq
+default     3m6s        Normal    BackOff                         pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Back-off pulling image "docker.io/rocm/amd-gpu-operator:latest"
+default     3m3s        Warning   Failed                          pod/default-metrics-exporter-r228q                                    Error: ImagePullBackOff
+default     3m3s        Normal    BackOff                         pod/default-metrics-exporter-r228q                                    Back-off pulling image "docker.io/rocm/device-metrics-exporter:latest"
+default     2m54s       Warning   Failed                          pod/amd-gpu-operator-gpu-operator-charts-controller-manager-f4p59r9   Error: ImagePullBackOff
+default     74s         Warning   FailedPrepareDynamicResources   pod/virt-launcher-amd-managed-gpu-nic-2dlxq                           Failed to prepare dynamic resources: prepare dynamic resources: NodePrepareResources: rpc error: code = Unknown desc = prepare resource claims: no prepared devices found for pod c92e725e-f4eb-4fed-a62c-fc5a221be796
+default     68s         Normal    Pulled                          pod/default-node-labeller-x52h9                                       Container image "rocm/k8s-device-plugin:labeller-latest" already present on machine and can be accessed by the pod

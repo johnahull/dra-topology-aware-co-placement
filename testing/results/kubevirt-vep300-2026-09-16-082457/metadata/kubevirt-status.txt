@@ -1,0 +1,4 @@
+## feature/vep-300-managed-dra-claims...origin/main [ahead 48]
+ M pkg/virt-launcher/virtwrap/device/hostdevice/sriov/BUILD.bazel
+ M pkg/virt-launcher/virtwrap/device/hostdevice/sriov/hostdev.go
+ M staging/src/kubevirt.io/client-go/api/openapi_generated.go

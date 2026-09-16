@@ -1,0 +1,74 @@
+hack/dockerized "hack/bazel-fmt.sh && CI= ARTIFACTS=/home/jhull/devel/dra-topology-aware-co-placement/testing/results/kubevirt-vep300-2026-09-16-082457/tests/bazel WHAT=//pkg/dra/... //pkg/managed-claim/... //pkg/virt-config/... //pkg/virt-controller/watch/vmi/... //pkg/virt-launcher/virtwrap/device/hostdevice/dra/... //pkg/virt-launcher/virtwrap/device/hostdevice/sriov/...  hack/bazel-test.sh"
+go version go1.26.6 linux/amd64
+
+46da0b26339d7acbff338b621711ee6c4f3911f5e98ea184a9f6566f1e8f48a3
+go version go1.26.6 linux/amd64
+Sandbox is up to date
+Another command holds the client lock: 
+pid=9
+owner=client
+cwd=/root/go/src/kubevirt.io/kubevirt
+
+Waiting for it to complete...
+Another command (pid=9) is running. Waiting for it to complete on the server (server_pid=13)...
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //vendor/mvdan.cc/sh/v3/cmd/shfmt:shfmt (1 packages loaded, 0 targets configured)
+Analyzing: target //vendor/mvdan.cc/sh/v3/cmd/shfmt:shfmt (1 packages loaded, 0 targets configured)
+
+Analyzing: target //vendor/mvdan.cc/sh/v3/cmd/shfmt:shfmt (172 packages loaded, 3162 targets configured)
+
+INFO: Analyzed target //vendor/mvdan.cc/sh/v3/cmd/shfmt:shfmt (173 packages loaded, 9030 targets configured).
+INFO: Found 1 target...
+Target //vendor/mvdan.cc/sh/v3/cmd/shfmt:shfmt up-to-date:
+  bazel-bin/vendor/mvdan.cc/sh/v3/cmd/shfmt/shfmt_/shfmt
+INFO: Elapsed time: 5.488s, Critical Path: 0.25s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/vendor/mvdan.cc/sh/v3/cmd/shfmt/shfmt_/shfmt -i 4 -w /root/go/src/kubevirt.io/kubevirt/hack/ /root/go/src/kubevirt.io/kubevirt/images/
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //:gazelle (0 packages loaded, 0 targets configured)
+Analyzing: target //:gazelle (0 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //:gazelle (41 packages loaded, 1246 targets configured).
+INFO: Found 1 target...
+Target //:gazelle up-to-date:
+  bazel-bin/gazelle-runner.bash
+  bazel-bin/gazelle
+INFO: Elapsed time: 0.652s, Critical Path: 0.14s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/gazelle pkg/ tools/ tests/ cmd/
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //:goimports (0 packages loaded, 0 targets configured)
+Analyzing: target //:goimports (0 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //:goimports (11 packages loaded, 58 targets configured).
+INFO: Found 1 target...
+Target //:goimports up-to-date:
+  bazel-bin/goimports.bash
+INFO: Elapsed time: 0.255s, Critical Path: 0.02s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/goimports.bash
+Computing main repo mapping: 
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //:buildifier (0 packages loaded, 0 targets configured)
+Analyzing: target //:buildifier (0 packages loaded, 0 targets configured)
+
+INFO: Analyzed target //:buildifier (2 packages loaded, 4 targets configured).
+INFO: Found 1 target...
+Target //:buildifier up-to-date:
+  bazel-bin/buildifier.bash
+INFO: Elapsed time: 0.116s, Critical Path: 0.02s
+INFO: 1 process: 1 internal.
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/buildifier.bash
+/entrypoint.sh: line 11: //pkg/managed-claim/...: No such file or directory
+make: *** [Makefile:48: bazel-test] Error 1

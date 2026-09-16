@@ -1,0 +1,957 @@
+apiVersion: v1
+items:
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachine
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kubevirt.io/v1","kind":"VirtualMachine","metadata":{"annotations":{},"name":"amd-vfio-vm","namespace":"default"},"spec":{"runStrategy":"Always","template":{"spec":{"domain":{"cpu":{"cores":2},"devices":{"disks":[{"disk":{"bus":"virtio"},"name":"containerdisk"}],"gpus":[{"claimName":"vm-gpu","name":"amd-gpu-vf","requestName":"gpu"}],"interfaces":[{"masquerade":{},"name":"default"}],"rng":{}},"memory":{"guest":"4Gi"}},"networks":[{"name":"default","pod":{}}],"resourceClaims":[{"name":"vm-gpu","resourceClaimName":"vm-amd-vfio"}],"terminationGracePeriodSeconds":0,"volumes":[{"containerDisk":{"image":"quay.io/containerdisks/fedora:41"},"name":"containerdisk"}]}}}}
+      kubevirt.io/latest-observed-api-version: v1
+      kubevirt.io/storage-observed-api-version: v1
+    creationTimestamp: "2026-09-15T19:37:02Z"
+    finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+    generation: 5
+    name: amd-vfio-vm
+    namespace: default
+    resourceVersion: "41155"
+    uid: 4fed6623-a2b3-40cd-8904-fffb40fef984
+  spec:
+    runStrategy: Always
+    template:
+      metadata:
+        annotations:
+          kubevirt.io/pci-topology-version: v3
+      spec:
+        architecture: amd64
+        domain:
+          cpu:
+            cores: 2
+          devices:
+            disks:
+            - disk:
+                bus: virtio
+              name: containerdisk
+            gpus:
+            - claimName: vm-gpu
+              name: amd-gpu-vf
+              requestName: gpu
+            interfaces:
+            - masquerade: {}
+              name: default
+            rng: {}
+          firmware:
+            serial: 2a001b73-61ab-4719-a73c-e00df5162e57
+            uuid: 80ec8713-777c-46e6-8124-65c21e82c0e1
+          machine:
+            type: q35
+          memory:
+            guest: 4Gi
+          resources: {}
+        networks:
+        - name: default
+          pod: {}
+        resourceClaims:
+        - name: vm-gpu
+          resourceClaimName: vm-amd-vfio
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - containerDisk:
+            image: quay.io/containerdisks/fedora:41
+          name: containerdisk
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-15T20:05:56Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: VMI specifies a GPU but feature gate VGPULiveMigration is not enabled
+      reason: HostDeviceNotLiveMigratable
+      status: "False"
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'HostDeviceNotLiveMigratable: VMI specifies a GPU but feature gate
+        VGPULiveMigration is not enabled'
+      reason: NotMigratable
+      status: "False"
+      type: StorageLiveMigratable
+    - lastProbeTime: "2026-09-15T20:06:26Z"
+      lastTransitionTime: null
+      status: "True"
+      type: AgentConnected
+    created: true
+    desiredGeneration: 5
+    observedGeneration: 5
+    printableStatus: Running
+    ready: true
+    runStrategy: Always
+    volumeSnapshotStatuses:
+    - enabled: false
+      name: containerdisk
+      reason: Snapshot is not supported for this volumeSource type [containerdisk]
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachine
+  metadata:
+    annotations:
+      kubevirt.io/latest-observed-api-version: v1
+      kubevirt.io/storage-observed-api-version: v1
+    creationTimestamp: "2026-09-15T20:25:56Z"
+    finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+    generation: 3
+    name: amd-vfio-vm-2gpu
+    namespace: default
+    resourceVersion: "45780"
+    uid: b8e42d06-7e38-4da0-9938-8c693e74e44a
+  spec:
+    runStrategy: Always
+    template:
+      metadata:
+        annotations:
+          kubevirt.io/pci-topology-version: v3
+      spec:
+        architecture: amd64
+        domain:
+          cpu:
+            cores: 2
+          devices:
+            disks:
+            - disk:
+                bus: virtio
+              name: containerdisk
+            gpus:
+            - claimName: vm-gpu
+              name: amd-gpu-vf-0
+              requestName: gpu0
+            - claimName: vm-gpu
+              name: amd-gpu-vf-1
+              requestName: gpu1
+            interfaces:
+            - masquerade: {}
+              name: default
+            rng: {}
+          firmware:
+            serial: 2a001b73-61ab-4719-a73c-e00df5162e57
+            uuid: 7f2438d4-95ff-4524-93a0-b6481d99a2f3
+          machine:
+            type: q35
+          memory:
+            guest: 4Gi
+          resources: {}
+        networks:
+        - name: default
+          pod: {}
+        resourceClaims:
+        - name: vm-gpu
+          resourceClaimName: vm-amd-vfio-2gpu
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - containerDisk:
+            image: quay.io/containerdisks/fedora:41
+          name: containerdisk
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-15T20:27:05Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: VMI specifies too many GPUs
+      reason: HostDeviceNotLiveMigratable
+      status: "False"
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'HostDeviceNotLiveMigratable: VMI specifies too many GPUs'
+      reason: NotMigratable
+      status: "False"
+      type: StorageLiveMigratable
+    - lastProbeTime: "2026-09-15T20:27:46Z"
+      lastTransitionTime: null
+      status: "True"
+      type: AgentConnected
+    created: true
+    desiredGeneration: 3
+    observedGeneration: 3
+    printableStatus: Running
+    ready: true
+    runStrategy: Always
+    volumeSnapshotStatuses:
+    - enabled: false
+      name: containerdisk
+      reason: Snapshot is not supported for this volumeSource type [containerdisk]
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachine
+  metadata:
+    annotations:
+      kubevirt.io/latest-observed-api-version: v1
+      kubevirt.io/storage-observed-api-version: v1
+    creationTimestamp: "2026-09-15T20:28:52Z"
+    finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+    generation: 1
+    name: amd-vfio-vm-2gpu-numa
+    namespace: default
+    resourceVersion: "46282"
+    uid: 79c10a5e-bfd0-45c2-b6df-c52728bf1bf8
+  spec:
+    runStrategy: Always
+    template:
+      metadata:
+        annotations:
+          kubevirt.io/pci-topology-version: v3
+      spec:
+        architecture: amd64
+        domain:
+          cpu:
+            cores: 2
+          devices:
+            disks:
+            - disk:
+                bus: virtio
+              name: containerdisk
+            gpus:
+            - claimName: vm-gpu
+              name: amd-gpu-vf-0
+              requestName: gpu0
+            - claimName: vm-gpu
+              name: amd-gpu-vf-1
+              requestName: gpu1
+            interfaces:
+            - masquerade: {}
+              name: default
+            rng: {}
+          firmware:
+            serial: 2a001b73-61ab-4719-a73c-e00df5162e57
+            uuid: 8d54742a-2bc9-443d-807a-27503b9f35ea
+          machine:
+            type: q35
+          memory:
+            guest: 4Gi
+          resources: {}
+        networks:
+        - name: default
+          pod: {}
+        resourceClaims:
+        - name: vm-gpu
+          resourceClaimName: vm-amd-vfio-2gpu-numa
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - containerDisk:
+            image: quay.io/containerdisks/fedora:41
+          name: containerdisk
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-15T20:28:57Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: VMI specifies too many GPUs
+      reason: HostDeviceNotLiveMigratable
+      status: "False"
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'HostDeviceNotLiveMigratable: VMI specifies too many GPUs'
+      reason: NotMigratable
+      status: "False"
+      type: StorageLiveMigratable
+    - lastProbeTime: "2026-09-15T20:29:39Z"
+      lastTransitionTime: null
+      status: "True"
+      type: AgentConnected
+    created: true
+    desiredGeneration: 1
+    observedGeneration: 1
+    printableStatus: Running
+    ready: true
+    runStrategy: Always
+    volumeSnapshotStatuses:
+    - enabled: false
+      name: containerdisk
+      reason: Snapshot is not supported for this volumeSource type [containerdisk]
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachineInstance
+  metadata:
+    annotations:
+      kubevirt.io/latest-observed-api-version: v1
+      kubevirt.io/pci-topology-version: v3
+      kubevirt.io/storage-observed-api-version: v1
+      kubevirt.io/vm-generation: "5"
+    creationTimestamp: "2026-09-15T20:05:52Z"
+    finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+    - kubevirt.io/foregroundDeleteVirtualMachine
+    generation: 12
+    labels:
+      kubevirt.io/nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      kubevirt.io/outdatedLauncherImage: ""
+    name: amd-vfio-vm
+    namespace: default
+    ownerReferences:
+    - apiVersion: kubevirt.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: VirtualMachine
+      name: amd-vfio-vm
+      uid: 4fed6623-a2b3-40cd-8904-fffb40fef984
+    resourceVersion: "89908"
+    uid: c553453b-7829-4044-a1b5-3923fd53f8da
+  spec:
+    architecture: amd64
+    domain:
+      cpu:
+        cores: 2
+        model: host-model
+      devices:
+        disks:
+        - disk:
+            bus: virtio
+          name: containerdisk
+        gpus:
+        - claimName: vm-gpu
+          name: amd-gpu-vf
+          requestName: gpu
+        interfaces:
+        - masquerade: {}
+          name: default
+        rng: {}
+      features:
+        acpi:
+          enabled: true
+      firmware:
+        serial: 2a001b73-61ab-4719-a73c-e00df5162e57
+        uuid: 80ec8713-777c-46e6-8124-65c21e82c0e1
+      machine:
+        type: q35
+      memory:
+        guest: 4Gi
+        maxGuest: 16Gi
+      resources: {}
+    evictionStrategy: None
+    networks:
+    - name: default
+      pod: {}
+    resourceClaims:
+    - name: vm-gpu
+      resourceClaimName: vm-amd-vfio
+    terminationGracePeriodSeconds: 0
+    volumes:
+    - containerDisk:
+        image: quay.io/containerdisks/fedora:41
+        imagePullPolicy: IfNotPresent
+      name: containerdisk
+  status:
+    activePods:
+      a3daed96-93ac-43c8-997b-0091188bb8e2: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-15T20:05:56Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: VMI specifies a GPU but feature gate VGPULiveMigration is not enabled
+      reason: HostDeviceNotLiveMigratable
+      status: "False"
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'HostDeviceNotLiveMigratable: VMI specifies a GPU but feature gate
+        VGPULiveMigration is not enabled'
+      reason: NotMigratable
+      status: "False"
+      type: StorageLiveMigratable
+    - lastProbeTime: "2026-09-15T20:06:26Z"
+      lastTransitionTime: null
+      status: "True"
+      type: AgentConnected
+    currentCPUTopology:
+      cores: 2
+    guestOSInfo:
+      id: fedora
+      kernelRelease: 6.11.4-301.fc41.x86_64
+      kernelVersion: '#1 SMP PREEMPT_DYNAMIC Sun Oct 20 15:02:33 UTC 2024'
+      machine: x86_64
+      name: Fedora Linux
+      prettyName: Fedora Linux 41 (Cloud Edition)
+      version: 41 (Cloud Edition)
+      versionId: "41"
+    interfaces:
+    - infoSource: domain, guest-agent
+      interfaceName: enp1s0
+      ipAddress: 10.244.0.41
+      ipAddresses:
+      - 10.244.0.41
+      linkState: up
+      mac: da:6e:47:e8:9f:c8
+      name: default
+      podInterfaceName: eth0
+      queueCount: 1
+    launcherContainerImageVersion: quay.io/kubevirt/virt-launcher:v1.9.0
+    machine:
+      type: pc-q35-rhel9.8.0
+    memory:
+      guestAtBoot: 4Gi
+      guestCurrent: 4Gi
+      guestRequested: 4Gi
+      memoryOverhead: 1300Mi
+    migrationMethod: BlockMigration
+    migrationTransport: Unix
+    nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    phase: Running
+    phaseTransitionTimestamps:
+    - phase: Pending
+      phaseTransitionTimestamp: "2026-09-15T20:05:52Z"
+    - phase: Scheduling
+      phaseTransitionTimestamp: "2026-09-15T20:05:52Z"
+    - phase: Scheduled
+      phaseTransitionTimestamp: "2026-09-15T20:05:56Z"
+    - phase: Running
+      phaseTransitionTimestamp: "2026-09-15T20:05:59Z"
+    qosClass: Burstable
+    runtimeUser: 107
+    selinuxContext: system_u:object_r:container_file_t:s0
+    virtualMachineRevisionName: revision-start-vm-4fed6623-a2b3-40cd-8904-fffb40fef984-5
+    volumeStatus:
+    - name: containerdisk
+      target: vda
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachineInstance
+  metadata:
+    annotations:
+      kubevirt.io/latest-observed-api-version: v1
+      kubevirt.io/pci-topology-version: v3
+      kubevirt.io/storage-observed-api-version: v1
+      kubevirt.io/vm-generation: "3"
+    creationTimestamp: "2026-09-15T20:27:00Z"
+    finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+    - kubevirt.io/foregroundDeleteVirtualMachine
+    generation: 11
+    labels:
+      kubevirt.io/nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      kubevirt.io/outdatedLauncherImage: ""
+    name: amd-vfio-vm-2gpu
+    namespace: default
+    ownerReferences:
+    - apiVersion: kubevirt.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: VirtualMachine
+      name: amd-vfio-vm-2gpu
+      uid: b8e42d06-7e38-4da0-9938-8c693e74e44a
+    resourceVersion: "89598"
+    uid: 307360b2-070b-4ceb-96ae-a2eef518958f
+  spec:
+    architecture: amd64
+    domain:
+      cpu:
+        cores: 2
+        model: host-model
+      devices:
+        disks:
+        - disk:
+            bus: virtio
+          name: containerdisk
+        gpus:
+        - claimName: vm-gpu
+          name: amd-gpu-vf-0
+          requestName: gpu0
+        - claimName: vm-gpu
+          name: amd-gpu-vf-1
+          requestName: gpu1
+        interfaces:
+        - masquerade: {}
+          name: default
+        rng: {}
+      features:
+        acpi:
+          enabled: true
+      firmware:
+        serial: 2a001b73-61ab-4719-a73c-e00df5162e57
+        uuid: 7f2438d4-95ff-4524-93a0-b6481d99a2f3
+      machine:
+        type: q35
+      memory:
+        guest: 4Gi
+        maxGuest: 16Gi
+      resources: {}
+    evictionStrategy: None
+    networks:
+    - name: default
+      pod: {}
+    resourceClaims:
+    - name: vm-gpu
+      resourceClaimName: vm-amd-vfio-2gpu
+    terminationGracePeriodSeconds: 0
+    volumes:
+    - containerDisk:
+        image: quay.io/containerdisks/fedora:41
+        imagePullPolicy: IfNotPresent
+      name: containerdisk
+  status:
+    activePods:
+      c8e68f7e-84e5-440d-a89d-c3ef2ad4e897: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-15T20:27:05Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: VMI specifies too many GPUs
+      reason: HostDeviceNotLiveMigratable
+      status: "False"
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'HostDeviceNotLiveMigratable: VMI specifies too many GPUs'
+      reason: NotMigratable
+      status: "False"
+      type: StorageLiveMigratable
+    - lastProbeTime: "2026-09-15T20:27:46Z"
+      lastTransitionTime: null
+      status: "True"
+      type: AgentConnected
+    currentCPUTopology:
+      cores: 2
+    guestOSInfo:
+      id: fedora
+      kernelRelease: 6.11.4-301.fc41.x86_64
+      kernelVersion: '#1 SMP PREEMPT_DYNAMIC Sun Oct 20 15:02:33 UTC 2024'
+      machine: x86_64
+      name: Fedora Linux
+      prettyName: Fedora Linux 41 (Cloud Edition)
+      version: 41 (Cloud Edition)
+      versionId: "41"
+    interfaces:
+    - infoSource: domain, guest-agent
+      interfaceName: enp1s0
+      ipAddress: 10.244.0.43
+      ipAddresses:
+      - 10.244.0.43
+      linkState: up
+      mac: b6:ed:24:b1:44:5c
+      name: default
+      podInterfaceName: eth0
+      queueCount: 1
+    launcherContainerImageVersion: quay.io/kubevirt/virt-launcher:v1.9.0
+    machine:
+      type: pc-q35-rhel9.8.0
+    memory:
+      guestAtBoot: 4Gi
+      guestCurrent: 4Gi
+      guestRequested: 4Gi
+      memoryOverhead: 1300Mi
+    migrationMethod: BlockMigration
+    migrationTransport: Unix
+    nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    phase: Running
+    phaseTransitionTimestamps:
+    - phase: Pending
+      phaseTransitionTimestamp: "2026-09-15T20:27:00Z"
+    - phase: Scheduling
+      phaseTransitionTimestamp: "2026-09-15T20:27:00Z"
+    - phase: Scheduled
+      phaseTransitionTimestamp: "2026-09-15T20:27:05Z"
+    - phase: Running
+      phaseTransitionTimestamp: "2026-09-15T20:27:09Z"
+    qosClass: Burstable
+    runtimeUser: 107
+    selinuxContext: system_u:object_r:container_file_t:s0
+    virtualMachineRevisionName: revision-start-vm-b8e42d06-7e38-4da0-9938-8c693e74e44a-3
+    volumeStatus:
+    - name: containerdisk
+      target: vda
+- apiVersion: kubevirt.io/v1
+  kind: VirtualMachineInstance
+  metadata:
+    annotations:
+      kubevirt.io/latest-observed-api-version: v1
+      kubevirt.io/pci-topology-version: v3
+      kubevirt.io/storage-observed-api-version: v1
+      kubevirt.io/vm-generation: "1"
+    creationTimestamp: "2026-09-15T20:28:52Z"
+    finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+    - kubevirt.io/foregroundDeleteVirtualMachine
+    generation: 11
+    labels:
+      kubevirt.io/nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+      kubevirt.io/outdatedLauncherImage: ""
+    name: amd-vfio-vm-2gpu-numa
+    namespace: default
+    ownerReferences:
+    - apiVersion: kubevirt.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: VirtualMachine
+      name: amd-vfio-vm-2gpu-numa
+      uid: 79c10a5e-bfd0-45c2-b6df-c52728bf1bf8
+    resourceVersion: "89567"
+    uid: eb054d72-e136-4d32-bf94-12ca62f17fd8
+  spec:
+    architecture: amd64
+    domain:
+      cpu:
+        cores: 2
+        model: host-model
+      devices:
+        disks:
+        - disk:
+            bus: virtio
+          name: containerdisk
+        gpus:
+        - claimName: vm-gpu
+          name: amd-gpu-vf-0
+          requestName: gpu0
+        - claimName: vm-gpu
+          name: amd-gpu-vf-1
+          requestName: gpu1
+        interfaces:
+        - masquerade: {}
+          name: default
+        rng: {}
+      features:
+        acpi:
+          enabled: true
+      firmware:
+        serial: 2a001b73-61ab-4719-a73c-e00df5162e57
+        uuid: 8d54742a-2bc9-443d-807a-27503b9f35ea
+      machine:
+        type: q35
+      memory:
+        guest: 4Gi
+        maxGuest: 16Gi
+      resources: {}
+    evictionStrategy: None
+    networks:
+    - name: default
+      pod: {}
+    resourceClaims:
+    - name: vm-gpu
+      resourceClaimName: vm-amd-vfio-2gpu-numa
+    terminationGracePeriodSeconds: 0
+    volumes:
+    - containerDisk:
+        image: quay.io/containerdisks/fedora:41
+        imagePullPolicy: IfNotPresent
+      name: containerdisk
+  status:
+    activePods:
+      1b05effb-d4b4-4861-9bb8-09e083f0f93c: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2026-09-15T20:28:57Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: VMI specifies too many GPUs
+      reason: HostDeviceNotLiveMigratable
+      status: "False"
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'HostDeviceNotLiveMigratable: VMI specifies too many GPUs'
+      reason: NotMigratable
+      status: "False"
+      type: StorageLiveMigratable
+    - lastProbeTime: "2026-09-15T20:29:39Z"
+      lastTransitionTime: null
+      status: "True"
+      type: AgentConnected
+    currentCPUTopology:
+      cores: 2
+    guestOSInfo:
+      id: fedora
+      kernelRelease: 6.11.4-301.fc41.x86_64
+      kernelVersion: '#1 SMP PREEMPT_DYNAMIC Sun Oct 20 15:02:33 UTC 2024'
+      machine: x86_64
+      name: Fedora Linux
+      prettyName: Fedora Linux 41 (Cloud Edition)
+      version: 41 (Cloud Edition)
+      versionId: "41"
+    interfaces:
+    - infoSource: domain, guest-agent
+      interfaceName: enp1s0
+      ipAddress: 10.244.0.44
+      ipAddresses:
+      - 10.244.0.44
+      linkState: up
+      mac: 82:6b:ea:d8:b8:ac
+      name: default
+      podInterfaceName: eth0
+      queueCount: 1
+    launcherContainerImageVersion: quay.io/kubevirt/virt-launcher:v1.9.0
+    machine:
+      type: pc-q35-rhel9.8.0
+    memory:
+      guestAtBoot: 4Gi
+      guestCurrent: 4Gi
+      guestRequested: 4Gi
+      memoryOverhead: 1300Mi
+    migrationMethod: BlockMigration
+    migrationTransport: Unix
+    nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    phase: Running
+    phaseTransitionTimestamps:
+    - phase: Pending
+      phaseTransitionTimestamp: "2026-09-15T20:28:52Z"
+    - phase: Scheduling
+      phaseTransitionTimestamp: "2026-09-15T20:28:52Z"
+    - phase: Scheduled
+      phaseTransitionTimestamp: "2026-09-15T20:28:57Z"
+    - phase: Running
+      phaseTransitionTimestamp: "2026-09-15T20:29:00Z"
+    qosClass: Burstable
+    runtimeUser: 107
+    selinuxContext: system_u:object_r:container_file_t:s0
+    virtualMachineRevisionName: revision-start-vm-79c10a5e-bfd0-45c2-b6df-c52728bf1bf8-1
+    volumeStatus:
+    - name: containerdisk
+      target: vda
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceClaim
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"resource.k8s.io/v1","kind":"ResourceClaim","metadata":{"annotations":{},"name":"gpu-vf-claim","namespace":"default"},"spec":{"devices":{}}}
+    creationTimestamp: "2026-09-15T18:10:48Z"
+    name: gpu-vf-claim
+    namespace: default
+    resourceVersion: "8893"
+    uid: 392769b2-1357-43d6-b90d-988e1c10b82c
+  spec:
+    devices:
+      requests: null
+  status: {}
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceClaim
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"resource.k8s.io/v1","kind":"ResourceClaim","metadata":{"annotations":{},"name":"vm-amd-vfio","namespace":"default"},"spec":{"devices":{"config":[{"opaque":{"driver":"gpu.amd.com","parameters":{"apiVersion":"gpu.resource.amd.com/v1alpha1","iommu":{"backendPolicy":"LegacyOnly"},"kind":"VfioDeviceConfig"}},"requests":["gpu"]}],"requests":[{"exactly":{"count":1,"deviceClassName":"gpu.amd.com","selectors":[{"cel":{"expression":"device.attributes[\"gpu.amd.com\"].type == \"vfio\" \u0026\u0026 device.attributes[\"gpu.amd.com\"].isVF == true"}}]},"name":"gpu"}]}}}
+    creationTimestamp: "2026-09-15T20:05:52Z"
+    finalizers:
+    - resource.kubernetes.io/delete-protection
+    name: vm-amd-vfio
+    namespace: default
+    resourceVersion: "40986"
+    uid: dc211029-30ef-4f3e-b389-a7b7f9ceb2d3
+  spec:
+    devices:
+      config:
+      - opaque:
+          driver: gpu.amd.com
+          parameters:
+            apiVersion: gpu.resource.amd.com/v1alpha1
+            iommu:
+              backendPolicy: LegacyOnly
+            kind: VfioDeviceConfig
+        requests:
+        - gpu
+      requests:
+      - exactly:
+          allocationMode: ExactCount
+          count: 1
+          deviceClassName: gpu.amd.com
+          selectors:
+          - cel:
+              expression: device.attributes["gpu.amd.com"].type == "vfio" && device.attributes["gpu.amd.com"].isVF
+                == true
+        name: gpu
+  status:
+    allocation:
+      allocationTimestamp: "2026-09-15T20:05:52Z"
+      devices:
+        config:
+        - opaque:
+            driver: gpu.amd.com
+            parameters:
+              apiVersion: gpu.resource.amd.com/v1alpha1
+              iommu:
+                backendPolicy: LegacyOnly
+              kind: VfioDeviceConfig
+          source: FromClaim
+        results:
+        - device: gpu-vfio-0
+          driver: gpu.amd.com
+          pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+          request: gpu
+      nodeSelector:
+        nodeSelectorTerms:
+        - matchFields:
+          - key: metadata.name
+            operator: In
+            values:
+            - j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    reservedFor:
+    - name: virt-launcher-amd-vfio-vm-kw55p
+      resource: pods
+      uid: a3daed96-93ac-43c8-997b-0091188bb8e2
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceClaim
+  metadata:
+    creationTimestamp: "2026-09-15T20:27:00Z"
+    finalizers:
+    - resource.kubernetes.io/delete-protection
+    name: vm-amd-vfio-2gpu
+    namespace: default
+    resourceVersion: "45574"
+    uid: 0f32b9d5-7e29-4805-9ccb-1b5f4b632804
+  spec:
+    devices:
+      config:
+      - opaque:
+          driver: gpu.amd.com
+          parameters:
+            apiVersion: gpu.resource.amd.com/v1alpha1
+            iommu:
+              backendPolicy: LegacyOnly
+            kind: VfioDeviceConfig
+        requests:
+        - gpu0
+        - gpu1
+      requests:
+      - exactly:
+          allocationMode: ExactCount
+          count: 1
+          deviceClassName: gpu.amd.com
+          selectors:
+          - cel:
+              expression: device.attributes["gpu.amd.com"].type == "vfio" && device.attributes["gpu.amd.com"].isVF
+                == true
+        name: gpu0
+      - exactly:
+          allocationMode: ExactCount
+          count: 1
+          deviceClassName: gpu.amd.com
+          selectors:
+          - cel:
+              expression: device.attributes["gpu.amd.com"].type == "vfio" && device.attributes["gpu.amd.com"].isVF
+                == true
+        name: gpu1
+  status:
+    allocation:
+      allocationTimestamp: "2026-09-15T20:27:00Z"
+      devices:
+        config:
+        - opaque:
+            driver: gpu.amd.com
+            parameters:
+              apiVersion: gpu.resource.amd.com/v1alpha1
+              iommu:
+                backendPolicy: LegacyOnly
+              kind: VfioDeviceConfig
+          source: FromClaim
+        results:
+        - device: gpu-vfio-1
+          driver: gpu.amd.com
+          pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+          request: gpu0
+        - device: gpu-vfio-2
+          driver: gpu.amd.com
+          pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+          request: gpu1
+      nodeSelector:
+        nodeSelectorTerms:
+        - matchFields:
+          - key: metadata.name
+            operator: In
+            values:
+            - j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    reservedFor:
+    - name: virt-launcher-amd-vfio-vm-2gpu-z8h9s
+      resource: pods
+      uid: c8e68f7e-84e5-440d-a89d-c3ef2ad4e897
+- apiVersion: resource.k8s.io/v1
+  kind: ResourceClaim
+  metadata:
+    creationTimestamp: "2026-09-15T20:28:52Z"
+    finalizers:
+    - resource.kubernetes.io/delete-protection
+    name: vm-amd-vfio-2gpu-numa
+    namespace: default
+    resourceVersion: "46025"
+    uid: 12a42bb1-1c2e-47e9-b38a-f4fce18325ba
+  spec:
+    devices:
+      config:
+      - opaque:
+          driver: gpu.amd.com
+          parameters:
+            apiVersion: gpu.resource.amd.com/v1alpha1
+            iommu:
+              backendPolicy: LegacyOnly
+            kind: VfioDeviceConfig
+        requests:
+        - gpu0
+        - gpu1
+      constraints:
+      - matchAttribute: gpu.amd.com/numaNode
+        requests:
+        - gpu0
+        - gpu1
+      requests:
+      - exactly:
+          allocationMode: ExactCount
+          count: 1
+          deviceClassName: gpu.amd.com
+          selectors:
+          - cel:
+              expression: device.attributes["gpu.amd.com"].type == "vfio" && device.attributes["gpu.amd.com"].isVF
+                == true
+        name: gpu0
+      - exactly:
+          allocationMode: ExactCount
+          count: 1
+          deviceClassName: gpu.amd.com
+          selectors:
+          - cel:
+              expression: device.attributes["gpu.amd.com"].type == "vfio" && device.attributes["gpu.amd.com"].isVF
+                == true
+        name: gpu1
+  status:
+    allocation:
+      allocationTimestamp: "2026-09-15T20:28:52Z"
+      devices:
+        config:
+        - opaque:
+            driver: gpu.amd.com
+            parameters:
+              apiVersion: gpu.resource.amd.com/v1alpha1
+              iommu:
+                backendPolicy: LegacyOnly
+              kind: VfioDeviceConfig
+          source: FromClaim
+        results:
+        - device: gpu-vfio-3
+          driver: gpu.amd.com
+          pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+          request: gpu0
+        - device: gpu-vfio-6
+          driver: gpu.amd.com
+          pool: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+          request: gpu1
+      nodeSelector:
+        nodeSelectorTerms:
+        - matchFields:
+          - key: metadata.name
+            operator: In
+            values:
+            - j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+    reservedFor:
+    - name: virt-launcher-amd-vfio-vm-2gpu-numa-5m6zp
+      resource: pods
+      uid: 1b05effb-d4b4-4861-9bb8-09e083f0f93c
+kind: List
+metadata:
+  resourceVersion: ""

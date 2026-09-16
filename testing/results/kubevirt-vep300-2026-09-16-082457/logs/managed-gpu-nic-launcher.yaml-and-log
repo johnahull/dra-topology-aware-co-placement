@@ -1,0 +1,401 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    descheduler.alpha.kubernetes.io/request-evict-only: ""
+    istio.io/reroute-virtual-interfaces: k6t-eth0
+    kubectl.kubernetes.io/default-container: compute
+    kubevirt.io/domain: amd-managed-gpu-nic
+    kubevirt.io/memory-overhead-bytes: "1379926016"
+    kubevirt.io/migrationTransportUnix: "true"
+    kubevirt.io/pci-topology-version: v3
+    post.hook.backup.velero.io/command: '["/usr/bin/virt-freezer", "--unfreeze", "--name",
+      "amd-managed-gpu-nic", "--namespace", "default"]'
+    post.hook.backup.velero.io/container: compute
+    pre.hook.backup.velero.io/command: '["/usr/bin/virt-freezer", "--freeze", "--name",
+      "amd-managed-gpu-nic", "--namespace", "default"]'
+    pre.hook.backup.velero.io/container: compute
+    pre.hook.backup.velero.io/timeout: 60s
+    traffic.sidecar.istio.io/kubevirtInterfaces: k6t-eth0
+  creationTimestamp: "2026-09-16T13:35:08Z"
+  generateName: virt-launcher-amd-managed-gpu-nic-
+  generation: 1
+  labels:
+    kubevirt.io: virt-launcher
+    kubevirt.io/created-by: 61595f64-05f7-4d95-b20c-2aaeb150bba7
+    vm.kubevirt.io/name: amd-managed-gpu-nic
+    vmi.kubevirt.io/id: amd-managed-gpu-nic
+  name: virt-launcher-amd-managed-gpu-nic-vjxnn
+  namespace: default
+  ownerReferences:
+  - apiVersion: kubevirt.io/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: VirtualMachineInstance
+    name: amd-managed-gpu-nic
+    uid: 61595f64-05f7-4d95-b20c-2aaeb150bba7
+  resourceVersion: "273304"
+  uid: dacc268f-6334-4d25-8e72-589aac75badd
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node-labeller.kubevirt.io/obsolete-host-model
+            operator: DoesNotExist
+  automountServiceAccountToken: false
+  containers:
+  - args:
+    - --qemu-timeout
+    - 322s
+    - --name
+    - amd-managed-gpu-nic
+    - --uid
+    - 61595f64-05f7-4d95-b20c-2aaeb150bba7
+    - --namespace
+    - default
+    - --kubevirt-share-dir
+    - /var/run/kubevirt
+    - --ephemeral-disk-dir
+    - /var/run/kubevirt-ephemeral-disks
+    - --container-disk-dir
+    - /var/run/kubevirt/container-disks
+    - --grace-period-seconds
+    - "15"
+    - --hook-sidecars
+    - "0"
+    - --ovmf-path
+    - /usr/share/edk2/ovmf
+    - --disk-memory-limit
+    - "2097152000"
+    - --hypervisor
+    - kvm
+    - --run-as-nonroot
+    - --image-volume
+    command:
+    - /usr/bin/virt-launcher-monitor
+    env:
+    - name: XDG_CACHE_HOME
+      value: /var/run/kubevirt-private
+    - name: XDG_CONFIG_HOME
+      value: /var/run/kubevirt-private
+    - name: XDG_RUNTIME_DIR
+      value: /var/run
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: metadata.name
+    image: localhost:5000/kubevirt/virt-launcher:vep300
+    imagePullPolicy: IfNotPresent
+    name: compute
+    resources:
+      claims:
+      - name: gpu-nic
+        request: gpu0
+      - name: gpu-nic
+        request: nic0
+      limits:
+        devices.kubevirt.io/kvm: "1"
+        devices.kubevirt.io/tun: "1"
+        devices.kubevirt.io/vhost-net: "1"
+      requests:
+        cpu: 100m
+        devices.kubevirt.io/kvm: "1"
+        devices.kubevirt.io/tun: "1"
+        devices.kubevirt.io/vhost-net: "1"
+        ephemeral-storage: 50M
+        memory: 3364Mi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        add:
+        - NET_BIND_SERVICE
+        drop:
+        - ALL
+      runAsGroup: 107
+      runAsNonRoot: true
+      runAsUser: 107
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: FallbackToLogsOnError
+    volumeMounts:
+    - mountPath: /var/run/kubevirt-private
+      name: private
+    - mountPath: /var/run/kubevirt
+      name: public
+    - mountPath: /var/run/kubevirt-ephemeral-disks
+      name: ephemeral-disks
+    - mountPath: /var/run/libvirt
+      name: libvirt-runtime
+    - mountPath: /var/run/kubevirt/sockets
+      name: sockets
+    - mountPath: /var/run/kubevirt-image-volume/disk_0
+      name: containerdisk
+      readOnly: true
+    - mountPath: /var/run/kubevirt/hotplug-disks
+      mountPropagation: HostToContainer
+      name: hotplug-disks
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: false
+  hostname: amd-managed-gpu-nic
+  initContainers:
+  - args:
+    - --logfile
+    - /var/run/kubevirt-private/61595f64-05f7-4d95-b20c-2aaeb150bba7/virt-serial0-log
+    command:
+    - /usr/bin/virt-tail
+    env:
+    - name: VIRT_LAUNCHER_LOG_VERBOSITY
+      value: "2"
+    image: localhost:5000/kubevirt/virt-launcher:vep300
+    imagePullPolicy: IfNotPresent
+    name: guest-console-log
+    resources:
+      limits:
+        cpu: 15m
+        memory: 60M
+      requests:
+        cpu: 5m
+        memory: 35M
+    restartPolicy: Always
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 107
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/kubevirt-private
+      name: private
+      readOnly: true
+  - args:
+    - --no-op
+    command:
+    - /container-disk-binary/usr/bin/container-disk
+    image: quay.io/containerdisks/fedora:42
+    imagePullPolicy: IfNotPresent
+    name: volumecontainerdisk
+    resources:
+      limits:
+        cpu: 10m
+        memory: 40M
+      requests:
+        cpu: 1m
+        ephemeral-storage: 50M
+        memory: 1M
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 107
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /container-disk-binary
+      name: launcher-volume
+      readOnly: true
+  nodeName: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+  nodeSelector:
+    kubernetes.io/arch: amd64
+    kubevirt.io/schedulable: "true"
+    machine-type.node.kubevirt.io/q35: "true"
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  readinessGates:
+  - conditionType: kubevirt.io/virtual-machine-unpaused
+  resourceClaims:
+  - name: gpu-nic
+    resourceClaimName: amd-managed-gpu-nic-gpu-nic
+  restartPolicy: Never
+  schedulerName: default-scheduler
+  securityContext:
+    fsGroup: 107
+    runAsGroup: 107
+    runAsNonRoot: true
+    runAsUser: 107
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - emptyDir: {}
+    name: private
+  - emptyDir: {}
+    name: public
+  - emptyDir: {}
+    name: sockets
+  - emptyDir: {}
+    name: virt-bin-share-dir
+  - emptyDir: {}
+    name: libvirt-runtime
+  - emptyDir: {}
+    name: ephemeral-disks
+  - image:
+      pullPolicy: IfNotPresent
+      reference: quay.io/containerdisks/fedora:42
+    name: containerdisk
+  - image:
+      pullPolicy: IfNotPresent
+      reference: localhost:5000/kubevirt/virt-launcher:vep300
+    name: launcher-volume
+  - emptyDir: {}
+    name: hotplug-disks
+status:
+  allocatedResources:
+    cpu: 105m
+    devices.kubevirt.io/kvm: "1"
+    devices.kubevirt.io/tun: "1"
+    devices.kubevirt.io/vhost-net: "1"
+    ephemeral-storage: 50M
+    memory: "3562409664"
+  conditions:
+  - lastProbeTime: "2026-09-16T13:35:08Z"
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    message: the virtual machine is not paused
+    reason: NotPaused
+    status: "True"
+    type: kubevirt.io/virtual-machine-unpaused
+  - lastProbeTime: null
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    message: no pod sandbox exists
+    observedGeneration: 1
+    reason: PodSandboxNotReady
+    status: "False"
+    type: PodReadyToStartContainers
+  - lastProbeTime: null
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    message: 'containers with incomplete status: [guest-console-log volumecontainerdisk]'
+    observedGeneration: 1
+    reason: ContainersNotInitialized
+    status: "False"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    message: 'containers with unready status: [guest-console-log compute]'
+    observedGeneration: 1
+    reason: ContainersNotReady
+    status: "False"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    message: 'containers with unready status: [guest-console-log compute]'
+    observedGeneration: 1
+    reason: ContainersNotReady
+    status: "False"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2026-09-16T13:35:08Z"
+    observedGeneration: 1
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - allocatedResourcesStatus:
+    - name: devices.kubevirt.io/kvm
+      resources:
+      - health: Healthy
+        resourceID: kvm153
+    - name: devices.kubevirt.io/tun
+      resources:
+      - health: Healthy
+        resourceID: tun113
+    - name: devices.kubevirt.io/vhost-net
+      resources:
+      - health: Healthy
+        resourceID: vhost-net971
+    - name: claim:gpu-nic/gpu0
+      resources:
+      - health: Unknown
+        resourceID: k8s.gpu.amd.com/gpu=common
+    image: localhost:5000/kubevirt/virt-launcher:vep300
+    imageID: ""
+    lastState: {}
+    name: compute
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      waiting:
+        reason: PodInitializing
+    volumeMounts:
+    - mountPath: /var/run/kubevirt-private
+      name: private
+    - mountPath: /var/run/kubevirt
+      name: public
+    - mountPath: /var/run/kubevirt-ephemeral-disks
+      name: ephemeral-disks
+    - mountPath: /var/run/libvirt
+      name: libvirt-runtime
+    - mountPath: /var/run/kubevirt/sockets
+      name: sockets
+    - mountPath: /var/run/kubevirt-image-volume/disk_0
+      name: containerdisk
+      readOnly: true
+      recursiveReadOnly: Disabled
+    - mountPath: /var/run/kubevirt/hotplug-disks
+      name: hotplug-disks
+  hostIP: 10.6.62.52
+  hostIPs:
+  - ip: 10.6.62.52
+  initContainerStatuses:
+  - image: localhost:5000/kubevirt/virt-launcher:vep300
+    imageID: ""
+    lastState: {}
+    name: guest-console-log
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      waiting:
+        reason: PodInitializing
+    volumeMounts:
+    - mountPath: /var/run/kubevirt-private
+      name: private
+      readOnly: true
+      recursiveReadOnly: Disabled
+  - image: quay.io/containerdisks/fedora:42
+    imageID: ""
+    lastState: {}
+    name: volumecontainerdisk
+    ready: false
+    restartCount: 0
+    started: false
+    state:
+      waiting:
+        reason: PodInitializing
+    volumeMounts:
+    - mountPath: /container-disk-binary
+      name: launcher-volume
+      readOnly: true
+      recursiveReadOnly: Disabled
+  observedGeneration: 1
+  phase: Pending
+  qosClass: Burstable
+  resources:
+    limits:
+      cpu: 25m
+      devices.kubevirt.io/kvm: "1"
+      devices.kubevirt.io/tun: "1"
+      devices.kubevirt.io/vhost-net: "1"
+      memory: 100M
+    requests:
+      cpu: 105m
+      devices.kubevirt.io/kvm: "1"
+      devices.kubevirt.io/tun: "1"
+      devices.kubevirt.io/vhost-net: "1"
+      ephemeral-storage: 50M
+      memory: "3562409664"
+  startTime: "2026-09-16T13:35:08Z"

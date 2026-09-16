@@ -1,0 +1,39 @@
+Filesystem                                     Size  Used Avail Use% Mounted on
+/dev/mapper/fedora_j42--h01--000--xe9680-root  445G   23G  422G   6% /
+devtmpfs                                      1008G     0 1008G   0% /dev
+tmpfs                                         1008G  168K 1008G   1% /dev/shm
+efivarfs                                       304K  144K  156K  48% /sys/firmware/efi/efivars
+tmpfs                                          404G  7.5M  404G   1% /run
+tmpfs                                         1008G  750M 1007G   1% /tmp
+none                                           1.0M     0  1.0M   0% /run/credentials/systemd-journald.service
+none                                           1.0M     0  1.0M   0% /run/credentials/systemd-resolved.service
+/dev/nvme0n1p2                                 1.7G  523M  1.2G  32% /boot
+/dev/nvme0n1p1                                 599M  7.9M  591M   2% /boot/efi
+none                                           1.0M     0  1.0M   0% /run/credentials/getty@tty1.service
+tmpfs                                          202G   16K  202G   1% /run/user/1000
+/dev/mapper/fedora_j42--h01--000--xe9680-root on / type xfs (rw,relatime,seclabel,inode64,logbufs=8,logbsize=32k,noquota)
+/dev/iommu=present
+/dev/vfio/vfio=present
+amd_vfio_pci           16384  0
+vfio_pci               20480  5
+vfio_pci_core         114688  2 amd_vfio_pci,vfio_pci
+vfio_iommu_type1       57344  3
+vfio                   86016  24 amd_vfio_pci,vfio_pci_core,vfio_iommu_type1,vfio_pci,gim
+iommufd               155648  1 vfio
+irqbypass              16384  2 vfio_pci_core,kvm
+0000:1b:02.0 /sys/devices/pci0000:15/0000:15:01.0/0000:16:00.0/0000:17:01.0/0000:19:00.0/0000:1a:00.0/0000:1b:02.0/driver
+0
+0000:3d:02.0 /sys/bus/pci/drivers/vfio-pci
+1
+0000:4e:02.0 /sys/devices/pci0000:48/0000:48:01.0/0000:49:00.0/0000:4a:01.0/0000:4c:00.0/0000:4d:00.0/0000:4e:02.0/driver
+1
+0000:5f:02.0 /sys/bus/pci/drivers/vfio-pci
+0
+0000:9d:02.0 /sys/bus/pci/drivers/vfio-pci
+2
+0000:bd:02.0 /sys/bus/pci/drivers/vfio-pci
+3
+0000:cd:02.0 /sys/bus/pci/drivers/vfio-pci
+3
+0000:dd:02.0 /sys/devices/pci0000:d7/0000:d7:01.0/0000:d8:00.0/0000:d9:01.0/0000:db:00.0/0000:dc:00.0/0000:dd:02.0/driver
+2

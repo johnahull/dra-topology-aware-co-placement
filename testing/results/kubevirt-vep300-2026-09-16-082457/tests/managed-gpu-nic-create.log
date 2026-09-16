@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubevirt.io/customizer-identifier: bf21a9e8fbc5a3846fb05b4fa0859e0917b2202f
+    kubevirt.io/generation: "4"
+    kubevirt.io/install-strategy-identifier: 2f9b0d3e48eade673ca586b66f7a364e72835aad
+    kubevirt.io/install-strategy-registry: localhost:5000/kubevirt
+    kubevirt.io/install-strategy-version: vep300
+  creationTimestamp: "2026-09-16T13:33:49Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/component: kubevirt
+    app.kubernetes.io/managed-by: virt-operator
+    app.kubernetes.io/name: virt-managed-claim-controller
+    app.kubernetes.io/version: vep300
+    kubevirt.io: virt-managed-claim-controller
+  name: virt-managed-claim-controller
+  namespace: kubevirt
+  resourceVersion: "272733"
+  uid: d9e6ddac-f5a1-48d5-be4e-9e010549623c
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      kubevirt.io: virt-managed-claim-controller
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/install-strategy-identifier: 2f9b0d3e48eade673ca586b66f7a364e72835aad
+        kubevirt.io/install-strategy-registry: localhost:5000/kubevirt
+        kubevirt.io/install-strategy-version: vep300
+        openshift.io/required-scc: restricted-v2
+      labels:
+        app.kubernetes.io/component: kubevirt
+        app.kubernetes.io/managed-by: virt-operator
+        app.kubernetes.io/version: vep300
+        kubevirt.io: virt-managed-claim-controller
+        np.kubevirt.io/allow-access-cluster-services: "true"
+      name: virt-managed-claim-controller
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: DoesNotExist
+            weight: 100
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: kubevirt.io
+                  operator: In
+                  values:
+                  - virt-managed-claim-controller
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - command:
+        - virt-managed-claim-controller
+        - --port
+        - "8080"
+        - -v
+        - "2"
+        image: localhost:5000/kubevirt/virt-managed-claim-controller:vep300
+        imagePullPolicy: IfNotPresent
+        name: virt-managed-claim-controller
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 5m
+            memory: 150Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - mountPath: /profile-data
+          name: profile-data
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: kubevirt-cluster-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount: kubevirt-managed-claim-controller
+      serviceAccountName: kubevirt-managed-claim-controller
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      volumes:
+      - emptyDir: {}
+        name: profile-data
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2026-09-16T13:34:11Z"
+    lastUpdateTime: "2026-09-16T13:34:11Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2026-09-16T13:33:49Z"
+    lastUpdateTime: "2026-09-16T13:34:11Z"
+    message: ReplicaSet "virt-managed-claim-controller-6dbc9877c7" has successfully
+      progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 1
+  readyReplicas: 2
+  replicas: 2
+  terminatingReplicas: 0
+  updatedReplicas: 2
+managedclaimprovisioner.kubevirt.io/vep300-gpu-nic-aligner created
+The request is invalid: spec.domain.devices.interfaces: DRA network "vfnet" requires a binding plugin interface
