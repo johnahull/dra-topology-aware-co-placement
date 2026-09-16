@@ -22,6 +22,12 @@ KubeVirt image: `localhost:5000/kubevirt/*:vep300`
 
 The managed-claim controller and Kubernetes scheduler correctly perform cross-driver PCI-root alignment. The failure is later, during kubelet DRA `NodePrepareResources`, in the deployed SR-IOV driver. The driver logs show the claim config as only `driver: vfio-pci`, but still issue `getNetAttachDefRawConfig(default/)`. This is independent of the successful GPU/NIC allocation and should be fixed or rebuilt in the SR-IOV driver before treating end-to-end VM launch as passing.
 
+## Root cause investigation
+
+The running binary was inspected with `go version -m` and was built from `github.com/k8snetworkplumbingwg/dra-driver-sriov` revision `6d50d18d284a...` with local modifications. That revision's `pkg/devicestate/state.go` unconditionally performs the standalone NAD lookup. The local co-placement branch contains the required change at `pkg/devicestate/state.go`: perform the lookup only when `config.NetAttachDefName != ""`. The deployed DaemonSet image was therefore built from the wrong checkout/commit, not from the fixed co-placement branch.
+
+The corrective deployment is to build the SR-IOV image from `/home/jhull/devel/dra-driver-sriov` (or the corresponding pushed branch), update the DaemonSet image, and rerun this VMI test. The existing source test run reached 93/94 passing; its one failure is an outdated expectation for empty `Requests` and is separate from the NAD lookup path.
+
 The AMD GPU DRA driver was not the failing component in this run. Existing AMD operator `ContainerStatusUnknown`/`ImagePullBackOff` pods were pre-existing environment noise and are captured in the baseline metadata.
 
 ## Archived evidence
