@@ -3,12 +3,14 @@ kind: VirtualMachineInstance
 metadata:
   name: amd-managed-gpu-nic
   namespace: default
+  annotations:
+    kubevirt.io/memfd: "false"
 spec:
   terminationGracePeriodSeconds: 0
   domain:
     resources:
       requests:
-        memory: 2Gi
+        memory: 4Gi
     devices:
       disks:
       - name: containerdisk
