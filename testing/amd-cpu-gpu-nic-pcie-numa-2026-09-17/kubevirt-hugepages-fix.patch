@@ -1,0 +1,32 @@
+diff --git a/pkg/virt-controller/services/template.go b/pkg/virt-controller/services/template.go
+--- a/pkg/virt-controller/services/template.go
++++ b/pkg/virt-controller/services/template.go
+@@ -1648,15 +1648,13 @@ func (t *TemplateService) VMIResourcePredicates(vmi *v1.VirtualMachineInstance,
+-			// When memory DRA is in play, hugepages allocation is owned by the
+-			// DRA driver (its NRI plugin sets hugetlb cgroup limits directly),
+-			// so mirroring the classic hugepages-* pod resource would
+-			// double-book against a driver that already assumes it owns that
+-			// accounting. WithMemoryOverhead takes over the QEMU/virtualization
+-			// overhead accounting that WithHugePages would otherwise fold into
+-			// resources.requests/limits.memory, so that accounting isn't lost.
+-			NewVMIResourceRule(func(vmi *v1.VirtualMachineInstance) bool {
+-				return hasHugePages(vmi) && !usesMemoryDRA
+-			}, WithHugePages(vmi.Spec.Domain.Memory, memoryOverhead)),
++			// Kubelet requires the hugepages-* pod resource whenever the
++			// HugePages emptyDir volumes below are present, including when
++			// memory placement/allocation is handled by DRA. The DRA claim and
++			// NRI plugin provide NUMA-aware allocation; this request provides
++			// kubelet's required hugepage volume accounting.
++			NewVMIResourceRule(func(vmi *v1.VirtualMachineInstance) bool {
++				return hasHugePages(vmi)
++			}, WithHugePages(vmi.Spec.Domain.Memory, memoryOverhead)),
+diff --git a/pkg/virt-controller/services/template_test.go b/pkg/virt-controller/services/template_test.go
+--- a/pkg/virt-controller/services/template_test.go
++++ b/pkg/virt-controller/services/template_test.go
+@@ -300,9 +300,9 @@ var _ = Describe("Template", func() {
+-				// The classic hugepages-* pod resource is skipped for the
+-				// memory-DRA path: dra-driver-memory owns that accounting.
+-				Expect(containers[0].Resources.Requests).ToNot(HaveKey(k8sv1.ResourceName(k8sv1.ResourceHugePagesPrefix + "1Gi")))
++				// Kubelet requires the hugepages-* pod resource for the
++				// HugePages emptyDir volumes even when DRA owns placement.
++				Expect(containers[0].Resources.Requests).To(HaveKey(k8sv1.ResourceName(k8sv1.ResourceHugePagesPrefix + "1Gi")))

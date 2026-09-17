@@ -1,0 +1,24 @@
+Observed on 2026-09-17:
+
+Node: j42-h01-000-xe9680.rdu3.labs.perfscale.redhat.com
+
+Hugepage pools:
+- node0: 16 x 1Gi
+- node1: 16 x 1Gi
+- node2: 16 x 1Gi
+- node3: 16 x 1Gi
+- Kubernetes allocatable: hugepages-1Gi=64Gi
+
+CPU ResourceSlice:
+- cpudevnuma000: NUMA 0; PCIe roots pci0000:00,pci0000:15,pci0000:26,pci0000:59,pci0000:75,pci0000:7e,pci0000:7f
+- cpudevnuma001: NUMA 1; PCIe roots pci0000:37,pci0000:48
+- cpudevnuma002: NUMA 2; PCIe roots pci0000:80,pci0000:97,pci0000:a7,pci0000:d7,pci0000:f2,pci0000:fe,pci0000:ff
+- cpudevnuma003: NUMA 3; PCIe roots pci0000:b7,pci0000:c7
+
+The SR-IOV ResourceSlice contains 16 ConnectX VFs. The AMD GPU ResourceSlices
+contain 8 VFIO GPU devices. Both drivers publish the standard
+resource.kubernetes.io/pcieRoot attribute.
+
+Feature gates:
+- KubeVirt: CPUsWithDRA, MemoryWithDRA, GPUsWithDRA, HostDevicesWithDRA, NetworkDevicesWithDRA
+- Scheduler: DRAListTypeAttributes=true
