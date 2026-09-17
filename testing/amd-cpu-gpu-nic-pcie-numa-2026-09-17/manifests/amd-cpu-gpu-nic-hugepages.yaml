@@ -9,7 +9,21 @@ spec:
       constraints:
       - matchAttribute: resource.kubernetes.io/pcieRoot
         requests: [gpu0, nic0]
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [cpu, mem]
       requests:
+      - name: cpu
+        exactly:
+          deviceClassName: dra.cpu
+          capacity:
+            requests:
+              dra.cpu/cpu: "4"
+      - name: mem
+        exactly:
+          deviceClassName: dra.hugepages-1g
+          capacity:
+            requests:
+              size: 4Gi
       - name: gpu0
         exactly:
           deviceClassName: gpu.amd.com
@@ -43,6 +57,7 @@ spec:
   template:
     metadata:
       annotations:
+        kubevirt.io/dra-manual-claim: devices
         kubevirt.io/memfd: "false"
         kubevirt.io/pci-topology-version: v3
     spec:
