@@ -14,16 +14,20 @@ matching was performed by the Kubernetes DRA scheduler.
 
 ## CPU and memory allocation
 
-The KubeVirt-generated claim allocated:
+Each VM uses the manually authored `devices` claim, which contains all four
+requests:
 
 | Request | Driver | Device | Allocation |
 |---|---|---|---|
 | `cpu` | `dra.cpu` | `cpudevnuma000` | 4 CPUs |
 | `mem` | `dra.memory` | `hugepages-1gi-pjj9lv` | 4Gi |
 
-The CPU/memory claim includes a `matchAttribute` constraint on
+The claim includes a `matchAttribute` constraint on
 `resource.kubernetes.io/numaNode`. The selected CPU device is NUMA node 0;
 the selected 1Gi hugepage device is also NUMA node 0.
+
+The same claim also includes `gpu0` and `nic0`, constrained by
+`resource.kubernetes.io/pcieRoot`.
 
 ## VM status
 
@@ -58,8 +62,18 @@ The GPU and NIC both resolve to `pci0000:15`. CPU and memory are selected on
 NUMA node 0 by the generated claim's `resource.kubernetes.io/numaNode`
 constraint.
 
-The non-hugepage counterpart, `amd-cpu-gpu-nic-explicit`, remains Running and
-Ready with the same GPU/NIC PCIe-root constraint and DRA CPU allocation.
+The second VM, `amd-cpu-gpu-nic-explicit`, was recreated with the same manual
+claim and is also Running and Ready.
+
+Observed claim results:
+
+| VM | CPU | Memory | GPU | NIC |
+|---|---|---|---|---|
+| `amd-cpu-gpu-nic-hugepages` | `cpudevnuma000` | `hugepages-1gi-pjj9lv` | `gpu-vfio-4` | `0000-1d-00-2` |
+| `amd-cpu-gpu-nic-explicit` | `cpudevnuma000` | `hugepages-1gi-pjj9lv` | `gpu-vfio-2` | `0000-9f-01-2` |
+
+Both launcher pods reference `cpu`, `mem`, `gpu0`, and `nic0` under the single
+local claim name `devices`; neither has a KubeVirt-generated `*-dra` claim.
 
 ## Driver recovery observation
 

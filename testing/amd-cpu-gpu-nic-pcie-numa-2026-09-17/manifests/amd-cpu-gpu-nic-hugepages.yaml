@@ -117,3 +117,74 @@ spec:
               ssh_authorized_keys:
               - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/DOpMOHeqfjgoMaLACgZuIwQS8q+NZzY1DHEt5aiAY kubevirt-gpu-vm
         name: cloudinitdisk
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: amd-cpu-gpu-nic-explicit
+  namespace: default
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/dra-manual-claim: devices
+        kubevirt.io/memfd: "false"
+        kubevirt.io/pci-topology-version: v3
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 4
+          dedicatedCpuPlacement: true
+        memory:
+          hugepages:
+            pageSize: 1Gi
+        devices:
+          disks:
+          - name: containerdisk
+            disk: {bus: virtio}
+          - name: cloudinitdisk
+            disk: {bus: virtio}
+          gpus:
+          - claimName: devices
+            name: amd-gpu
+            requestName: gpu0
+          hostDevices:
+          - claimName: devices
+            name: connectx-vf
+            requestName: nic0
+          interfaces:
+          - name: default
+            masquerade: {}
+        firmware:
+          serial: 7e5e2028-91b2-403b-8142-132ff44c3c31
+          uuid: 08479d2b-f7b4-4f8c-a6ef-291b8a51c4db
+        machine: {type: q35}
+        resources:
+          requests:
+            memory: 4Gi
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: devices
+        resourceClaimTemplateName: amd-cpu-gpu-nic-hugepages
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: containerdisk
+        containerDisk:
+          image: quay.io/containerdisks/fedora:42
+      - name: cloudinitdisk
+        cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            users:
+            - name: jhull
+              groups: [wheel]
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              shell: /bin/bash
+              lock_passwd: true
+              ssh_authorized_keys:
+              - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/DOpMOHeqfjgoMaLACgZuIwQS8q+NZzY1DHEt5aiAY kubevirt-gpu-vm
+        name: cloudinitdisk
