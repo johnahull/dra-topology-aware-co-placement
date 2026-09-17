@@ -23,8 +23,9 @@ requests:
 | `mem` | `dra.memory` | `hugepages-1gi-pjj9lv` | 4Gi |
 
 The claim includes a `matchAttribute` constraint on
-`resource.kubernetes.io/numaNode`. The selected CPU device is NUMA node 0;
-the selected 1Gi hugepage device is also NUMA node 0.
+`resource.kubernetes.io/numaNode` covering all four requests. GPU NUMA
+attributes are published as lists; the scheduler matched the common NUMA
+value across CPU, memory, GPU, and NIC.
 
 The same claim also includes `gpu0` and `nic0`, constrained by
 `resource.kubernetes.io/pcieRoot`.
@@ -58,9 +59,8 @@ Final allocation after the fix:
 | `gpu0` | `gpu.amd.com` | `gpu-vfio-4` |
 | `nic0` | `sriovnetwork.k8snetworkplumbingwg.io` | `0000-1d-00-2` |
 
-The GPU and NIC both resolve to `pci0000:15`. CPU and memory are selected on
-NUMA node 0 by the generated claim's `resource.kubernetes.io/numaNode`
-constraint.
+For `amd-cpu-gpu-nic-hugepages`, the common NUMA value is 0 and the GPU/NIC
+both resolve to `pci0000:15`.
 
 The second VM, `amd-cpu-gpu-nic-explicit`, was recreated with the same manual
 claim and is also Running and Ready.
@@ -69,8 +69,11 @@ Observed claim results:
 
 | VM | CPU | Memory | GPU | NIC |
 |---|---|---|---|---|
-| `amd-cpu-gpu-nic-hugepages` | `cpudevnuma000` | `hugepages-1gi-pjj9lv` | `gpu-vfio-4` | `0000-1d-00-2` |
-| `amd-cpu-gpu-nic-explicit` | `cpudevnuma000` | `hugepages-1gi-pjj9lv` | `gpu-vfio-2` | `0000-9f-01-2` |
+| `amd-cpu-gpu-nic-hugepages` | `cpudevnuma000` (NUMA 0) | `hugepages-1gi-pjj9lv` (0/1) | `gpu-vfio-4` (0/1) | `0000-1d-00-2` (NUMA 0) |
+| `amd-cpu-gpu-nic-explicit` | `cpudevnuma002` (NUMA 2) | `hugepages-1gi-dgnnzj` (2/3) | `gpu-vfio-2` (2/3) | `0000-9f-01-2` (NUMA 2) |
+
+For `amd-cpu-gpu-nic-explicit`, the common NUMA value is 2 and the GPU/NIC
+both resolve to `pci0000:97`.
 
 Both launcher pods reference `cpu`, `mem`, `gpu0`, and `nic0` under the single
 local claim name `devices`; neither has a KubeVirt-generated `*-dra` claim.

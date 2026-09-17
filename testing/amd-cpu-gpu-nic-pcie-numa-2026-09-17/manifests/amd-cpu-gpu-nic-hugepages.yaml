@@ -10,7 +10,7 @@ spec:
       - matchAttribute: resource.kubernetes.io/pcieRoot
         requests: [gpu0, nic0]
       - matchAttribute: resource.kubernetes.io/numaNode
-        requests: [cpu, mem]
+        requests: [cpu, mem, gpu0, nic0]
       requests:
       - name: cpu
         exactly:
