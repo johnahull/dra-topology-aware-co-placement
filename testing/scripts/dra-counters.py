@@ -73,7 +73,7 @@ def build_model(slices_data, claims_data):
                 "name": name, "consumesCounters": consumes, "attrs": attrs,
                 "pool_key": pool_key, "pci": pci_identity(attrs),
             }
-            key = f"{driver}/{name}"
+            key = f"{driver}/{pool}/{name}"
             if key in devices_by_key:
                 diagnostics.append(f"duplicate device {key}")
             devices_by_key[key] = model_device
@@ -81,7 +81,7 @@ def build_model(slices_data, claims_data):
                 continue
             entry["devices"].append(model_device)
             if model_device["pci"]:
-                devices_by_identity[(driver, model_device["pci"])].append(model_device)
+                devices_by_identity[(driver, pool, model_device["pci"])].append(model_device)
 
     for pool in pools.values():
         for device in pool["devices"]:
@@ -112,8 +112,11 @@ def build_model(slices_data, claims_data):
             continue
         for result in claim.get("status", {}).get("allocation", {}).get("devices", {}).get("results", []) or []:
             driver = result.get("driver", "?")
+            pool = result.get("pool", "?")
             name = result.get("device", "?")
-            key = f"{driver}/{name}"
+            if pool == "?":
+                diagnostics.append(f"allocation {driver}/{name} is missing a resource pool")
+            key = f"{driver}/{pool}/{name}"
             allocations[key].append({
                 "consumer": ",".join(consumers), "claim": f"{namespace}/{claim_name}",
             })
@@ -127,20 +130,23 @@ def build_model(slices_data, claims_data):
         if direct:
             targets = [direct]
             if direct["pci"]:
-                targets = devices_by_identity.get((key.split("/", 1)[0], direct["pci"]), [direct])
+                driver, pool, _ = key.split("/", 2)
+                targets = devices_by_identity.get((driver, pool, direct["pci"]), [direct])
         else:
-            unresolved_by_pool[key.split("/", 1)[0]].append(key)
+            driver, pool, _ = key.split("/", 2)
+            unresolved_by_pool[f"{driver}/{pool}"].append({
+                "key": key,
+                "owners": owners,
+            })
             continue
         for target in targets:
             resolved.setdefault(f"{target['pool_key']}/{target['name']}", []).extend(
-                {**owner, "via_pci": target["name"] != name} for owner in owners
+                {**owner, "via_pci": target["name"] != direct["name"]} for owner in owners
             )
 
     for pool_key, unknown in unresolved_by_pool.items():
-        driver = pool_key.split("/", 1)[0]
-        for candidate_key, pool in pools.items():
-            if candidate_key.split("/", 1)[0] == driver:
-                pool["unresolved"].extend(unknown)
+        if pool_key in pools:
+            pools[pool_key]["unresolved"].extend(unknown)
 
     return pools, resolved, diagnostics
 
@@ -236,7 +242,16 @@ def render(slices_data, claims_data, out=None):
             print(file=out)
 
         if pool["unresolved"]:
-            print(f"  {color('yellow', 'Unresolved allocations:')} {', '.join(sorted(pool['unresolved']))}", file=out)
+            print(f"  {color('yellow', 'Stale allocation results:')}", file=out)
+            for unresolved in sorted(pool["unresolved"], key=lambda item: item["key"]):
+                owners = ", ".join(
+                    f"{owner['claim']} ({owner['consumer']})"
+                    for owner in unresolved["owners"]
+                )
+                print(
+                    f"    {unresolved['key']}  {color('dim', f'claim {owners} is absent from current ResourceSlices')}",
+                    file=out,
+                )
             print(f"  {color('dim', 'Counter totals are indeterminate because allocation results do not identify a published counter device.')}", file=out)
             print(file=out)
 
@@ -251,6 +266,12 @@ def render(slices_data, claims_data, out=None):
         print(f"  {color('dim', 'Counter sets are published by DRA drivers that support partitionable devices.')}", file=out)
         print(file=out)
 
+    if any(pool["unresolved"] for pool in pools.values()):
+        return 2
+    if diagnostics:
+        return 1
+    return 0
+
 
 def main():
     if len(sys.argv) != 3:
@@ -264,8 +285,7 @@ def main():
     except (OSError, json.JSONDecodeError) as error:
         print(f"dra-verify counters: unable to read Kubernetes JSON: {error}", file=sys.stderr)
         return 1
-    render(slices, claims)
-    return 0
+    return render(slices, claims)
 
 
 if __name__ == "__main__":
