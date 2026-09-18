@@ -63,12 +63,14 @@ Sleep 0.5s
 Type "cat $DEMO/demo-vm.yaml | more"
 Enter
 Sleep 8s
+Type "q"
+Sleep 1s
 
 # 4. Running VM and VMI.
 Type "clear"
 Enter
 Sleep 0.5s
-Type "kubectl get vm,vmi $VM -o wide"
+Type "kubectl get vm/$VM vmi/$VM -o wide"
 Enter
 Sleep 6s
 
@@ -95,7 +97,7 @@ Sleep 10s
 Type "clear"
 Enter
 Sleep 0.5s
-Type "ssh -i ~/.ssh/kubevirt-gpu-vm-ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null jhull@$(kubectl get vmi $VM -o jsonpath='{.status.interfaces[0].ipAddress}') 'bash -s -- --simple' < $ROOT/testing/scripts/hw-topology.sh | more"
+Type "ssh -i ~/.ssh/kubevirt-gpu-vm-ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null jhull@$(kubectl get vmi $VM -o jsonpath='{.status.interfaces[0].ipAddress}') 'bash -s -- --simple -p' < $ROOT/testing/scripts/hw-topology.sh | more"
 Enter
 Sleep 8s
 Type " "
