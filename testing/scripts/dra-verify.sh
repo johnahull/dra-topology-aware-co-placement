@@ -1469,21 +1469,36 @@ for pod in data.get('items', []):
         echo -e "  ${BOLD}$f${NC}"
         kubectl exec $ns_arg "$target_pod" -- cat "$f" 2>/dev/null | python3 -c "
 import json, sys
+
+def documents(raw):
+    decoder = json.JSONDecoder()
+    pos = 0
+    while pos < len(raw):
+        while pos < len(raw) and raw[pos].isspace():
+            pos += 1
+        if pos >= len(raw):
+            break
+        value, pos = decoder.raw_decode(raw, pos)
+        yield value
+
 try:
-    data = json.load(sys.stdin)
-    for req in data.get('requests', []):
-        rname = req.get('name', '?')
-        for dev in req.get('devices', []):
-            driver = dev.get('driver', '?')
-            dname = dev.get('name', '?')
-            attrs = dev.get('attributes', {})
-            parts = []
-            for k, v in sorted(attrs.items()):
-                val = v.get('int', v.get('bool', v.get('string', '?')))
-                parts.append(f'{k}={val}')
-            attr_str = ' '.join(parts) if parts else '(none)'
-            print(f'    request={rname} driver={driver} device={dname}')
-            print(f'      {attr_str}')
+    for data in documents(sys.stdin.read()):
+        for req in data.get('requests', []):
+            rname = req.get('name', '?')
+            for dev in req.get('devices', []):
+                driver = dev.get('driver', '?')
+                dname = dev.get('name', '?')
+                attrs = dev.get('attributes', {})
+                parts = []
+                for k, v in sorted(attrs.items()):
+                    if isinstance(v, dict):
+                        val = v.get('int', v.get('bool', v.get('string', v.get('ints', v.get('strings', '?')))))
+                    else:
+                        val = v
+                    parts.append(f'{k}={val}')
+                attr_str = ' '.join(parts) if parts else '(none)'
+                print(f'    request={rname} driver={driver} device={dname}')
+                print(f'      {attr_str}')
 except:
     print('    (failed to parse)')
 " 2>/dev/null
@@ -1499,7 +1514,7 @@ except:
 # ── guest ─────────────────────────────────────────────────────────────────────
 
 cmd_guest() {
-    section "Guest NUMA Topology"
+    section "Guest Device Topology"
 
     local target_vm="$TARGET"
 
@@ -1519,13 +1534,19 @@ cmd_guest() {
 
     # Resolve SSH target: try virtctl ssh first, fall back to direct SSH via VMI IP
     local ssh_cmd=""
+    local guest_user="${DRA_GUEST_USER:-fedora}"
+    local guest_key="${DRA_GUEST_SSH_KEY:-}"
     if virtctl ssh $ns_arg --command="true" "$target_vm" &>/dev/null; then
         ssh_cmd="virtctl ssh $ns_arg $target_vm --"
     else
         local vmi_ip
         vmi_ip=$(kubectl get vmi $ns_arg "$target_vm" -o jsonpath='{.status.interfaces[0].ipAddress}' 2>/dev/null)
         if [[ -n "$vmi_ip" ]]; then
-            ssh_cmd="sshpass -p fedora ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 fedora@$vmi_ip"
+            if [[ -n "$guest_key" && -f "$guest_key" ]]; then
+                ssh_cmd="ssh -i $guest_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 $guest_user@$vmi_ip"
+            else
+                ssh_cmd="sshpass -p fedora ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 $guest_user@$vmi_ip"
+            fi
         fi
     fi
 
