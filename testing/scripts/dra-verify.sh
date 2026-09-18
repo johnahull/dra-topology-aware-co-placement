@@ -1622,7 +1622,9 @@ else:
                 indent = \"║      \" if root != \"-\" else \"║    \"
                 by_label = defaultdict(list)
                 for label, dev, cls in groups[sock][numa][root]: by_label[label].append(f\"{dev} (class={cls})\")
-                for label in sorted(by_label): print(f\"{indent}{label}: {', '.join(by_label[label])}\")
+                for label in sorted(by_label):
+                    devices = \", \".join(by_label[label])
+                    print(f\"{indent}{label}: {devices}\")
             print(\"║\")
         print(\"\\033[36m╚════════════════════╝\\033[0m\")
 '" 2>/dev/null || echo -e "  ${DIM}(SSH failed or python3 is unavailable)${NC}"
