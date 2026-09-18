@@ -30,7 +30,7 @@ for arg in "$@"; do
             echo "Layout options:"
             echo "  -p, --pcie          Show only devices with an active PCIe link (skip on-die devices)"
             echo "  -f, --flat          List endpoint devices only, no bus/bridge hierarchy"
-            echo "  -t, --simple        Compact view: Socket → NUMA → pcieRoot → devices by type"
+            echo "  -t, --simple        Compact view: NUMA CPU/memory/hugepages and PCIe devices"
             echo "  --no-dimm           Skip DIMM info (no dmidecode; faster for non-root users)"
             echo ""
             echo "Device class filters (additive — combine to show multiple categories):"
@@ -982,6 +982,22 @@ print_simple_topology() {
         cat "/sys/devices/system/cpu/cpu${first_cpu}/topology/physical_package_id" 2>/dev/null || echo "?"
     }
 
+    _cpu_count() {
+        local cpulist="$1" count=0 part start end
+        local -a parts=()
+        IFS=',' read -ra parts <<< "$cpulist"
+        for part in "${parts[@]}"; do
+            if [[ "$part" == *-* ]]; then
+                start="${part%-*}"
+                end="${part#*-}"
+                ((count += end - start + 1))
+            elif [[ "$part" =~ ^[0-9]+$ ]]; then
+                ((count += 1))
+            fi
+        done
+        echo "$count"
+    }
+
     # Collect all visible endpoints: "socket:numa:root" → list of "type|bdf|driver|product"
     declare -A _topo_groups=()     # key → newline-separated device entries
     declare -A _seen_sockets=()
@@ -1030,12 +1046,21 @@ print_simple_topology() {
         _sorted_numas=$(printf '%s\n' "${!_seen_numas[@]}" | grep "^${sock}:" | sort | sed "s/^${sock}://")
 
         for numa in $_sorted_numas; do
-            local mem_total="" mem_label=""
-            if [ "$numa" != "-1" ] && [ -f "/sys/devices/system/node/node${numa}/meminfo" ]; then
-                mem_total=$(awk '/MemTotal/ {printf "%.0f GB", $4/1024/1024}' "/sys/devices/system/node/node${numa}/meminfo" 2>/dev/null)
-                mem_label="  ${DIM}(${mem_total})${RESET}"
+            local node_path="/sys/devices/system/node/node${numa}"
+            local cpulist="" cpu_count="?"
+            local mem_total="?" mem_free="?"
+            if [ -f "${node_path}/cpulist" ]; then
+                cpulist=$(cat "${node_path}/cpulist")
+                cpu_count=$(_cpu_count "$cpulist")
             fi
-            echo -e "${BOLD}║ NUMA ${numa}${RESET}${mem_label}"
+            if [ -f "${node_path}/meminfo" ]; then
+                mem_total=$(awk '/MemTotal/ {printf "%.1f GB", $4/1024/1024}' "${node_path}/meminfo" 2>/dev/null)
+                mem_free=$(awk '/MemFree/ {printf "%.1f GB", $4/1024/1024}' "${node_path}/meminfo" 2>/dev/null)
+            fi
+            echo -e "${BOLD}║ NUMA ${numa}${RESET}"
+            echo -e "║   CPUs: ${cpu_count}"
+            echo -e "║   Memory: ${mem_total} total, ${mem_free} free"
+            print_hugepages "$numa"
 
             local _sorted_roots
             _sorted_roots=$(printf '%s\n' "${!_seen_roots[@]}" | grep "^${sock}:${numa}:" | sort | sed "s/^${sock}:${numa}://")

@@ -1,0 +1,149 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: amd-gpu-nic-dual-pair
+  namespace: default
+spec:
+  spec:
+    devices:
+      constraints:
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu0, nic0]
+      - matchAttribute: resource.kubernetes.io/pcieRoot
+        requests: [gpu1, nic1]
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [cpu0, mem0, gpu0, nic0]
+      - matchAttribute: resource.kubernetes.io/numaNode
+        requests: [cpu1, mem1, gpu1, nic1]
+      requests:
+      - name: cpu0
+        exactly:
+          deviceClassName: dra.cpu
+          capacity:
+            requests:
+              dra.cpu/cpu: "4"
+      - name: cpu1
+        exactly:
+          deviceClassName: dra.cpu
+          capacity:
+            requests:
+              dra.cpu/cpu: "4"
+      - name: mem0
+        exactly:
+          deviceClassName: dra.hugepages-1g
+          capacity:
+            requests:
+              size: 2Gi
+      - name: mem1
+        exactly:
+          deviceClassName: dra.hugepages-1g
+          capacity:
+            requests:
+              size: 2Gi
+      - name: gpu0
+        exactly:
+          deviceClassName: gpu.amd.com
+      - name: gpu1
+        exactly:
+          deviceClassName: gpu.amd.com
+      - name: nic0
+        exactly:
+          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+      - name: nic1
+        exactly:
+          deviceClassName: sriovnetwork.k8snetworkplumbingwg.io
+      config:
+      - opaque:
+          driver: gpu.amd.com
+          parameters:
+            apiVersion: gpu.resource.amd.com/v1alpha1
+            iommu:
+              backendPolicy: LegacyOnly
+            kind: VfioDeviceConfig
+        requests: [gpu0, gpu1]
+      - opaque:
+          driver: sriovnetwork.k8snetworkplumbingwg.io
+          parameters:
+            apiVersion: sriovnetwork.k8snetworkplumbingwg.io/v1alpha1
+            driver: vfio-pci
+            kind: VfConfig
+        requests: [nic0, nic1]
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: amd-gpu-nic-dual-pair
+  namespace: default
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/dra-manual-claim: devices
+        kubevirt.io/dra-manual-cpu-requests: cpu0,cpu1
+        kubevirt.io/dra-manual-memory-requests: mem0,mem1
+        kubevirt.io/memfd: "false"
+        kubevirt.io/pci-topology-version: v3
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 8
+          dedicatedCpuPlacement: true
+        memory:
+          hugepages:
+            pageSize: 1Gi
+        devices:
+          disks:
+          - name: containerdisk
+            disk: {bus: virtio}
+          - name: cloudinitdisk
+            disk: {bus: virtio}
+          gpus:
+          - claimName: devices
+            name: amd-gpu-0
+            requestName: gpu0
+          - claimName: devices
+            name: amd-gpu-1
+            requestName: gpu1
+          hostDevices:
+          - claimName: devices
+            name: connectx-vf-0
+            requestName: nic0
+          - claimName: devices
+            name: connectx-vf-1
+            requestName: nic1
+          interfaces:
+          - name: default
+            masquerade: {}
+        firmware:
+          serial: 0f3b1b73-47a2-40a2-a0d2-b9b2bc1d2d73
+          uuid: 0f3b1b73-47a2-40a2-a0d2-b9b2bc1d2d73
+        machine: {type: q35}
+        resources:
+          requests:
+            memory: 4Gi
+      networks:
+      - name: default
+        pod: {}
+      resourceClaims:
+      - name: devices
+        resourceClaimTemplateName: amd-gpu-nic-dual-pair
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: containerdisk
+        containerDisk:
+          image: quay.io/containerdisks/fedora:42
+      - name: cloudinitdisk
+        cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            users:
+            - name: jhull
+              groups: [wheel]
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              shell: /bin/bash
+              lock_passwd: true
+              ssh_authorized_keys:
+              - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/DOpMOHeqfjgoMaLACgZuIwQS8q+NZzY1DHEt5aiAY kubevirt-gpu-vm
+        name: cloudinitdisk

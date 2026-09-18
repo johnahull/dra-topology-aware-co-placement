@@ -82,12 +82,14 @@ NAMESPACE=""
 TARGET=""
 VERBOSE=""
 SHOW_ALL=""
+SIMPLE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -n|--namespace) NAMESPACE="$2"; shift 2 ;;
         -v|--verbose) VERBOSE="1"; shift ;;
         -a|--all) SHOW_ALL="1"; shift ;;
+        -t|--simple) SIMPLE="1"; shift ;;
         -h|--help) CMD="help"; shift ;;
         *) TARGET="$1"; shift ;;
     esac
@@ -1806,11 +1808,13 @@ cmd_topology() {
     section "Device Topology Map"
 
     local verbose="$VERBOSE"
-    kubectl get resourceslices -o json 2>/dev/null | VERBOSE="$verbose" python3 -c "
+    local simple="$SIMPLE"
+    kubectl get resourceslices -o json 2>/dev/null | VERBOSE="$verbose" SIMPLE="$simple" python3 -c "
 import json, sys, os
 from collections import defaultdict
 
 verbose = os.environ.get('VERBOSE', '') == '1'
+simple = os.environ.get('SIMPLE', '') == '1'
 data = json.load(sys.stdin)
 
 DRIVER_LABELS = {
@@ -1841,8 +1845,17 @@ for rs in data.get('items', []):
             for n in names:
                 if n in attrs:
                     v = attrs[n]
-                    vals = list(v.values())
-                    return str(vals[0]) if vals else '?'
+                    if 'string' in v:
+                        return str(v['string'])
+                    if 'int' in v:
+                        return str(v['int'])
+                    if 'bool' in v:
+                        return str(v['bool'])
+                    if 'ints' in v and v['ints']:
+                        return ','.join(str(x) for x in v['ints'])
+                    if 'strings' in v and v['strings']:
+                        return ','.join(str(x) for x in v['strings'])
+                    return '?'
             return None
 
         def get_bool(names):
@@ -1956,6 +1969,24 @@ for d in devices:
 def sock_key(s):
     try: return (0, int(s))
     except (ValueError, TypeError): return (1, s)
+
+if simple:
+    for sock in sorted(sockets, key=sock_key):
+        print(f'Socket {sock}')
+        for numa in sorted(sockets[sock]):
+            print(f'  NUMA {numa}')
+            for root in sorted(sockets[sock][numa]):
+                print(f'    pcieRoot: {root}')
+                by_label = defaultdict(list)
+                for d in sockets[sock][numa][root]:
+                    item = d['name']
+                    if d['pci']:
+                        item += ' (' + d['pci'] + ')'
+                    by_label[d['label']].append(item)
+                for label in sorted(by_label):
+                    print('      %s: %s' % (label, ', '.join(by_label[label])))
+    print()
+    sys.exit(0)
 
 for sock in sorted(sockets, key=sock_key):
     print(f'\x1b[1m\x1b[36m╔══ Socket {sock} ══╗\x1b[0m')
@@ -2924,6 +2955,7 @@ cmd_help() {
     echo "  -n, --namespace NS         Kubernetes namespace"
     echo "  -a, --all                  Show all attributes and capacities (attributes)"
     echo "  -v, --verbose              Show PCI device models (slices, topology)"
+    echo "  -t, --simple               Compact topology view (topology)"
     echo ""
     echo "Examples:"
     echo "  $(basename "$0") drivers"
