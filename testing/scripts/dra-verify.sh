@@ -1555,12 +1555,75 @@ cmd_guest() {
         return
     fi
 
-    echo -e "${BOLD}NUMA nodes:${NC}"
-    $ssh_cmd "ls -d /sys/devices/system/node/node* 2>/dev/null | while read n; do echo \"  \$(basename \$n): \$(cat \$n/cpulist 2>/dev/null) CPUs, \$(awk '/MemTotal/{printf \"%.0f MB\", \$4/1024}' \$n/meminfo 2>/dev/null)\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed)${NC}"
-    echo ""
+    # Recreate the topology view from the guest's sysfs.  The guest does not
+    # have ResourceSlices, so PCI BDFs/classes are used in place of DRA device
+    # names and driver labels.
+    echo -e "${BOLD}Guest device topology:${NC}"
+    $ssh_cmd "python3 -c 'import glob, os, re
+from pathlib import Path
+from collections import defaultdict
 
-    echo -e "${BOLD}PCI devices with NUMA affinity:${NC}"
-    $ssh_cmd "for d in /sys/bus/pci/devices/*/numa_node; do dev=\$(basename \$(dirname \$d)); node=\$(cat \$d); class=\$(cat /sys/bus/pci/devices/\$dev/class 2>/dev/null); [ \"\$node\" != \"-1\" ] && echo \"  \$dev: numa=\$node class=\$class\"; done" 2>/dev/null || echo -e "  ${DIM}(SSH failed)${NC}"
+def read(path, default=\"\"):
+    try:
+        with open(path) as f: return f.read().strip()
+    except OSError: return default
+
+def first_cpu(cpulist):
+    m = re.search(r\"\\d+\", cpulist)
+    return m.group(0) if m else None
+
+def socket_for(node, cpulist):
+    cpu = first_cpu(cpulist)
+    if cpu:
+        value = read(f\"/sys/devices/system/cpu/cpu{cpu}/topology/physical_package_id\")
+        if value and value != \"-1\": return value
+    return node.removeprefix(\"node\")
+
+def pci_root(dev):
+    path = os.path.realpath(f\"/sys/bus/pci/devices/{dev}\")
+    for parent in [Path(path)] + list(Path(path).parents):
+        candidate = os.path.basename(parent)
+        if re.fullmatch(r\"[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\\.[0-7]\", candidate):
+            cls = read(f\"/sys/bus/pci/devices/{candidate}/class\")
+            if cls.startswith(\"0x0604\"): return candidate
+    return \"-\"
+
+labels = {\"0x01\": \"storage\", \"0x02\": \"nic\", \"0x03\": \"gpu\", \"0x04\": \"multimedia\", \"0x0c\": \"usb\"}
+groups = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+numa_info = {}
+for node_path in sorted(glob.glob(\"/sys/devices/system/node/node*\")):
+    node = os.path.basename(node_path)
+    cpus = read(f\"{node_path}/cpulist\", \"?\")
+    sock = socket_for(node, cpus)
+    numa_id = node.removeprefix(\"node\")
+    numa_info[(sock, numa_id)] = cpus
+    groups[sock][numa_id]  # Keep CPU-only NUMA nodes visible.
+    for link in glob.glob(\"/sys/bus/pci/devices/*\"):
+        dev = os.path.basename(link)
+        numa = read(f\"{link}/numa_node\", \"-1\")
+        if numa != numa_id: continue
+        cls = read(f\"{link}/class\", \"\")
+        label = labels.get(cls[:4], \"pci\")
+        groups[sock][numa][pci_root(dev)].append((label, dev, cls))
+
+if not groups:
+    print(\"  (guest topology is not exposed)\")
+else:
+    for sock in sorted(groups, key=lambda x: (not x.isdigit(), int(x) if x.isdigit() else x)):
+        print(f\"\\033[1m\\033[36m╔══ Socket {sock} ══╗\\033[0m\")
+        for numa in sorted(groups[sock], key=lambda x: (not x.isdigit(), int(x) if x.isdigit() else x)):
+            print(f\"\\033[1m║ NUMA {numa}\\033[0m\")
+            cpu_list = numa_info.get((sock, numa), \"?\")
+            print(f\"║    cpu: {cpu_list}\")
+            for root in sorted(groups[sock][numa]):
+                if root != \"-\": print(f\"\\033[2m║   └─ pcieRoot: {root}\\033[0m\")
+                indent = \"║      \" if root != \"-\" else \"║    \"
+                by_label = defaultdict(list)
+                for label, dev, cls in groups[sock][numa][root]: by_label[label].append(f\"{dev} (class={cls})\")
+                for label in sorted(by_label): print(f\"{indent}{label}: {', '.join(by_label[label])}\")
+            print(\"║\")
+        print(\"\\033[36m╚════════════════════╝\\033[0m\")
+'" 2>/dev/null || echo -e "  ${DIM}(SSH failed or python3 is unavailable)${NC}"
 }
 
 # ── slices ────────────────────────────────────────────────────────────────────
