@@ -6,6 +6,12 @@ These plans cover the AMD GPU DRA driver pull requests under review:
 - [PR #114 — IOMMUFD support](pr-114-iommufd.md)
 - [PR #122 — VFIO conversion lifecycle](pr-122-vfio-conversion-lifecycle.md)
 
+Executable live-system runbooks:
+
+- [PR #91 live runbook](live-runbooks/pr-91-kep4815-live.md)
+- [PR #114 live runbook](live-runbooks/pr-114-iommufd-live.md)
+- [PR #122 live runbook](live-runbooks/pr-122-vfio-lifecycle-live.md)
+
 Status is recorded as of 2026-09-24. Hardware validation is intentionally
 hardware-agnostic: the target is an available AMD SR-IOV/GIM-capable test
 system, not a specific server model. Results from an earlier XE9680 session
