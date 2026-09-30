@@ -12,11 +12,15 @@ Executable live-system runbooks:
 - [PR #114 live runbook](live-runbooks/pr-114-iommufd-live.md)
 - [PR #122 live runbook](live-runbooks/pr-122-vfio-lifecycle-live.md)
 
-Status is recorded as of 2026-09-24. Hardware validation is intentionally
-hardware-agnostic: the target is an available AMD SR-IOV/GIM-capable test
-system, not a specific server model. Results from an earlier XE9680 session
-are prior evidence only and are not the required validation target for these
-plans.
+Status is recorded as of 2026-09-30. The current live target is the
+disposable XE9785L MI355X system (`10.14.202.26`); hardware validation remains
+hardware-agnostic and the host-specific results below are evidence for this
+run only. Results from the earlier XE9680 session remain prior evidence.
+
+The live runs used the [DRA test harness](https://github.com/johnahull/k8s-dra-harness)
+for ResourceSlice/resource-publication, allocation, release, capacity, restart,
+and topology checks. The harness test-plan configuration now also carries the
+opaque `VfioDeviceConfig` needed by the PR #114 backend-policy cases.
 
 The plans distinguish between automated tests, live driver tests, and
 KubeVirt integration tests. A test marked as reported complete comes from the

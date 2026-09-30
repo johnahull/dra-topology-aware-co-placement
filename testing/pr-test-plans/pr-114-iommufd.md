@@ -44,13 +44,15 @@ tracking issues covered by PR #122.
 
 | Area | Type | Current status | Evidence | Remaining gap |
 |---|---|---|---|---|
-| Build and static checks | Build/static | **Complete — automated; rerun needed** | PR reports build, vet, uncached tests, and race tests passing. | Rerun after the latest review commits and final rebase. |
-| Backend policy validation | Unit + component | **Complete — automated** | All three policies are covered through claim decoding and validation. | Confirm on the final branch. |
-| CDI backend selection | Component | **Complete — automated** | Tests cover IOMMUFD, legacy, fallback, and mixed-backend prevention. | Live CDI inspection remains. |
-| Real device-node validation | Component | **Complete — automated** | Fake-sysfs tests require real character-device semantics. | Validate against a real host. |
+| Build and static checks | Build/static | **Complete — automated** | On commit `fdd271226e06`, `go build -mod=vendor ./...`, `go vet -mod=vendor ./...`, `go test -mod=vendor ./...`, and `go test -race -mod=vendor ./cmd/gpu-kubeletplugin/` passed. | Rerun only if the branch is rebased or changed. |
+| Backend policy validation | Unit + component | **Complete — automated** | All three policies are covered through claim decoding and validation on the tested commit. | Rerun only if the branch changes. |
+| CDI backend selection | Component | **Complete — automated; live verified** | Tests cover IOMMUFD, legacy, fallback, and mixed-backend prevention; live claims produced backend-consistent CDI. | Fallback under an unavailable IOMMUFD backend remains live-pending. |
+| Real device-node validation | Component + live hardware integration | **Complete — automated and live** | Fake-sysfs tests require real character-device semantics, and the live host exposed/used `/dev/iommu`, VFIO cdevs, API, and group nodes. | No remaining success-path gap. |
 | Rollback | Component | **Complete — automated** | Tests cover invalid policy, missing nodes, CDI failure, checkpoint failure, and multi-device failure. | Controlled live failure test is optional and pending. |
-| IOMMUFD host path | Live hardware integration | **Not tested end to end** | `/dev/iommu` and the module were observed previously, but the VM used legacy VFIO. | Deploy PR #114 and exercise IOMMUFD policies. |
-| Legacy fallback | Live hardware integration | **Not tested against PR #114** | Legacy VFIO was used by an earlier VM, but not the PR #114 branch. | Verify policy selection and CDI contents. |
+| IOMMUFD host path | Live hardware integration | **Complete — live** | The PR #114 image used `/dev/iommu` and per-device VFIO cdevs for `PreferIommuFD` and `RequireIommuFD`. | No remaining success-path gap. |
+| Legacy VFIO path | Live hardware integration | **Complete — live** | `LegacyOnly` produced `/dev/vfio/vfio` and the device group node, with no IOMMUFD nodes in the CDI. | Unavailable-IOMMUFD fallback remains live-pending. |
+| Multi-device backend consistency | Kubernetes integration | **Complete — live** | A two-device `RequireIommuFD` claim used cdevs for both devices and the shared `/dev/iommu` node. | No remaining success-path gap. |
+| Fail-closed and fallback | Live hardware integration | **Not tested live** | The host remained capable of both backends; no live node-removal/fallback injection was performed. | Verify `PreferIommuFD` fallback and `RequireIommuFD` failure with an isolated/reversible setup, or retain automated-only evidence. |
 | KubeVirt IOMMUFD path | End-to-end (KubeVirt) | **Blocked** | Requires a virt-launcher image with suitable libvirt support. | Test when the required image is available. |
 
 ## Automated test scenarios
@@ -85,28 +87,28 @@ Also record the libvirt version available to any KubeVirt test.
 
 | ID | Type | Policy | Host condition | Expected result | Status |
 |---|---|---|---|---|---|
-| L-01 | Live hardware integration | `LegacyOnly` | IOMMUFD available | Uses legacy VFIO. | Not tested against PR #114. |
+| L-01 | Live hardware integration | `LegacyOnly` | IOMMUFD available | Uses legacy VFIO. | **Complete — live**; CDI contained `/dev/vfio/vfio` and `/dev/vfio/94`. |
 | L-02 | Live hardware integration | `LegacyOnly` | IOMMUFD unavailable | Uses legacy VFIO if legacy nodes are valid. | Not tested against PR #114. |
-| L-03 | Live hardware integration | `PreferIommuFD` | IOMMUFD available | Uses IOMMUFD. | Not tested. |
+| L-03 | Live hardware integration | `PreferIommuFD` | IOMMUFD available | Uses IOMMUFD. | **Complete — live**; CDI contained `/dev/iommu` and the VFIO cdev. |
 | L-04 | Live hardware integration | `PreferIommuFD` | IOMMUFD unavailable | Falls back to legacy VFIO and logs a warning. | Not tested. |
-| L-05 | Live hardware integration | `RequireIommuFD` | IOMMUFD available | Prepare succeeds with IOMMUFD. | Not tested. |
+| L-05 | Live hardware integration | `RequireIommuFD` | IOMMUFD available | Prepare succeeds with IOMMUFD. | **Complete — live**. |
 | L-06 | Live hardware integration | `RequireIommuFD` | IOMMUFD unavailable | Prepare fails closed. | Not tested. |
 
 ## IOMMUFD success scenarios
 
 | ID | Type | Scenario | Verification | Expected result | Status |
 |---|---|---|---|---|---|
-| I-01 | Live hardware integration | IOMMUFD node discovery | Allocate a GPU VF and inspect `/dev/iommu` and `/dev/vfio/devices/<cdev>`. | Both are character devices and correspond to the prepared device. | Not tested. |
-| I-02 | Kubernetes integration | IOMMUFD CDI | Inspect the generated claim CDI YAML. | It contains `/dev/iommu` and the per-device cdev, with no legacy group nodes. | Not tested. |
-| I-03 | Kubernetes integration | CDI device metadata | Compare CDI major/minor, host paths, and permissions with the host nodes. | CDI metadata matches the actual nodes the container must open. | Not tested. |
+| I-01 | Live hardware integration | IOMMUFD node discovery | Allocate a GPU VF and inspect `/dev/iommu` and `/dev/vfio/devices/<cdev>`. | Both are character devices and correspond to the prepared device. | **Complete — live**. |
+| I-02 | Kubernetes integration | IOMMUFD CDI | Inspect the generated claim CDI YAML. | It contains `/dev/iommu` and the per-device cdev, with no legacy group nodes. | **Complete — live**. |
+| I-03 | Kubernetes integration | CDI device metadata | Compare CDI major/minor, host paths, and permissions with the host nodes. | CDI metadata matches the actual nodes the container must open. | **Complete — live**. |
 | I-04 | Component + live hardware integration | Repeated lifecycle | Prepare and unprepare the same device repeatedly. | No stale cdev is reused and each CDI spec is internally consistent. | Automated coverage reported; live test pending. |
-| I-05 | Live hardware integration | Multi-device IOMMUFD | Prepare two or more GPU VFs. | Every device in the claim uses IOMMUFD and no device falls back independently. | Not tested. |
+| I-05 | Live hardware integration | Multi-device IOMMUFD | Prepare two or more GPU VFs. | Every device in the claim uses IOMMUFD and no device falls back independently. | **Complete — live**; two-device `RequireIommuFD` claim passed. |
 
 ## Legacy and fallback scenarios
 
 | ID | Type | Scenario | Verification | Expected result | Status |
 |---|---|---|---|---|---|
-| F-01 | Live hardware integration | Legacy CDI | Use `LegacyOnly` and inspect CDI. | CDI contains `/dev/vfio/vfio` and `/dev/vfio/<group>`, not IOMMUFD nodes. | Not tested against PR #114. |
+| F-01 | Live hardware integration | Legacy CDI | Use `LegacyOnly` and inspect CDI. | CDI contains `/dev/vfio/vfio` and `/dev/vfio/<group>`, not IOMMUFD nodes. | **Complete — live**. |
 | F-02 | Live hardware integration | Prefer fallback | Make IOMMUFD unavailable and use `PreferIommuFD`. | Prepare succeeds with legacy VFIO and logs a fallback warning. | Not tested. |
 | F-03 | Live hardware integration | Missing group node | Make `/dev/vfio/<group>` unavailable. | Prepare fails rather than creating an unusable path-only CDI entry. | Not tested. |
 | F-04 | Live hardware integration | Missing VFIO API node | Make `/dev/vfio/vfio` unavailable. | Prepare fails rather than generating an unusable CDI entry. | Not tested. |
@@ -129,10 +131,10 @@ isolated test devices, or controlled test doubles for failure injection.
 
 | ID | Type | Scenario | Expected result | Status |
 |---|---|---|---|---|
-| M-01 | Live hardware integration | Two-device allocation | Both devices use the same selected backend. | Not tested. |
+| M-01 | Live hardware integration | Two-device allocation | Both devices use the same selected backend. | **Complete — live** for `RequireIommuFD`. |
 | M-02 | Component | Re-prepare | A failed or repeated cdev lookup does not reuse stale state. | Automated complete; live pending. |
 | M-03 | Component | Unconfigure | cdev state is cleared during Unconfigure. | Automated complete; live pending. |
-| M-04 | Kubernetes integration | Plugin restart | CDI/checkpoint state recovers without backend mixing. | PR #122 owns active-conversion recovery; PR #114 restart test remains pending. |
+| M-04 | Kubernetes integration | Plugin restart | CDI/checkpoint state recovers without backend mixing. | **Not tested for PR #114**; active-conversion recovery was tested separately as PR #122 evidence. |
 
 ## KubeVirt end-to-end scenarios
 
@@ -163,11 +165,18 @@ For each live run, save:
 - VM/VMI YAML and guest `lspci`, if KubeVirt is tested.
 - A row-by-row result table using the IDs in this document.
 
+Current live evidence is under
+`/home/jhull/dra-test-work/evidence/pr114-iommufd/` on the test host. The
+tested image was built from commit `fdd271226e06`.
+
 ## Final assessment
 
-PR #114 has broad automated coverage for policy handling, CDI generation,
-device-node validation, and rollback. The approval-critical missing evidence
-is live use of IOMMUFD, live legacy fallback, fail-closed behavior on a real
-host, and a KubeVirt IOMMUFD VM when the required libvirt support is
-available. Active conversion recovery across plugin restarts belongs to PR
-#122 and should not be counted as PR #114 coverage.
+PR #114 has broad automated coverage and live success-path evidence for
+`LegacyOnly`, `PreferIommuFD`, `RequireIommuFD`, CDI node selection, and a
+two-device IOMMUFD claim. The remaining approval-critical gaps are live
+`PreferIommuFD` fallback, live `RequireIommuFD` fail-closed behavior, and the
+KubeVirt IOMMUFD path when a compatible virt-launcher/libvirt image is
+available. Controlled rollback/failure injection can remain automated-only
+if the disposable host cannot provide an isolated reversible setup. Active
+conversion recovery across plugin restarts belongs to PR #122 and is not
+counted here.
