@@ -53,7 +53,7 @@ coverage for this lifecycle PR.
 | Restart recovery | Kubernetes integration | **Complete — automated and live** | Tests recover converted devices through Unprepare; the live restart test recovered the checkpoint and restored the GPU after release. | No remaining core restart gap. |
 | ResourceSlice identity | Component + Kubernetes integration | **Complete — live** | During conversion and restart, the original GPU identity was retained, the discovered duplicate VFIO entry was suppressed, and an independent pre-bound VFIO device remained separately addressable. | No remaining core identity gap. |
 | Missing VFIO manager | Component | **Complete — automated; live pending** | Cleanup retains state when restoration cannot be performed. | Verify with an isolated test device or controlled fake. |
-| KubeVirt lifecycle | End-to-end (KubeVirt) | **Optional; partial live** | The harness-backed GIM SR-IOV VF path completed: KubeVirt v1.9.0 allocated `gpu-vfio-0`, reached a running VMI, released the claim, and cleaned up its namespace. The separate PF passthrough attempt failed when the host hit PCIe AER/NMI errors during VFIO GPU reset. | K-03 restart-during-use remains untested. Do not retry PF passthrough on this host; use the GIM VF path for further KubeVirt coverage. |
+| KubeVirt lifecycle | End-to-end (KubeVirt) | **Optional; complete live (GIM VF)** | The harness-backed GIM SR-IOV VF path completed VM allocation, release, and restart-during-use coverage. The separate PF passthrough attempt failed when the host hit PCIe AER/NMI errors during VFIO GPU reset. | No remaining GIM VF lifecycle gap. Do not retry PF passthrough on this host. |
 
 ## Automated test scenarios
 
@@ -109,7 +109,7 @@ replace driver-level lifecycle tests.
 |---|---|---|---|---|
 | K-01 | End-to-end (KubeVirt) | VM claim preparation | VM claim prepares the expected GPU and the VM starts. | **Complete — live, harness-backed (GIM VF)**; the harness selected `gpu-vfio-0`, the VFIO claim was reserved for the virt-launcher pod, and the VMI reached `Running`/`Ready=True`. The separate PF passthrough attempt remains a live failure because the host rebooted during GPU reset. |
 | K-02 | End-to-end (KubeVirt) | VM deletion and release | Deleting the VM/claim releases the selected device without disturbing PF ownership. | **Complete — live, harness-backed (GIM VF)**; the harness deleted the VMI and claim, the temporary namespace became absent, all eight PFs remained bound to `gim`, all eight VFs remained bound to `vfio-pci`, and the DRA checkpoint was empty. |
-| K-03 | End-to-end (KubeVirt) | Restart during VM use | Restarting the DRA plugin does not make the in-use GPU appear free. | Not tested; the GIM VF lifecycle passed, but restart-during-use still needs a dedicated run. |
+| K-03 | End-to-end (KubeVirt) | Restart during VM use | Restarting the DRA plugin does not make the in-use GPU appear free. | **Complete — live, harness-backed (GIM VF)**; the harness held a `Running`/`Ready=True` VMI and its allocated `gpu-vfio-0` claim while the DRA pod changed from UID `96b18fa9-3b4d-4b89-88d2-834179fcae9c` to replacement UID `1f9c1e9f-2f81-4197-a053-321a0858fa9b`. The claim stayed reserved for the same virt-launcher, the VMI stayed running, and normal cleanup left an empty checkpoint and all eight PFs/VFs bound to `gim`/`vfio-pci`. |
 
 ## Evidence package for an AMD review
 
@@ -138,6 +138,8 @@ reboot evidence are in `live/kubevirt-verified/`. The initial successful GIM
 VF KubeVirt lifecycle evidence is in `live/kubevirt-gim-vf/`. The
 harness-backed lifecycle evidence is in `live/kubevirt-harness-gim-vf/`,
 including the harness log and before/after PF/VF binding and checkpoint state.
+The K-03 restart-during-use harness log is
+`/home/jhull/dra-test-work/evidence/pr122-vfio-lifecycle/k03-harness.log`.
 
 ## Final assessment
 
@@ -153,4 +155,6 @@ errors during GPU reset and rebooted. The GIM VF KubeVirt lifecycle then
 passed through the harness: the VMI reached `Running`/`Ready=True`, the VMI
 and claim were deleted, the temporary namespace disappeared, all eight PFs
 remained on `gim`, all eight VFs remained on `vfio-pci`, and the checkpoint was
-empty. Restart-during-use remains untested.
+empty. The harness then held a running GIM VF-backed VMI across a DRA plugin
+restart; the claim remained reserved and cleanup again left the checkpoint
+empty with all PFs/VFs intact.
