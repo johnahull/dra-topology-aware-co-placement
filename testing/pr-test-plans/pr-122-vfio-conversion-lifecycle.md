@@ -26,6 +26,7 @@ coverage for this lifecycle PR.
 | **Complete — automated** | Covered by tests in the PR branch; rerun after the final rebase. |
 | **Complete — live** | Observed with real GPU and kernel state. |
 | **Partial** | A related lifecycle was tested, but not the PR #122 failure or restart path. |
+| **Failed — live** | The live scenario was attempted and did not meet its expected result. |
 | **Not tested** | No evidence is currently recorded. |
 | **Optional** | Useful integration evidence but not required for the PR's driver behavior. |
 
@@ -44,15 +45,15 @@ coverage for this lifecycle PR.
 
 | Area | Type | Current status | Evidence | Remaining gap |
 |---|---|---|---|---|
-| Build and race validation | Build/static + concurrency/race | **Complete — automated; rerun needed** | PR reports uncached tests and race tests passing. | Rerun after rebasing onto final PR #114. |
+| Build and race validation | Build/static + concurrency/race | **Complete — automated** | On commit `c6ebfe8b89c3`, `go build -mod=vendor ./...`, `go vet -mod=vendor ./...`, `go test -mod=vendor ./...`, and `go test -race -mod=vendor ./cmd/gpu-kubeletplugin/` passed. | Rerun only if the branch is rebased or changed. |
 | Per-claim bookkeeping | Unit + component | **Complete — automated** | Tests cover two claims and independent conversion records. | Confirm on final branch. |
 | Failed-rebind handling | Component | **Complete — automated** | Failed rebind remains recorded and returns an error. | Controlled live test remains optional. |
 | Prepare rollback | Component | **Complete — automated** | Tests cover invalid policy, CDI failure, checkpoint failure, and multi-device failure. | Confirm all failure paths after rebase. |
-| Checkpoint persistence | Component | **Complete — automated** | Empty and populated conversion checkpoint cases are covered. | Verify restart behavior on a disposable live device. |
-| Restart recovery | Kubernetes integration | **Complete — automated; live pending** | Tests recover converted devices through Unprepare. | Test plugin restart while a conversion is active. |
-| ResourceSlice identity | Component + Kubernetes integration | **Complete — automated; live pending** | Converted devices retain original names, types, and attributes. | Verify no collision with a pre-bound VFIO device on hardware. |
+| Checkpoint persistence | Component + Kubernetes integration | **Complete — automated and live** | Empty and populated conversion checkpoint cases are covered; the active-conversion restart preserved and recovered the populated checkpoint. | No remaining core persistence gap. |
+| Restart recovery | Kubernetes integration | **Complete — automated and live** | Tests recover converted devices through Unprepare; the live restart test recovered the checkpoint and restored the GPU after release. | No remaining core restart gap. |
+| ResourceSlice identity | Component + Kubernetes integration | **Complete — live** | During conversion and restart, the original GPU identity was retained, the discovered duplicate VFIO entry was suppressed, and an independent pre-bound VFIO device remained separately addressable. | No remaining core identity gap. |
 | Missing VFIO manager | Component | **Complete — automated; live pending** | Cleanup retains state when restoration cannot be performed. | Verify with an isolated test device or controlled fake. |
-| KubeVirt lifecycle | End-to-end (KubeVirt) | **Optional; not tested** | VM passthrough can exercise claim preparation and release. | Not required for core PR #122 acceptance. |
+| KubeVirt lifecycle | End-to-end (KubeVirt) | **Optional; partial live** | The harness-backed GIM SR-IOV VF path completed: KubeVirt v1.9.0 allocated `gpu-vfio-0`, reached a running VMI, released the claim, and cleaned up its namespace. The separate PF passthrough attempt failed when the host hit PCIe AER/NMI errors during VFIO GPU reset. | K-03 restart-during-use remains untested. Do not retry PF passthrough on this host; use the GIM VF path for further KubeVirt coverage. |
 
 ## Automated test scenarios
 
@@ -80,14 +81,14 @@ production workload for failure injection.
 
 | ID | Type | Scenario | How to verify | Expected result | Status |
 |---|---|---|---|---|---|
-| L-01 | Live hardware integration | Single conversion and release | Claim one regular `amdgpu` GPU with VFIO configuration, inspect binding, release the claim, and inspect again. | GPU returns to `amdgpu`; no stale VFIO entry or conversion record remains. | Not tested for PR #122. |
-| L-02 | Live hardware integration | Two independent conversions | Prepare claims A and B on different GPUs, then release A and B in both orders. | Releasing one claim does not affect the other; both GPUs eventually return to their original drivers. | Not tested. |
-| L-03 | Kubernetes integration | ResourceSlice during conversion | Capture slices before Prepare, during Prepare, after Unprepare, and after republish. | Converted GPU keeps its original name/type and is not advertised as a free duplicate VFIO device. | Not tested. |
-| L-04 | Live hardware integration | Active-conversion restart | Prepare a claim, restart the DRA plugin before Unprepare, then release the claim. | Checkpoint recovery prevents the converted GPU from being advertised as free and restores the original driver on release. | Not tested. |
-| L-05 | Live hardware integration | Name collision protection | Use a converted GPU alongside a real pre-bound VFIO GPU and inspect device names. | Converted and pre-bound devices have unique names and remain separately addressable. | Not tested. |
-| L-06 | Live hardware integration | Failed rebind retry | Use an isolated device or controlled test mechanism to make the original-driver rebind fail, then restore the condition and retry. | Failure leaves the record and error visible; retry restores the GPU and removes the record. | Not tested; perform only if safe. |
+| L-01 | Live hardware integration | Single conversion and release | Claim one regular `amdgpu` GPU with VFIO configuration, inspect binding, release the claim, and inspect again. | GPU returns to `amdgpu`; no stale VFIO entry or conversion record remains. | **Complete — live**; `gpu-1-128` converted to `vfio-pci` and returned to `amdgpu`. |
+| L-02 | Live hardware integration | Two independent conversions | Prepare claims A and B on different GPUs, then release A and B in both orders. | Releasing one claim does not affect the other; both GPUs eventually return to their original drivers. | **Complete — live**; both release orders passed for `gpu-1-128` and `gpu-17-144`. |
+| L-03 | Kubernetes integration | ResourceSlice during conversion | Capture slices before Prepare, during Prepare, after Unprepare, and after republish. | Converted GPU keeps its original name/type and is not advertised as a free duplicate VFIO device. | **Complete — live**; the clean post-reboot rerun published all 8 GPUs before, during, and after the test, and the harness confirmed the final 8-device topology. |
+| L-04 | Live hardware integration | Active-conversion restart | Prepare a claim, restart the DRA plugin before Unprepare, then release the claim. | Checkpoint recovery prevents the converted GPU from being advertised as free and restores the original driver on release. | **Complete — live**; distinct old/new plugin UIDs were verified and checkpoint recovery restored the GPU. |
+| L-05 | Live hardware integration | Name collision protection | Use a converted GPU alongside a real pre-bound VFIO GPU and inspect device names. | Converted and pre-bound devices have unique names and remain separately addressable. | **Complete — live**; `gpu-1-128` and independent `gpu-vfio-0` remained distinct. |
+| L-06 | Live hardware integration | Failed rebind retry | Use an isolated device or controlled test mechanism to make the original-driver rebind fail, then restore the condition and retry. | Failure leaves the record and error visible; retry restores the GPU and removes the record. | **Complete — live**; `amdgpu` bind mode `000` retained the conversion checkpoint, and restoring mode `200` let kubelet retry and return `gpu-1-128` to `amdgpu`. |
 | L-07 | Live hardware integration | Missing VFIO manager | Prevent VFIO-manager initialization on an isolated test instance and run cleanup. | Cleanup does not falsely report success; restoration succeeds after the manager returns. | Not tested; fake/component coverage exists. |
-| L-08 | Kubernetes integration | Stranded claim | Interrupt or simulate an incomplete claim lifecycle, then invoke cleanup. | Cleanup retries restoration and does not discard state before hardware recovery. | Not tested. |
+| L-08 | Kubernetes integration | Stranded claim | Interrupt or simulate an incomplete claim lifecycle, then invoke cleanup. | Cleanup retries restoration and does not discard state before hardware recovery. | **Complete — live**; deleting the consumer while the plugin was unavailable left the claim recoverable, and the replacement plugin restored `gpu-1-128` and cleared the checkpoint. |
 
 ## Checkpoint compatibility scenarios
 
@@ -106,9 +107,9 @@ replace driver-level lifecycle tests.
 
 | ID | Type | Scenario | Expected result | Status |
 |---|---|---|---|---|
-| K-01 | End-to-end (KubeVirt) | VM claim preparation | VM claim converts the expected GPU and the VM starts. | Optional; not tested for PR #122. |
-| K-02 | End-to-end (KubeVirt) | VM deletion and release | Deleting the VM/claim restores the original GPU driver. | Optional; not tested. |
-| K-03 | End-to-end (KubeVirt) | Restart during VM use | Restarting the DRA plugin does not make the in-use GPU appear free. | Optional; not tested. |
+| K-01 | End-to-end (KubeVirt) | VM claim preparation | VM claim prepares the expected GPU and the VM starts. | **Complete — live, harness-backed (GIM VF)**; the harness selected `gpu-vfio-0`, the VFIO claim was reserved for the virt-launcher pod, and the VMI reached `Running`/`Ready=True`. The separate PF passthrough attempt remains a live failure because the host rebooted during GPU reset. |
+| K-02 | End-to-end (KubeVirt) | VM deletion and release | Deleting the VM/claim releases the selected device without disturbing PF ownership. | **Complete — live, harness-backed (GIM VF)**; the harness deleted the VMI and claim, the temporary namespace became absent, all eight PFs remained bound to `gim`, all eight VFs remained bound to `vfio-pci`, and the DRA checkpoint was empty. |
+| K-03 | End-to-end (KubeVirt) | Restart during VM use | Restarting the DRA plugin does not make the in-use GPU appear free. | Not tested; the GIM VF lifecycle passed, but restart-during-use still needs a dedicated run. |
 
 ## Evidence package for an AMD review
 
@@ -124,12 +125,32 @@ For each live run, save:
 - VM/VMI YAML and guest output, if KubeVirt is tested.
 - A row-by-row result table using the IDs in this document.
 
+Current live evidence is under
+`/home/jhull/dra-test-work/evidence/pr122-vfio-lifecycle/live/` on the test
+host. The PR #122 image was `localhost/k8s-gpu-dra-driver:pr122-vfio-lifecycle-c6ebfe8b89c3`.
+The clean restart evidence is in `live/restart-clean/`; the post-reboot
+harness output is `harness-amdgpu-clean.log`.
+The independent pre-bound-device collision evidence is in
+`live/collision-clean/`.
+The stranded-claim evidence is in `live/stranded-clean/`; the failed-rebind
+evidence is in `live/failed-rebind-verified/`. The KubeVirt attempt and host
+reboot evidence are in `live/kubevirt-verified/`. The initial successful GIM
+VF KubeVirt lifecycle evidence is in `live/kubevirt-gim-vf/`. The
+harness-backed lifecycle evidence is in `live/kubevirt-harness-gim-vf/`,
+including the harness log and before/after PF/VF binding and checkpoint state.
+
 ## Final assessment
 
-PR #122 has broad automated coverage for claim ownership, rollback,
-checkpoint persistence, restart recovery, naming, and missing-manager
-behavior. The remaining approval-critical evidence is live validation of one
-conversion, multiple claims, active-conversion restart recovery, and stable
-ResourceSlice identity on an available AMD VFIO-capable system. Controlled
-failure injection should remain isolated or fake-based; it should not disrupt
-a production GPU workload.
+PR #122 has broad automated coverage and live evidence for single conversion
+and release, independent multi-claim ownership in both release orders,
+checkpoint persistence, active-conversion plugin restart recovery, stable
+converted-device identity, and collision protection with an independent
+pre-bound VFIO device. Live stranded-claim cleanup and failed-rebind retry
+also passed. Missing-VFIO-manager behavior remains live-unverified because
+disabling the manager is host-wide on the only test node. The optional
+KubeVirt PF passthrough attempt failed when the host encountered PCIe AER/NMI
+errors during GPU reset and rebooted. The GIM VF KubeVirt lifecycle then
+passed through the harness: the VMI reached `Running`/`Ready=True`, the VMI
+and claim were deleted, the temporary namespace disappeared, all eight PFs
+remained on `gim`, all eight VFs remained on `vfio-pci`, and the checkpoint was
+empty. Restart-during-use remains untested.
