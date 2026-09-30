@@ -169,6 +169,26 @@ Current live evidence is under
 `/home/jhull/dra-test-work/evidence/pr114-iommufd/` on the test host. The
 tested image was built from commit `fdd271226e06`.
 
+## 2026-09-30 non-GIM MI355X validation addendum
+
+With all eight MI355X PFs booted under `amdgpu`, the harness exercised one-PF
+conversion and release with `LegacyOnly`, `PreferIommuFD`, and
+`RequireIommuFD`. The driver logs confirmed `backend=legacy` for the legacy
+case and `backend=iommufd` for both IOMMUFD policies. A two-PF claim with
+`RequireIommuFD` also passed; both devices converted and both were restored to
+`amdgpu` during cleanup.
+
+Host prerequisites were present: `/dev/iommu`, `/dev/vfio/vfio`, and the
+`iommufd` kernel module. Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr114-122/non-gim-prefer-iommufd`,
+`/home/jhull/dra-test-work/evidence/pr114-122/non-gim-require-iommufd`, and
+`/home/jhull/dra-test-work/evidence/pr114-122/non-gim-multidevice`.
+
+The harness run verified backend selection through driver logs and successful
+lifecycle behavior. It did not preserve CDI YAML during the active claim, so
+explicit CDI node/major/minor inspection remains pending. IOMMUFD-unavailable
+fallback, fail-closed injection, and KubeVirt IOMMUFD VM cases were not run.
+
 ## Final assessment
 
 PR #114 has broad automated coverage and live success-path evidence for

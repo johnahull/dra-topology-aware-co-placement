@@ -141,6 +141,31 @@ including the harness log and before/after PF/VF binding and checkpoint state.
 The K-03 restart-during-use harness log is
 `/home/jhull/dra-test-work/evidence/pr122-vfio-lifecycle/k03-harness.log`.
 
+## 2026-09-30 non-GIM MI355X validation addendum
+
+The node was booted directly into `amdgpu` with GIM disabled. The harness
+passed single-PF conversion and release for `LegacyOnly`, `PreferIommuFD`, and
+`RequireIommuFD`; the driver restored the PF to `amdgpu` after each claim was
+deleted. Direct allocation of the advertised `type=vfio` PF sibling also
+passed and restored the original `amdgpu` entry.
+
+A two-PF `RequireIommuFD` claim passed as supplemental multi-device evidence:
+both PFs were converted, logged `backend=iommufd`, and were independently
+restored to `amdgpu`. The combined non-GIM harness run also passed resource
+publication, counters, sibling exclusion, capacity exhaustion, release, and
+driver restart with no active conversion.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr122-vfio-lifecycle/non-gim-release`,
+`/home/jhull/dra-test-work/evidence/pr114-122/non-gim-prefer-iommufd`,
+`/home/jhull/dra-test-work/evidence/pr114-122/non-gim-require-iommufd`, and
+`/home/jhull/dra-test-work/evidence/pr114-122/non-gim-multidevice`.
+
+Still outstanding are independent simultaneous claims released in both
+orders, restart while a conversion is active, controlled rebind-failure and
+missing-manager cases, and the optional KubeVirt lifecycle tests. KubeVirt
+PF passthrough remains deferred pending the VFIO aperture work.
+
 ## Final assessment
 
 PR #122 has broad automated coverage and live evidence for single conversion

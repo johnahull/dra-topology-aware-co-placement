@@ -162,6 +162,32 @@ Useful repository helpers are:
 - [`test_dra_counters.py`](../scripts/test_dra_counters.py)
 - [`vfio-gpu-test.yaml`](../manifests/claims/vfio-gpu-test.yaml)
 
+## 2026-09-30 non-GIM MI355X validation addendum
+
+The server was rebooted into an `amdgpu`-only configuration: GIM was
+blacklisted, `sriov_numvfs=0`, and all eight MI355X PFs initialized under
+`amdgpu`. The harness used the existing PR #122 driver deployment and the
+combined non-GIM profile.
+
+The following live cases passed through the harness:
+
+- Dual `amdgpu`/`vfio` publication with 16 devices and eight shared
+  function-level counter sets.
+- Shared-counter verification, compute/VFIO sibling exclusion, eight-device
+  compute capacity exhaustion, claim release, and a driver restart with no
+  active conversion.
+- Direct selection of an advertised `type=vfio` PF sibling, followed by
+  successful restoration to `amdgpu`.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr91-114-122/non-gim` and
+`/home/jhull/dra-test-work/evidence/pr91/non-gim-direct-vfio`. After every
+case, all eight PFs were bound to `amdgpu` and no ResourceClaims remained.
+
+The feature-gate-negative case, GIM VF-count matrix, and KubeVirt VM cases
+were not run in this `amdgpu` pass. KubeVirt PF passthrough remains deferred
+until the VFIO aperture issue is revisited.
+
 ## Final assessment
 
 PR #91 has broad automated coverage and current MI355X live evidence for GIM
