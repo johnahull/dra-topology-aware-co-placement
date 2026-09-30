@@ -110,7 +110,9 @@ def build_model(slices_data, claims_data):
         ]
         if not consumers:
             continue
-        for result in claim.get("status", {}).get("allocation", {}).get("devices", {}).get("results", []) or []:
+        for result_index, result in enumerate(
+            claim.get("status", {}).get("allocation", {}).get("devices", {}).get("results", []) or []
+        ):
             driver = result.get("driver", "?")
             pool = result.get("pool", "?")
             name = result.get("device", "?")
@@ -119,6 +121,8 @@ def build_model(slices_data, claims_data):
             key = f"{driver}/{pool}/{name}"
             allocations[key].append({
                 "consumer": ",".join(consumers), "claim": f"{namespace}/{claim_name}",
+                "allocation_id": f"{namespace}/{claim_name}#{result_index}",
+                "allocated_device": name,
             })
 
     # Resolve direct allocations and sibling devices sharing the same stable PCI identity.
@@ -141,7 +145,12 @@ def build_model(slices_data, claims_data):
             continue
         for target in targets:
             resolved.setdefault(f"{target['pool_key']}/{target['name']}", []).extend(
-                {**owner, "via_pci": target["name"] != direct["name"]} for owner in owners
+                {
+                    **owner,
+                    "via_pci": target["name"] != direct["name"],
+                    "allocated_device": direct["name"],
+                }
+                for owner in owners
             )
 
     for pool_key, unknown in unresolved_by_pool.items():
@@ -198,16 +207,37 @@ def render(slices_data, claims_data, out=None):
 
             remaining = dict(counters)
             uncertain = bool(pool["unresolved"])
+            counted_allocations = set()
+            consumers_by_name = {consumer["name"]: consumer for consumer in consumers}
             for consumer in consumers:
                 if not consumer["owners"]:
                     continue
-                for name, value in consumer["consumed"].items():
-                    total = numeric(remaining.get(name))
-                    used = numeric(value)
-                    if total is None or used is None:
-                        uncertain = True
+                for owner in consumer["owners"]:
+                    allocation_id = owner.get("allocation_id")
+                    if not allocation_id:
+                        allocation_id = (
+                            owner.get("claim"),
+                            owner.get("consumer"),
+                            owner.get("allocated_device"),
+                        )
+                    if allocation_id in counted_allocations:
                         continue
-                    remaining[name] = str(total - used)
+                    counted_allocations.add(allocation_id)
+
+                    # A single allocation can resolve to multiple logical devices
+                    # with the same PCI identity. Use the allocated device's
+                    # counter consumption once, while displaying all siblings as
+                    # unavailable below.
+                    source = consumers_by_name.get(
+                        owner.get("allocated_device"), consumer
+                    )
+                    for name, value in source["consumed"].items():
+                        total = numeric(remaining.get(name))
+                        used = numeric(value)
+                        if total is None or used is None:
+                            uncertain = True
+                            continue
+                        remaining[name] = str(total - used)
 
             parts = []
             for name in sorted(counters):

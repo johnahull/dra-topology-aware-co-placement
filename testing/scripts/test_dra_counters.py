@@ -27,12 +27,12 @@ def device(name, pci, consumes=None, is_vf=True):
     return result
 
 
-def slices(devices):
+def slices(devices, total="2"):
     return {"items": [{
         "spec": {
             "driver": "gpu.amd.com", "pool": {"name": "node-a"},
             "sharedCounters": [{
-                "name": "pf-0", "counters": {"vf-slots": {"value": "2"}},
+                "name": "pf-0", "counters": {"vf-slots": {"value": total}},
             }],
             "devices": devices,
         },
@@ -78,6 +78,19 @@ class CounterReportTest(unittest.TestCase):
         )
         self.assertIn("1/2", output)
         self.assertIn("PCI identity", output)
+
+    def test_shared_pci_allocation_is_counted_once(self):
+        output = self.render(
+            slices([
+                device("gpu-0", "0000:01:00.0", consumes=True, is_vf=False),
+                device("gpu-vfio-0", "0000:01:00.0", consumes=True),
+            ], total="1"),
+            claims([{"driver": "gpu.amd.com", "device": "gpu-0"}]),
+        )
+        self.assertIn("0/1", output)
+        self.assertNotIn("-1/1", output)
+        self.assertIn("gpu-0", output)
+        self.assertIn("gpu-vfio-0", output)
 
     def test_direct_allocation_is_not_mislabeled_as_pci_correlation(self):
         output = self.render(
