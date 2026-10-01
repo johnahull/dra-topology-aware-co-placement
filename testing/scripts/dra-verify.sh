@@ -3,14 +3,14 @@
 #
 # Usage:
 #   dra-verify.sh slices                     Show hardware summary from ResourceSlices
-#   dra-verify.sh topology                   Show devices grouped by pcieRoot, numaNode, cpuSocketID
+#   dra-verify.sh topology                   Show devices grouped by pcieRoot, numaNode, and host socket
 #   dra-verify.sh drivers                    Show DRA driver status
 #   dra-verify.sh attributes [-a]             Show ResourceSlice topology attributes (-a for all)
 #   dra-verify.sh driverinfo                  Show published attributes/capacities per driver
 #   dra-verify.sh deviceclasses [filter]       Show device classes (pairs|partitions|aggregates, default: all)
 #   dra-verify.sh composite [-a]             Show composite device compositions (-a for all attributes)
 #   dra-verify.sh claims [-n ns]             Show allocated claims with pods/VMs and devices
-#   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment
+#   dra-verify.sh alignment [pod] [-n ns]    Show device NUMA/pcieRoot/host socket alignment
 #   dra-verify.sh cpupinning [pod] [-n ns]   Show cpuset vs device NUMA
 #   dra-verify.sh counters                    Show KEP-4815 shared counter sets and consumption
 #   dra-verify.sh vfio                       Show VFIO-bound devices and CDI specs
@@ -815,7 +815,7 @@ for c in sorted(claims, key=lambda x: x['metadata']['name']):
 # ── alignment ─────────────────────────────────────────────────────────────────
 
 cmd_alignment() {
-    section "Device NUMA Alignment"
+    section "Device NUMA/Socket Alignment"
 
     local target_pod="$TARGET"
     local nf
@@ -823,7 +823,7 @@ cmd_alignment() {
 
     # Get claims and slices together
     { kubectl get resourceclaims $nf -o json 2>/dev/null; echo "---SEP---"; kubectl get resourceslices -o json 2>/dev/null; } | python3 -c "
-import json, sys
+import glob, json, os, re, sys
 
 raw = sys.stdin.read()
 parts = raw.split('---SEP---')
@@ -832,8 +832,38 @@ slices_data = json.loads(parts[1])
 
 target_pod = '$target_pod'
 
+def read_numa_socket_map():
+    # Read NUMA-to-socket from the node's CPU topology.
+    root = os.environ.get('DRA_VERIFY_SYSFS_ROOT', '/sys')
+    node_root = os.path.join(root, 'devices/system/node')
+    cpu_root = os.path.join(root, 'devices/system/cpu')
+    mapping = {}
+
+    def read(path):
+        try:
+            with open(path) as stream:
+                return stream.read().strip()
+        except OSError:
+            return ''
+
+    for node_path in sorted(glob.glob(os.path.join(node_root, 'node*'))):
+        match = re.fullmatch(r'node(\d+)', os.path.basename(node_path))
+        if not match:
+            continue
+        cpulist = read(os.path.join(node_path, 'cpulist'))
+        cpu_match = re.search(r'\d+', cpulist)
+        if not cpu_match:
+            continue
+        socket = read(os.path.join(cpu_root, f'cpu{cpu_match.group(0)}', 'topology',
+                                   'physical_package_id'))
+        if socket and socket != '-1':
+            mapping[match.group(1)] = socket
+    return mapping
+
+numa_to_socket = read_numa_socket_map()
+
 # Build device attr lookup from ResourceSlices
-device_attrs = {}  # 'driver/device' -> {numaNode, pcieRoot, cpuSocketID}
+device_attrs = {}  # 'driver/device' -> {numaNode, pcieRoot, socket}
 for rs in slices_data.get('items', []):
     driver = rs['spec']['driver']
     for dev in rs['spec'].get('devices', []) or []:
@@ -842,9 +872,13 @@ for rs in slices_data.get('items', []):
         topo = {}
         for key, val in attrs.items():
             short = key.split('/')[-1] if '/' in key else key
-            domain = key.split('/')[0] if '/' in key else ''
             if short in ('numaNode', 'numa', 'numaNodeID', 'pcieRoot', 'pciBusID', 'cpuSocketID'):
-                topo[short] = list(val.values())[0]
+                for value_type in ('int', 'string', 'bool', 'ints', 'strings'):
+                    if value_type in val:
+                        topo[short] = val[value_type]
+                        break
+                else:
+                    topo[short] = next(iter(val.values()), '?')
         device_attrs[f'{driver}/{name}'] = topo
 
 # Process claims
@@ -868,13 +902,21 @@ for c in claims_data.get('items', []):
         request = r['request']
         dev_key = f'{driver}/{device}'
         topo = device_attrs.get(dev_key, {})
+        numa_value = topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '?')))
+        if isinstance(numa_value, list):
+            primary_numa = str(numa_value[0]) if numa_value else '?'
+        else:
+            primary_numa = str(numa_value)
+        socket = numa_to_socket.get(primary_numa)
+        if socket is None:
+            socket = topo.get('cpuSocketID', '-')
         pods[key].append({
             'driver': driver,
             'device': device,
             'request': request,
             'numa': topo.get('numaNode', topo.get('numa', topo.get('numaNodeID', '?'))),
             'pcieRoot': topo.get('pcieRoot', '-'),
-            'socketID': topo.get('cpuSocketID', '-'),
+            'socketID': socket,
             'pciBusID': topo.get('pciBusID', '-'),
         })
 
@@ -912,10 +954,10 @@ for pod_key in sorted(pods):
         print(f'  \x1b[2m? numaNode unknown\x1b[0m')
 
     if len(sockets) == 1:
-        print(f'  \x1b[32m✓ cpuSocketID aligned: all on socket {sockets.pop()}\x1b[0m')
+        print(f'  \x1b[32m✓ socket aligned: all on socket {sockets.pop()}\x1b[0m')
     elif len(sockets) > 1:
         socket_list = ', '.join(sorted(sockets))
-        print(f'  \x1b[31m✗ cpuSocketID SPLIT: devices on sockets {socket_list}\x1b[0m')
+        print(f'  \x1b[31m✗ socket SPLIT: devices on sockets {socket_list}\x1b[0m')
 
     if len(roots) == 1:
         print(f'  \x1b[32m✓ pcieRoot aligned: all on {roots.pop()}\x1b[0m')
@@ -1677,7 +1719,7 @@ cmd_topology() {
     local verbose="$VERBOSE"
     local simple="$SIMPLE"
     kubectl get resourceslices -o json 2>/dev/null | VERBOSE="$verbose" SIMPLE="$simple" python3 -c "
-import json, sys, os
+import glob, json, os, re, sys
 from collections import defaultdict
 
 verbose = os.environ.get('VERBOSE', '') == '1'
@@ -1701,6 +1743,40 @@ def parse_numa(numa_str):
     cleaned = numa_str.strip('[] ')
     parts = [p.strip() for p in cleaned.split(',') if p.strip()]
     return (parts[0], parts) if parts else ('?', [])
+
+def read_numa_socket_map():
+    # Read the host NUMA-to-package mapping from Linux CPU topology.
+    # DRA drivers do not need to publish a socket attribute. The kernel already
+    # exposes the authoritative mapping: each NUMA node's cpulist identifies a
+    # CPU, and that CPU's physical_package_id identifies its socket.
+    root = os.environ.get('DRA_VERIFY_SYSFS_ROOT', '/sys')
+    node_root = os.path.join(root, 'devices/system/node')
+    cpu_root = os.path.join(root, 'devices/system/cpu')
+    mapping = {}
+
+    def read(path):
+        try:
+            with open(path) as stream:
+                return stream.read().strip()
+        except OSError:
+            return ''
+
+    def first_cpu(cpulist):
+        match = re.search(r'\\d+', cpulist or '')
+        return match.group(0) if match else None
+
+    for node_path in sorted(glob.glob(os.path.join(node_root, 'node*'))):
+        match = re.fullmatch(r'node(\\d+)', os.path.basename(node_path))
+        if not match:
+            continue
+        cpu = first_cpu(read(os.path.join(node_path, 'cpulist')))
+        if cpu is None:
+            continue
+        socket = read(os.path.join(cpu_root, f'cpu{cpu}', 'topology',
+                                   'physical_package_id'))
+        if socket and socket != '-1':
+            mapping[match.group(1)] = socket
+    return mapping
 
 devices = []
 for rs in data.get('items', []):
@@ -1798,16 +1874,21 @@ for rs in data.get('items', []):
             'product': product or '',
         })
 
-# ── Pass 2: infer socket from NUMA ──
-# Step 1: collect explicit cpuSocketID mappings
-numa_to_socket = {}
+# ── Pass 2: determine socket from NUMA ──
+# Prefer the host's CPU topology. Socket is a property of the node hardware,
+# not an attribute that each DRA driver needs to duplicate in its ResourceSlice.
+host_numa_to_socket = read_numa_socket_map()
+numa_to_socket = dict(host_numa_to_socket)
+
+# Compatibility fallback for older ResourceSlice snapshots captured away from
+# the node, or from drivers that did publish a socket attribute.
 for d in devices:
-    if d['socket'] and d['primary_numa'] != '?':
+    if d['socket'] and d['primary_numa'] != '?' and d['primary_numa'] not in numa_to_socket:
         numa_to_socket[d['primary_numa']] = d['socket']
 
-# Step 2: if no cpuSocketID at all, derive socket from NUMA list grouping.
-# Devices sharing the same set of equidistant NUMA nodes are on the same socket.
-if not numa_to_socket:
+# Last fallback: devices sharing the same set of equidistant NUMA nodes are on
+# the same socket. This supports old snapshots with SLIT-expanded NUMA lists.
+if not host_numa_to_socket and not numa_to_socket:
     socket_groups = {}  # frozenset(all_numas) -> socket_id
     next_socket = 0
     for d in devices:
@@ -1820,13 +1901,19 @@ if not numa_to_socket:
 
 inferred = 0
 for d in devices:
-    if not d['socket'] and d['primary_numa'] in numa_to_socket:
+    if d['primary_numa'] in host_numa_to_socket:
+        d['socket'] = host_numa_to_socket[d['primary_numa']]
+        inferred += 1
+    elif not d['socket'] and d['primary_numa'] in numa_to_socket:
         d['socket'] = numa_to_socket[d['primary_numa']]
         inferred += 1
     elif not d['socket']:
         d['socket'] = '?'
 if inferred and verbose:
-    print(f'\x1b[2m(inferred socket for {inferred} devices via NUMA list grouping)\x1b[0m')
+    if host_numa_to_socket:
+        print(f'\x1b[2m(derived socket for {inferred} devices from host CPU physical_package_id)\x1b[0m')
+    else:
+        print(f'\x1b[2m(inferred socket for {inferred} devices via NUMA list grouping)\x1b[0m')
 
 # ── Group by Socket → primary NUMA → pcieRoot ──
 sockets = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -2802,14 +2889,14 @@ cmd_help() {
     echo ""
     echo "Commands:"
     echo "  slices                     Show hardware summary from ResourceSlices"
-    echo "  topology                   Show devices grouped by socket, NUMA, pcieRoot"
+    echo "  topology                   Show devices grouped by host socket, NUMA, pcieRoot"
     echo "  drivers                    Show DRA driver DaemonSets, pods, registration"
     echo "  attributes [-a]            Show ResourceSlice topology attributes (-a for all)"
     echo "  driverinfo                 Show published attributes/capacities per driver"
     echo "  deviceclasses [filter]     Show device classes (pairs|partitions|aggregates, default: all)"
     echo "  composite [-a]             Show composite device compositions (-a for all attributes)"
     echo "  claims [-n ns]             Show allocated claims with pods/VMs and devices"
-    echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/socket alignment"
+    echo "  alignment [pod] [-n ns]    Show device NUMA/pcieRoot/host socket alignment"
     echo "  cpupinning [pod] [-n ns]   Show container cpuset vs device NUMA nodes"
     echo "  counters                   Show KEP-4815 shared counter sets and consumption"
     echo "  vfio                       Show VFIO-bound devices, IOMMU groups, CDI specs"
