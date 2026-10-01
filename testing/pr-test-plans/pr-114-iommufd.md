@@ -226,3 +226,21 @@ virt-launcher/libvirt image is available. Other injected rollback faults can
 remain automated-only if the disposable host cannot provide an isolated
 reversible setup. Active conversion recovery across plugin restarts belongs
 to PR #122 and is covered there.
+
+## 2026-10-01 non-GIM safe-case harness validation
+
+On the GIM-disabled, `amdgpu`-only host, the harness passed the repeated
+`LegacyOnly` release cycle, a two-device `RequireIommuFD` claim, and the
+single-device `PreferIommuFD` and `RequireIommuFD` policies. The two-device
+case selected both PFs and cleaned them up successfully; all cases restored
+their PFs to `amdgpu`.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr114/non-gim-20261001-legacy-repeat`,
+`/home/jhull/dra-test-work/evidence/pr114/non-gim-20261001-multidevice`,
+`/home/jhull/dra-test-work/evidence/pr114/non-gim-20261001-prefer`, and
+`/home/jhull/dra-test-work/evidence/pr114/non-gim-20261001-require`.
+
+The unavailable-IOMMUFD injection and KubeVirt IOMMUFD/fallback VM cases
+remain outside this run; the latter still requires a compatible
+virt-launcher/libvirt image.

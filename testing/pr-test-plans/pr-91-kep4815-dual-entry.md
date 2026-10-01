@@ -221,3 +221,22 @@ Remaining optional work is the KubeVirt direct/sibling matrix and
 multi-VF profile/capacity coverage after switching the host to NPS2/DPX;
 MI355X values must be measured on that configuration rather than inferred
 from MI300X.
+
+## 2026-10-01 non-GIM safe-case harness validation
+
+The GIM-disabled, `amdgpu`-only host passed the remaining safe non-GIM
+harness scenarios: ResourceSlice dual-entry publication, shared counters,
+both sibling-exclusion orders, alternate-device selection, independent
+release ordering, and a no-active-conversion plugin restart. The harness
+reported 16 advertised entries (eight `amdgpu` and eight `vfio` entries)
+with each logical pair sharing one function-level counter set.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr91/non-gim-20261001-extended`.
+The feature-gate-negative capture is under
+`/home/jhull/dra-test-work/evidence/pr91/non-gim-gate-off-20261001-final`;
+after settling, it showed zero `gpu-vfio` entries and eight `amdgpu` entries,
+and the gate was restored to `VFIOPassthrough=true`.
+
+The remaining optional items are unchanged: live KubeVirt direct/sibling
+cases and the NPS2/DPX multi-VF profile matrix.

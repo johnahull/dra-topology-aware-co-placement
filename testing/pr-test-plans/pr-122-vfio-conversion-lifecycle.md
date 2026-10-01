@@ -207,3 +207,17 @@ remained on `gim`, all eight VFs remained on `vfio-pci`, and the checkpoint was
 empty. The harness then held a running GIM VF-backed VMI across a DRA plugin
 restart; the claim remained reserved and cleanup again left the checkpoint
 empty with all PFs/VFs intact.
+
+## 2026-10-01 non-GIM active-conversion restart validation
+
+With GIM unloaded and all eight MI355X PFs bound to `amdgpu`, the harness
+passed PR #122's `restart-active` scenario using `LegacyOnly`. It held an
+active PF claim through a DRA plugin restart, confirmed that the claim and
+PCI identity remained reserved, and then released the claim back to
+`amdgpu`. No ResourceClaims or test namespaces remained afterward.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr122/non-gim-20261001-restart-active`.
+The remaining live gap is the host-wide missing-VFIO-manager fault injection;
+KubeVirt PF passthrough remains deferred because of the documented VFIO
+aperture/reset issue.
