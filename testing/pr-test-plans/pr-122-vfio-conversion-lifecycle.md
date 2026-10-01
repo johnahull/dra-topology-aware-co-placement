@@ -84,7 +84,7 @@ production workload for failure injection.
 | L-01 | Live hardware integration | Single conversion and release | Claim one regular `amdgpu` GPU with VFIO configuration, inspect binding, release the claim, and inspect again. | GPU returns to `amdgpu`; no stale VFIO entry or conversion record remains. | **Complete — live**; `gpu-1-128` converted to `vfio-pci` and returned to `amdgpu`. |
 | L-02 | Live hardware integration | Two independent conversions | Prepare claims A and B on different GPUs, then release A and B in both orders. | Releasing one claim does not affect the other; both GPUs eventually return to their original drivers. | **Complete — live**; both release orders passed for `gpu-1-128` and `gpu-17-144`. |
 | L-03 | Kubernetes integration | ResourceSlice during conversion | Capture slices before Prepare, during Prepare, after Unprepare, and after republish. | Converted GPU keeps its original name/type and is not advertised as a free duplicate VFIO device. | **Complete — live**; the clean post-reboot rerun published all 8 GPUs before, during, and after the test, and the harness confirmed the final 8-device topology. |
-| L-04 | Live hardware integration | Active-conversion restart | Prepare a claim, restart the DRA plugin before Unprepare, then release the claim. | Checkpoint recovery prevents the converted GPU from being advertised as free and restores the original driver on release. | **Complete — live**; distinct old/new plugin UIDs were verified and checkpoint recovery restored the GPU. |
+| L-04 | Live hardware integration | Active-conversion restart | Prepare a claim, restart the DRA plugin before Unprepare, then release the claim. | Checkpoint recovery prevents the converted GPU from being advertised as free and restores the original driver on release. | **Complete — live**; distinct old/new plugin UIDs were verified in GIM and non-GIM runs, and checkpoint recovery restored the GPU. |
 | L-05 | Live hardware integration | Name collision protection | Use a converted GPU alongside a real pre-bound VFIO GPU and inspect device names. | Converted and pre-bound devices have unique names and remain separately addressable. | **Complete — live**; `gpu-1-128` and independent `gpu-vfio-0` remained distinct. |
 | L-06 | Live hardware integration | Failed rebind retry | Use an isolated device or controlled test mechanism to make the original-driver rebind fail, then restore the condition and retry. | Failure leaves the record and error visible; retry restores the GPU and removes the record. | **Complete — live**; `amdgpu` bind mode `000` retained the conversion checkpoint, and restoring mode `200` let kubelet retry and return `gpu-1-128` to `amdgpu`. |
 | L-07 | Live hardware integration | Missing VFIO manager | Prevent VFIO-manager initialization on an isolated test instance and run cleanup. | Cleanup does not falsely report success; restoration succeeds after the manager returns. | Not tested; fake/component coverage exists. |
@@ -161,10 +161,34 @@ Evidence is saved under
 `/home/jhull/dra-test-work/evidence/pr114-122/non-gim-require-iommufd`, and
 `/home/jhull/dra-test-work/evidence/pr114-122/non-gim-multidevice`.
 
-Still outstanding are independent simultaneous claims released in both
-orders, restart while a conversion is active, controlled rebind-failure and
-missing-manager cases, and the optional KubeVirt lifecycle tests. KubeVirt
-PF passthrough remains deferred pending the VFIO aperture work.
+The independent release-order and active-conversion restart gaps were closed
+by the follow-up harness run below. Controlled rebind-failure and
+missing-manager cases remain covered by the earlier live/automated evidence,
+with the manager fault still not isolated on this one-node host. The optional
+KubeVirt lifecycle tests remain as described below; PF passthrough remains
+deferred pending the VFIO aperture work.
+
+## 2026-09-30 recommended-gap validation addendum
+
+The harness completed the remaining non-GIM lifecycle cases selected for this
+round. Its isolated `release-orders` scenario passed independent claims in
+both A-then-B and B-then-A deletion orders. Its `restart-active` scenario
+held a live `amdgpu` claim with `LegacyOnly` VFIO conversion, restarted the
+DRA plugin, confirmed that the claim and PCI identity remained reserved, and
+then released the claim back to `amdgpu`.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr91-114-122/non-gim-release-orders` and
+`/home/jhull/dra-test-work/evidence/pr122-vfio-lifecycle/non-gim-restart-active`.
+The harness cleaned both namespaces and the final host had all eight PFs
+bound to `amdgpu`.
+
+The active CDI policy captures and the controlled unavailable-IOMMUFD
+fallback/fail-closed matrix are recorded in the PR #114 evidence package and
+also provide supplemental PR #122 conversion/release evidence. Remaining
+PR #122 items are the host-wide missing-manager fault injection and optional
+KubeVirt cases; PF passthrough remains deferred because of the documented
+VFIO aperture/reset issue.
 
 ## Final assessment
 

@@ -49,11 +49,11 @@ is stale and is not the expected behavior for the current branch.
 | Build and static checks | Build/static | **Complete — automated; rerun needed** | The PR reports build, unit tests, vet, and pre-commit checks passing. | Rerun after the latest commits and final rebase. |
 | KEP-4815 unit/resource tests | Unit + component | **Complete — automated; rerun needed** | Counter, partition, discovery, lifecycle, chunking, scheduler, and concurrency tests were added. | Confirm the complete suite passes on the final branch. |
 | GIM VF discovery and VFIO CDI | Live hardware integration | **Complete — live for pre-bound VFIO** | On the MI355X GIM configuration, VFs were discovered, CDI was generated, and VFIO resource/release checks passed. | This does not prove PR #91 dual-entry or counter behavior. |
-| Dual `amdgpu`/`vfio` advertising | Kubernetes integration | **Not verified live** | No final live ResourceSlice capture is recorded for both sibling entries. | Capture ResourceSlices with the gate enabled and disabled. |
-| KEP-4815 counters | Kubernetes integration | **Partial — live limitation** | The live GIM run completed resource/counter/release checks, but `dra-verify.sh counters` found no shared counter sets because the host exposed pre-bound VFIO VFs rather than the PR #91 dual entries. | Re-run on a host/configuration that publishes both entries. |
+| Dual `amdgpu`/`vfio` advertising | Kubernetes integration | **Complete — live** | The non-GIM MI355X ResourceSlices published 16 devices: paired `amdgpu` and `vfio` entries sharing each PF PCI identity. | No remaining dual-entry publication gap. |
+| KEP-4815 counters | Kubernetes integration | **Complete — live** | `dra-verify.sh counters` resolved both logical siblings to the same function-level counter and showed one active claim consuming the shared capacity once. | No remaining live counter gap for the SPX/one-VF configuration. |
 | Per-VF capacity and profiles | Live hardware + Kubernetes integration | **Partial — live for SPX/one-VF configuration** | The harness captured eight MI355X GIM VFs with `partitionProfile=spx`, `computeUnits=256`, and `simdUnits=1Ki` per VF. | Re-run after switching the host to NPS2/DPX to validate multi-VF profiles and capacities. |
-| Scheduler sibling exclusion | Scheduler integration | **Complete — automated; live pending** | Scheduler allocator tests cover PF/VF and compute/VFIO exclusion. | Verify with real ResourceClaims and ResourceSlices. |
-| Direct VFIO claim lifecycle | Component + live hardware integration | **Complete — automated and live for pre-bound VFs** | Prepare/Unprepare tests and the live GIM harness run covered direct VFIO claims, CDI, and release. | Direct dual-entry allocation remains pending. |
+| Scheduler sibling exclusion | Scheduler integration | **Complete — automated and live** | Both allocation orders left the compute/VFIO sibling pending, and an unqualified VFIO request selected another PCI identity when the first GPU was occupied. | No remaining live scheduler gap for the dual-entry configuration. |
+| Direct VFIO claim lifecycle | Component + live hardware integration | **Complete — automated and live** | Prepare/Unprepare tests and the non-GIM harness run covered direct dual-entry VFIO claims, CDI, release, and restoration to `amdgpu`. | KubeVirt direct-claim coverage remains separate. |
 | ResourceSlice chunking | Unit | **Complete — automated** | Boundary tests cover counter-set and device limits. | Live validation is optional. |
 | Publication locking | Concurrency/race | **Complete — automated** | Concurrent publication and claim tests exist, including race-sensitive coverage. | No separate live test is required. |
 | KubeVirt integration | End-to-end (KubeVirt) | **Partial live evidence** | GPU VF passthrough and two-GPU guest visibility were demonstrated. | Direct `type=vfio` and sibling-exclusion VM tests remain for this PR branch. |
@@ -66,12 +66,12 @@ is stale and is not the expected behavior for the current branch.
 | A-02 | Unit | Partition profile mapping | Exercise supported VF counts and the partition-mode helper, including the three-VF TPX case. | Each recognized VF count maps to the expected profile; unsupported values do not fabricate one. | Automated coverage reported complete. |
 | A-03 | Unit | Per-VF capacity | Divide PF memory, compute, and SIMD totals by configured VF count. | Every VF receives the expected capacity and the PF total is preserved. | Automated coverage reported complete. |
 | A-04 | Component | VFIO parent discovery | Resolve PF/VF relationships through `physfn` and validate active/total VF counts. | Parent metadata is correct and VFs are associated with the correct PF. | Automated coverage reported complete. |
-| A-05 | Component | Shared-counter publication | Build ResourceSlices containing PF `vf-slots` and device consumption. | Every consumed counter set is published and every reference resolves. | Automated coverage reported complete; live verification pending. |
-| A-06 | Scheduler integration | Scheduler sibling exclusion | Run the Kubernetes DRA allocator against published slices with partitionable devices enabled. | Compute/VFIO siblings cannot be allocated together; another GPU can be selected. | Automated coverage reported complete; live verification pending. |
+| A-05 | Component | Shared-counter publication | Build ResourceSlices containing PF `vf-slots` and device consumption. | Every consumed counter set is published and every reference resolves. | Automated and live coverage complete. |
+| A-06 | Scheduler integration | Scheduler sibling exclusion | Run the Kubernetes DRA allocator against published slices with partitionable devices enabled. | Compute/VFIO siblings cannot be allocated together; another GPU can be selected. | Automated and live coverage complete. |
 | A-07 | Component | Direct VFIO lifecycle | Prepare and unprepare a direct `type=vfio` claim using a CDI handler and checkpoint manager. | CDI is returned, the device is prepared, and release restores the expected state. | Automated coverage complete; live pre-bound-VFIO path also passed. |
 | A-08 | Unit | ResourceSlice limits | Test 9 counter sets, 64/65 counter-consuming devices, 129 non-counter devices, and an empty node. | Slices respect API limits; no devices or counters are duplicated or lost. | Automated coverage reported complete. |
 | A-09 | Concurrency/race | Publication concurrency | Run Prepare/Unprepare while slices are rebuilt and run the race detector. | No concurrent map access, stale publication, duplicate device, or lost device. | Automated coverage reported complete; rerun required. |
-| A-10 | Component | Per-claim conversion records | Prepare two claims and release them in either order. | One claim cannot overwrite another claim's conversion record. | Automated coverage reported complete; live hardware test pending. |
+| A-10 | Component | Per-claim conversion records | Prepare two claims and release them in either order. | One claim cannot overwrite another claim's conversion record. | Automated and live coverage complete. |
 | A-11 | Scheduler integration | Mixed compute/VFIO VF case | Exercise the synthetic case where both entries share a VF PCI address. | Both entries consume the same function-level counter. | Automated-only coverage; normal discovery does not currently produce this case. |
 
 ## Live hardware and Kubernetes scenarios
@@ -83,18 +83,18 @@ commit, feature-gate settings, and configured VF counts.
 | ID | Type | Scenario | How to verify | Expected result | Status/notes |
 |---|---|---|---|---|---|
 | L-01 | Live hardware integration | Baseline hardware inventory | Capture PCI devices, GIM-created VFs, VF drivers, IOMMU groups, and PF/VF relationships. | The test inventory is stable and each VF has an unambiguous PCI identity and parent PF. | **Complete — live** on XE9785L; eight GIM VFs and their VFIO bindings were inventoried. |
-| L-02 | Kubernetes integration | Dual-entry publication | Inspect `kubectl get resourceslices -o yaml` after enabling `VFIOPassthrough`. | Eligible GPUs have matching `amdgpu` and `vfio` entries with the same PCI identity. | Not verified live for the final PR #91 branch. |
+| L-02 | Kubernetes integration | Dual-entry publication | Inspect `kubectl get resourceslices -o yaml` after enabling `VFIOPassthrough`. | Eligible GPUs have matching `amdgpu` and `vfio` entries with the same PCI identity. | **Complete — live**; all eight PFs published paired entries with matching PCI identities. |
 | L-03 | Kubernetes integration | Feature-gate negative case | Disable `VFIOPassthrough`, restart/redeploy the driver, and inspect ResourceSlices. | VFIO entries are absent; ordinary compute entries remain correct. | **Complete — live for the GIM-only configuration**; the gate-off ResourceSlice had no VFIO devices, while ordinary `amdgpu` entries were not applicable because all PFs were owned by GIM. |
-| L-04 | Kubernetes integration | PF/VF counter publication | Run `./testing/scripts/dra-verify.sh counters` and inspect ResourceSlices. | PFs publish `vf-slots`; VFs consume one slot; PFs consume the full slot set. | **Partial — live limitation**; the GIM-only publication had no shared counter sets to verify. |
-| L-05 | Kubernetes integration | Function-level sibling counter | Inspect paired entries and their `consumesCounters` fields. | Both `amdgpu` and `vfio` entries for one GPU consume the same `fn-<pci-bdf>` counter. | Not verified live. |
-| L-06 | Kubernetes integration | Compute allocation | Create a normal `amdgpu` ResourceClaim and inspect allocation status and CDI/device result. | The compute entry is allocated and its VFIO sibling remains scheduler-ineligible. | Not verified live for PR #91. |
-| L-07 | Live hardware integration | Direct VFIO allocation | Create a `type=vfio` ResourceClaim for a pre-bound or directly usable VF. | The claim allocates, Prepare returns the VFIO CDI device, and the device is usable. | **Complete — live for pre-bound VFs**; direct dual-entry semantics remain pending. |
-| L-08 | Scheduler integration | Scheduler conflict | Submit claims for both entries of one GPU, in both allocation orders. | The second conflicting claim remains pending or is rejected; it cannot acquire the sibling. | Automated coverage exists; live test pending. |
-| L-09 | Scheduler integration | Alternate-device selection | Request a VFIO device when one GPU's compute sibling is allocated. | The scheduler selects another eligible GPU instead of violating sibling exclusion. | Not tested live. |
+| L-04 | Kubernetes integration | PF/VF counter publication | Run `./testing/scripts/dra-verify.sh counters` and inspect ResourceSlices. | PFs publish `vf-slots`; VFs consume one slot; PFs consume the full slot set. | **Complete — live** for the non-GIM dual-entry publication. |
+| L-05 | Kubernetes integration | Function-level sibling counter | Inspect paired entries and their `consumesCounters` fields. | Both `amdgpu` and `vfio` entries for one GPU consume the same `fn-<pci-bdf>` counter. | **Complete — live**; the active claim reduced the shared counter from `1/1` to `0/1` once. |
+| L-06 | Kubernetes integration | Compute allocation | Create a normal `amdgpu` ResourceClaim and inspect allocation status and CDI/device result. | The compute entry is allocated and its VFIO sibling remains scheduler-ineligible. | **Complete — live**; the harness held the compute entry and rejected the same-PCI VFIO sibling. |
+| L-07 | Live hardware integration | Direct VFIO allocation | Create a `type=vfio` ResourceClaim for a pre-bound or directly usable VF. | The claim allocates, Prepare returns the VFIO CDI device, and the device is usable. | **Complete — live** for both the prior pre-bound VF path and the non-GIM directly advertised PF sibling. |
+| L-08 | Scheduler integration | Scheduler conflict | Submit claims for both entries of one GPU, in both allocation orders. | The second conflicting claim remains pending or is rejected; it cannot acquire the sibling. | **Complete — live, harness-backed**; both allocation orders passed. |
+| L-09 | Scheduler integration | Alternate-device selection | Request a VFIO device when one GPU's compute sibling is allocated. | The scheduler selects another eligible GPU instead of violating sibling exclusion. | **Complete — live, harness-backed**; the second claim received a different PCI identity. |
 | L-10 | Kubernetes integration | Claim release | Delete the claim and inspect ResourceSlices, claims, CDI, and driver binding. | Counters are released, the expected entry returns, and no stale allocation remains. | **Complete — live for the GIM/pre-bound-VFIO path**. |
 | L-11 | Live hardware integration | VF-count matrix | Reconfigure only VF counts supported by GIM on the test platform. Start with 1, 2, 4, and 8 where available; include 3 if TPX is exposed. | `partitionProfile`, per-VF capacity, total `vf-slots`, and allocation limits match the configured count. | **Partial — live**; SPX/`vf_num=1` passed. GIM rejected `vf_num=2` with `VF number 2 ... exceeds the vf limit 1`; NPS2/DPX reconfiguration is deferred. |
 | L-12 | Live hardware integration | Multi-VF capacity exhaustion | Allocate VFs until the PF's available slots are consumed, then request one more. | Allocations succeed up to the limit and the next request cannot be allocated. | **Complete — live for the current node capacity**; the harness allocated all eight one-VF devices, left the next allocation unavailable, restarted the driver, and cleaned up. Per-PF multi-VF exhaustion remains deferred with NPS2/DPX. |
-| L-13 | Scheduler integration | PF exclusion | Allocate a PF, or the largest PF-level resource available in the test configuration, while VFs are free. | All sibling VF allocations are blocked by the shared counter. | Not tested live. |
+| L-13 | Scheduler integration | PF exclusion | Allocate a PF, or the largest PF-level resource available in the test configuration, while VFs are free. | All sibling VF allocations are blocked by the shared counter. | **Complete — live** for the dual PF-entry configuration; the same-PCI sibling was blocked. |
 | L-14 | Kubernetes integration | Driver restart without active conversion | Restart the driver with no active conversion and inspect ResourceSlices. | Publication returns with stable names, devices, and counters. | **Complete — live, harness-backed**; the post-reboot capacity/restart run republished all eight devices and completed cleanly. Active conversion recovery belongs to PR #122. |
 
 ### Per-VF attributes to capture
@@ -188,14 +188,36 @@ The feature-gate-negative case, GIM VF-count matrix, and KubeVirt VM cases
 were not run in this `amdgpu` pass. KubeVirt PF passthrough remains deferred
 until the VFIO aperture issue is revisited.
 
+## 2026-09-30 recommended-gap validation addendum
+
+The extended harness run used the non-GIM `amdgpu` configuration and
+verification-repository commit `5db44ee1ed94133b4fea6752bacef31885dbd06a`.
+It passed reverse-order sibling exclusion, alternate-device selection, and
+the two independent release orders. The active counter capture showed both
+logical entries resolving to the same PCI/function counter, with one active
+claim reducing that shared capacity once. The active-conversion restart was
+also run through the harness as supplemental PR #122 evidence.
+
+Evidence is saved under
+`/home/jhull/dra-test-work/evidence/pr91-114-122/non-gim-extended`,
+`/home/jhull/dra-test-work/evidence/pr91-114-122/non-gim-release-orders`, and
+`/home/jhull/dra-test-work/evidence/pr122-vfio-lifecycle/non-gim-restart-active`.
+The harness cleaned each namespace and claim; the final host state had all
+eight PFs bound to `amdgpu`.
+
+The remaining PR #91 items are optional KubeVirt direct/sibling cases and the
+NPS2/DPX multi-VF profile matrix. The host's supported SPX/one-VF setting was
+not changed for this run.
+
 ## Final assessment
 
 PR #91 has broad automated coverage and current MI355X live evidence for GIM
 VFIO discovery, direct pre-bound-VF claims, CDI, release, gate behavior,
 capacity at the supported SPX/one-VF setting, node-level exhaustion, and
-restart recovery. The approval-critical gap is that this host configuration
-did not publish the PR #91 dual-entry (`amdgpu` plus `vfio`) view, so shared
-`vf-slots`/function-level counters, scheduler sibling exclusion, and
-alternate-device selection were not proven live. Multi-VF profile/capacity
-coverage is deferred until the host is switched to NPS2/DPX; MI355X values
-must be measured on that configuration rather than inferred from MI300X.
+restart recovery. The non-GIM validation now also proves the PR #91
+dual-entry (`amdgpu` plus `vfio`) view, shared counters, sibling exclusion in
+both orders, alternate-device selection, and independent release ordering.
+Remaining optional work is the KubeVirt direct/sibling matrix and
+multi-VF profile/capacity coverage after switching the host to NPS2/DPX;
+MI355X values must be measured on that configuration rather than inferred
+from MI300X.
