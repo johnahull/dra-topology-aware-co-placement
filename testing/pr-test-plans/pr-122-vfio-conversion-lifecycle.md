@@ -165,8 +165,10 @@ The independent release-order and active-conversion restart gaps were closed
 by the follow-up harness run below. Controlled rebind-failure and
 missing-manager cases remain covered by the earlier live/automated evidence,
 with the manager fault still not isolated on this one-node host. The optional
-KubeVirt lifecycle tests remain as described below; PF passthrough remains
-deferred pending the VFIO aperture work.
+KubeVirt lifecycle tests remain as described below. The later GIM-VF
+IOMMUFD/aperture validation is recorded in the PR #114 plan; PF passthrough
+should not be retried on this host because the documented PCI reset fault
+remains independent of the aperture fix.
 
 ## 2026-09-30 recommended-gap validation addendum
 
@@ -187,8 +189,24 @@ The active CDI policy captures and the controlled unavailable-IOMMUFD
 fallback/fail-closed matrix are recorded in the PR #114 evidence package and
 also provide supplemental PR #122 conversion/release evidence. Remaining
 PR #122 items are the host-wide missing-manager fault injection and optional
-KubeVirt cases; PF passthrough remains deferred because of the documented
-VFIO aperture/reset issue.
+KubeVirt cases; the GIM-VF VM path is complete, while PF passthrough remains
+deferred because of the documented PCI reset issue.
+
+## 2026-10-02 GIM-VF IOMMUFD and PCI-aperture validation
+
+Using the integrated PR #91/#114/#122 driver at commit `1ff18ce`, the
+harness-backed KubeVirt `PreferIommuFD` and `RequireIommuFD` single-VF runs
+both reached `Running`/`Ready=True` and cleaned up successfully. The launcher
+received `/dev/vfio/vfio`, `/dev/iommu`, and the per-device VFIO cdev. The
+explicit aperture capture showed `pcihole64=1073741824 KiB`,
+`host-passthrough`, domain IOMMUFD enabled, and an IOMMUFD-backed PCI
+hostdev with the KubeVirt branch `test/iommufd-vfio-vm-pci-aperture`.
+
+Evidence: `/home/jhull/dra-test-work/evidence/pr91-114-122-gim/pci-aperture-explicit-20261002/`.
+
+This closes the optional GIM-VF KubeVirt validation gap for the aperture and
+IOMMUFD host-side path. It does not justify retrying PF passthrough because
+the MI355X PF reset/AER fault is a separate host recovery issue.
 
 ## Final assessment
 
@@ -219,5 +237,5 @@ PCI identity remained reserved, and then released the claim back to
 Evidence is saved under
 `/home/jhull/dra-test-work/evidence/pr122/non-gim-20261001-restart-active`.
 The remaining live gap is the host-wide missing-VFIO-manager fault injection;
-KubeVirt PF passthrough remains deferred because of the documented VFIO
-aperture/reset issue.
+KubeVirt PF passthrough remains deferred because of the documented PCI
+reset/AER issue, not because of the aperture implementation.
