@@ -2,13 +2,16 @@
 
 Running list of issues to fix across all repos. Updated as PRs are opened/merged.
 
-## Upstream PR Status (as of 2026-09-15)
+## Upstream PR Status (reviewed 2026-10-05)
 
 ### KubeVirt
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#19104](https://github.com/kubevirt/kubevirt/pull/19104) | Group PCI passthrough devices by PCIe root complex | Open (PR) | [#19103](https://github.com/kubevirt/kubevirt/issues/19103) | By johnahull, opened 2026-09-11. Bug fix in the VEP-115 area (design PR enhancements#424); the full VEP-115 implementation comes later. Fixes existing `PCINUMAAwareTopology` grouping devices by NUMA node instead of PCIe root complex: adds `GetDevicePCIeRoot()` sysfs helper and `groupDevicesByTopology()` keying `pxb-pcie` by PCIe root BDF with NUMA fallback. No API changes, no new gate. E2e verified on XE8640 (E810 + CX6DX on separate roots, same NUMA). `/cc alaypatel07`. As of 09-15 (4 days quiet): only bot activity (sourcery-ai comment, coderabbit skip) — kubevirt-prow couldn't even auto-request mresvanis as reviewer ("GitHub didn't allow me to request PR reviews from the following users"). No human review yet; approver vasiliy-ul assigned once `/lgtm` lands. **Worth a nudge to alaypatel07/mresvanis** since nothing is moving on its own. |
+| [#19302](https://github.com/kubevirt/kubevirt/pull/19302) | virt-handler: Set ownership on VFIO cdevs for IOMMUFD passthrough | Open (PR) | [#19301](https://github.com/kubevirt/kubevirt/issues/19301) | Fixes non-root generic PCI IOMMUFD passthrough by assigning mounted VFIO cdevs to the QEMU user while preserving restrictive modes. Physical MI355X validation passed; related to #19295 and #19297. |
+| [#19297](https://github.com/kubevirt/kubevirt/pull/19297) | Fix: expand PCI aperture for VFIO VMs | Open (PR) | [#19278](https://github.com/kubevirt/kubevirt/issues/19278) | Dynamically sizes the amd64 Q35 `pcihole64` aperture from assigned PCI BARs for large-BAR VFIO GPUs, including MI300X/MI355X. Physical IOMMUFD validation passed with a 1 TiB aperture. |
+| [#19296](https://github.com/kubevirt/kubevirt/pull/19296) | Fix DRA GPU hostdevs for IOMMUFD passthrough | Open (PR) | [#19295](https://github.com/kubevirt/kubevirt/issues/19295) | Adds `iommufd="yes"` to DRA PCI hostdevs when the IOMMUFD feature is enabled. Focused and physical MI355X validation passed. |
+| [#19104](https://github.com/kubevirt/kubevirt/pull/19104) | Group PCI passthrough devices by PCIe root complex | Open (PR) | [#19103](https://github.com/kubevirt/kubevirt/issues/19103) | By johnahull, opened 2026-09-11. Bug fix in the VEP-115 area (design PR enhancements#424); the full VEP-115 implementation comes later. Fixes existing `PCINUMAAwareTopology` grouping devices by NUMA node instead of PCIe root complex: adds `GetDevicePCIeRoot()` sysfs helper and `groupDevicesByTopology()` keying `pxb-pcie` by PCIe root BDF with NUMA fallback. No API changes, no new gate. E2e verified on XE8640 (E810 + CX6DX on separate roots, same NUMA). GitHub still shows the PR open and awaiting human review from `alaypatel07`; kubevirt-prow could not request `mresvanis` ("GitHub didn't allow me to request PR reviews from the following users"). Sourcery still flags comments describing NUMA grouping while the implementation groups by PCIe root. **Needs `alaypatel07` review, an authorized second reviewer, and comment cleanup.** |
 | [#17708](https://github.com/kubevirt/kubevirt/pull/17708) | Skip cpumanager node selector for DRA VMIs | Open (ready) | KV-8 | thc1006 reproduced the bug; ffromani noted `cpu_manager_state` reading is unsupported (K8s #139102). Needs a response to thc1006 + ffromani. Approver: xpivarc. |
 | [#17661](https://github.com/kubevirt/kubevirt/pull/17661) | VEP183: Add DRA-backed network devices (alpha) | Merged | — | Merged 2026-06-02. By oshoval. VEP-183 implementation. |
 | [#17797](https://github.com/kubevirt/kubevirt/pull/17797) | VEP-10: migrate away from k8sv1.PodResourceClaim to KubeVirt's own type | Merged | — | Merged 2026-06-08. By alaypatel07. VEP-10 implementation. |
@@ -18,13 +21,21 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | [#17675](https://github.com/kubevirt/kubevirt/pull/17675) | Add IPC_LOCK and SYS_RAWIO for DRA VFIO | Closed | KV-7 | Superseded by #17696. |
 | [#17673](https://github.com/kubevirt/kubevirt/pull/17673) | Fix copyResourceClaims dedup by {Name, Request} | Closed | KV-1 | Dupe of [#17490](https://github.com/kubevirt/kubevirt/pull/17490) (merged). |
 
+### KubeVirt Issues
+
+| Issue | Title | State | Related PR | Comments |
+|---|---|---|---|---|
+| [#19301](https://github.com/kubevirt/kubevirt/issues/19301) | IOMMUFD VFIO cdev permission denied for QEMU | Open | [#19302](https://github.com/kubevirt/kubevirt/pull/19302) | Non-root generic PCI passthrough could not open `/dev/vfio/devices/vfioN` because the cdev remained `root:root 0600`. |
+| [#19295](https://github.com/kubevirt/kubevirt/issues/19295) | DRA PCI GPU hostdev omits the libvirt IOMMUFD driver attribute | Open | [#19296](https://github.com/kubevirt/kubevirt/pull/19296) | DRA GPU hostdevs need `iommufd="yes"` when the KubeVirt IOMMUFD feature gate is enabled. |
+| [#19278](https://github.com/kubevirt/kubevirt/issues/19278) | Automatically size the VFIO PCI aperture for large-BAR GPUs | Open | [#19297](https://github.com/kubevirt/kubevirt/pull/19297) | Large-BAR MI300X/MI355X VFIO devices need a sufficiently sized guest 64-bit PCI MMIO aperture. |
+
 ### KubeVirt Enhancements
 
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#344](https://github.com/kubevirt/enhancements/issues/344) (tracking) / [#345](https://github.com/kubevirt/enhancements/pull/345) (PR) | VEP-344: VM-Scoped Persistent ResourceClaims | Deferred to KubeVirt 1.11 | Tracking issue #344 + design PR #345. **Deferred to KubeVirt 1.11** (was being picked up for v1.10). Design debate over manipulating ResourceClaim `status.reservedFor`; johnahull confirmed with wg-device-management that the use case is supported. jean-edouard left a new COMMENTED review (08-31) with inline threads to address (`gh pr view 345 --comments`). Approver: vladikr. |
 | [#414](https://github.com/kubevirt/enhancements/pull/414) | VEP-152: Add design to support CPU DRA driver in KubeVirt | **Merged 2026-09-09** | By Sreeja1725, retitled by alaypatel07. VEP-152 = explicit `cpu.dra` low-level path; VEP-300 = managed-claim UX layer (consensus 08-13). The `domain.cpu.dra` spec-field debate (raised by vladikr) was resolved 09-09 in the sig-compute call: the knob can be added later during implementation and is not a blocker for the VEP. `/approve` by vladikr, merged same day. Approver: iholder101. |
-| [#300](https://github.com/kubevirt/enhancements/issues/300) (tracking) / [#432](https://github.com/kubevirt/enhancements/pull/432) (PR) | VEP-300: Managed DRA Claims | Open (PR, on hold) | By johnahull, co-author alaypatel07. `ManagedClaimProvisioner` CRD maps DeviceClasses so users declare devices without hand-authoring ResourceClaims; builds on VEP-152 (now merged). Three-way CPU-API design fork converged after a 09-02/03 conversation between vladikr and alaypatel07 — vladikr thanked alaypatel07 (09-03) for clarifying the production use case. **09-09: vladikr `/approve`'d "in principle" + `/hold`** — changes requested still need addressing before merge; a new push on 09-09 removed the LGTM label (changes detected). **xpivarc asked alaypatel07 (09-08) to link PR #432 into issue #300.** **ACTION still open:** no VEP Reviewer assigned on the v1.10 board (project 22) per iholder101's 08-31 reminder — assign one or #300 drops from v1.10 tracking. |
+| [#300](https://github.com/kubevirt/enhancements/issues/300) (tracking) / [#432](https://github.com/kubevirt/enhancements/pull/432) (PR) | VEP-300: Managed DRA Claims | Open (PR, on hold) | By johnahull, co-author alaypatel07. `ManagedClaimProvisioner` CRD maps DeviceClasses so users declare devices without hand-authoring ResourceClaims; builds on VEP-152 (now merged). **09-09: vladikr `/approve`'d "in principle" + `/hold`**. The branch was updated 09-11 with fixes addressing review comments from `vladikr` and `iholder101`; `EdDev` has since approved, while `vladikr`, `alaypatel07`, and `iholder101` have left review comments and `Barakmor1` is awaiting review. **Still needs the remaining review comments resolved and the hold cleared.** The VEP Reviewer/project-board assignment remains an administrative follow-up. |
 | [#424](https://github.com/kubevirt/enhancements/pull/424) | VEP-115: DRA metadata topology and PCIe root complex grouping | Open (PR) | By johnahull. Amends VEP-115 to group devices by PCIe root complex (not NUMA-node-only) for accurate peer-to-peer DMA locality, read `numaNode` + `pcieRoot` from KEP-5304 metadata, and add a sysfs shim for devices lacking metadata. Was APPROVED 2026-09-01 by vladikr, but alaypatel07's promised deeper review landed 09-09 as a scope objection rather than an `/lgtm`: (1) the memory DRA driver still isn't available for use, and (2) CPU requested via VEP-152 could land with kubelet-allocated memory that isn't NUMA-aligned — undercutting the VEP's full-topology benefit. **johnahull posted a revised, reduced-scope plan the same day (09-09 21:57):** for v1.10, split off a bugfix PR that just fixes device-placement ordering to pcieRoot-first-then-NUMA (still sysfs-based), and defer the broader metadata-driven design. **That scoped PR is now open: kubevirt/kubevirt [#19104](https://github.com/kubevirt/kubevirt/pull/19104)** (opened 09-11, tracked in the KubeVirt table above) — it supersedes #424 as the v1.10 deliverable. #424 itself has had no activity since 09-09 and now effectively waits on #19104 to land. |
 
 ### Kubernetes Enhancements
@@ -44,7 +55,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 
 | PR | Title | State | Issue | Comments |
 |---|---|---|---|---|
-| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open | K-2, K-3 | ffromani assigned. Responded 2026-06-22 re: PreCreateContainer. No reply as of 09-15 (~85 days). Tests failing. |
+| [#138732](https://github.com/kubernetes/kubernetes/pull/138732) | Fix CPU manager cpuset reconciler and apply cpuset before container starts | Open (ready) | K-2, K-3 | ffromani assigned. Responded 2026-06-22 re: PreCreateContainer. Review remains stalled and the recorded test run had failures. |
 | [#139332](https://github.com/kubernetes/kubernetes/pull/139332) | DRA: pass ListTypeAttributes to AllocatorFeatures | Merged | U-2 | Merged 2026-06-01. pohly reviewed, test fix amended. |
 | [#139929](https://github.com/kubernetes/kubernetes/pull/139929) | dra: add standard numaNode device attribute with SLIT-based helpers | Merged | KEP-6072 | Merged 2026-07-16. Three rounds of ffromani review. Approved by pohly. |
 
@@ -53,7 +64,7 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#1261](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1261) | Publish standard NUMA node list attribute | Merged | Merged 2026-08-10. By killianmuldoon. Uses KEP-6072 helpers (#139929). Step 3 complete for NVIDIA GPU. |
-| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (reworked) | Rebased onto nvpassthrough refactor 2026-06-19. D-15 dropped. D-12/D-13/D-14 kept. varunrsekar silent 56 days. |
+| [#1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) | Fix VFIO discovery and Unconfigure for pre-bound GPUs | Open (status needs reconciliation) | Rebased onto nvpassthrough refactor 2026-06-19. The current NVIDIA v0.5.0 release includes later VFIO/IOMMUFD robustness work, so confirm whether D-12/D-13/D-14 and this PR are still needed or were superseded upstream. |
 | [#1099](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1099) | Support GPUs pre-bound to vfio-pci via kernel cmdline | Open (feature request) | Filed per varunrsekar request to split from #1090. PR pending — waiting for #1090 acceptance first. |
 | [#1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089) | VFIO discovery advertises non-vfio GPUs and Unconfigure rebinds pre-bound GPUs | Open (bug) | Responded with logs and repro steps. Issues 1,4 resolved via config/helm. varunrsekar added `/kind bug` label (08-25) but has not replied to johnahull's May technical answers. |
 | [#1077](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1077) | Validate /host-root mount at VfioPciManager startup | Open | **NEEDS johnahull REPLY** — varunrsekar asked (06-10, unanswered): "Can you confirm you don't hit this if you deploy through the helm chart? This change is unnecessary if that's the case." Ball in John's court. |
@@ -63,13 +74,21 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Issue | Comments |
 |---|---|---|---|---|
 | [#50](https://github.com/ROCm/k8s-gpu-dra-driver/pull/50) | VFIO passthrough support for SR-IOV GPU VFs | Merged | — | Merged 2026-08-13. Feature-gated `VFIOPassthrough` (alpha, default off). On-demand VF conversion, per-claim VFIO tracking with restoration. Reviewed by yansun1996, bhatnitish, thc1006. Dual-entry follow-up in #89. |
-| [#88](https://github.com/ROCm/k8s-gpu-dra-driver/pull/88) | Auto-partition (dynamic GPU repartitioning) | Open (CHANGES_REQUESTED) | — | bhatnitish. Feature-gated `AutoPartition`. Repartitions via amd-smi, KEP-4815 mutex counters. Compute-only (no VFIO). Hardware-validated 8×MI300X. CI green. Under heavy review (08-17/19): 8-angle adversarial review (lock held across blocking modprobe, lost reload marker, panic risks). thc1006 flagged checkpoint checksum rollback hazard (`VerifyChecksum` re-marshals decoded struct). #91 now defers NPS `memoryPartition` attr to this PR. **09-08: bhatnitish replied addressing spraveenio's review** — "three of the findings were real bugs and are fixed; the rest addressed with reasoning," re-validated on 8×MI300X / K8s 1.36.2 including the multi-request case. `reviewDecision` still shows CHANGES_REQUESTED — needs spraveenio/thc1006 to re-review and clear it. |
+| [#88](https://github.com/ROCm/k8s-gpu-dra-driver/pull/88) | Auto-partition (dynamic GPU repartitioning) | Merged | — | Merged into `ROCm:develop` on 2026-09-22 as [`f93028f`](https://github.com/ROCm/k8s-gpu-dra-driver/commit/f93028f). Seven checks passed; the prior changes-requested review was cleared. |
 | [#48](https://github.com/ROCm/k8s-gpu-dra-driver/pull/48) | KEP-5304 device metadata support | Merged | — | Merged 2026-07-27. Feature-gated `DeviceMetadata` (alpha, default off). |
 | [#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | Driver version fallback and multi-driver claim filter | Merged | — | Merged 2026-06-10. |
-| [#91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91) | KEP-4815 dual-entry with per-VF capacity and sibling exclusion | Open | [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | Per-VF capacity + dual-entry (`type=vfio`) + sibling exclusion + `vf-slots` SharedCounters + unit tests. thc1006 review (08-19): missing TPX (3 VFs), doc/code mismatch, hardcoded `_nps1` suffix. johnahull addressed all three (08-20): added `case 3: tpx`, dropped `_nps1` (defers NPS `memoryPartition` attr to #88), fixed docs. Fix commit `d0c8b1a` IS pushed (= head, still the only commit). **As of 09-10, CI has still never run on this branch** (`gh pr checks` reports "no checks reported") — ~21 days since the fix push — and thc1006 has not re-reviewed. Fully stalled; needs a maintainer to kick CI or an empty re-push to re-trigger, or a direct ping to thc1006. |
+| [#91](https://github.com/ROCm/k8s-gpu-dra-driver/pull/91) | KEP-4815 dual-entry with per-VF capacity and sibling exclusion | Open | [#89](https://github.com/ROCm/k8s-gpu-dra-driver/issues/89) | Per-VF capacity + dual-entry (`type=vfio`) + sibling exclusion + `vf-slots` SharedCounters + unit tests. The branch is active: three fix commits landed 09-18 for KEP-4815 counter publication, VFIO parent discovery, and E2E ResourceSlice assertions. After a 09-24 review found that compute and VFIO entries for the same GIM VF could coexist, johnahull pushed `42343ab` plus mixed compute+VFIO coverage in `803c7b1`. **Needs maintainer re-review and CI; the old "no checks / stalled" note is obsolete.** |
 | [#90](https://github.com/ROCm/k8s-gpu-dra-driver/issues/90) | Dynamic repartitioning with VFIO passthrough | Open (issue) | — | Combines PR #50 + #88. Blocked on GIM hot-reconfiguration (no VF count change without full reload). |
 | [#92](https://github.com/ROCm/k8s-gpu-dra-driver/issues/92) | Standardized `numaNode` attribute (KEP-6072) | Open (issue) | — | Adopt `resource.kubernetes.io/numaNode` for cross-driver matchAttribute. Blocked on `k8s.io/dynamic-resource-allocation` v0.37+ bump. |
-| [#114](https://github.com/ROCm/k8s-gpu-dra-driver/pull/114) | IOMMUFD support for per-device IOMMU isolation | Open (just opened) | [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93) | IOMMUConfig API (LegacyOnly/PreferIommuFD), IOMMUFD cdev detection, CDI spec generation, graceful fallback to legacy. Mixed-backend CDI bug fixed during review. Targets `develop`. E2E blocked on KubeVirt libvirt 12.2+. **PR formally opened on GitHub 2026-09-10** (single commit, no CI/reviews yet — `mergeStateStatus: UNSTABLE`). Watch for first maintainer review. |
+| [#114](https://github.com/ROCm/k8s-gpu-dra-driver/pull/114) | IOMMUFD support for per-device IOMMU isolation | Open | [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93) | IOMMUConfig API, IOMMUFD cdev detection, CDI generation, legacy fallback, and fail-closed `RequireIommuFD` behavior. Live host and KubeVirt IOMMUFD validation passed on the MI355X test host. |
+| [#122](https://github.com/ROCm/k8s-gpu-dra-driver/pull/122) | Track GPU-to-VFIO conversions per claim across failures and restarts | Open | — | Stacked on #114. Adds per-claim conversion bookkeeping, checkpoint persistence, restart recovery, stable ResourceSlice identity, failed-rebind retry, and stranded-claim cleanup. Live lifecycle and KubeVirt GIM-VF validation passed. |
+| [#121](https://github.com/ROCm/k8s-gpu-dra-driver/issues/121) | VF pre-configure driver is not preserved across a plugin restart or failed VFIO init | Open (issue) | — | Separate GIM VF lifecycle issue identified during #114 review. The driver can lose the original unbound state across a restart; track separately from PR #122's regular-GPU conversion records. |
+
+### AMD Enterprise AI / AIM Engine
+
+| PR | Title | State | Issue | Comments |
+|---|---|---|---|---|
+| [#44](https://github.com/amd-enterprise-ai/aim-engine/pull/44) | docs: add OpenShift deployment guide and samples | Open | — | Branch `docs/openshift-guide`. Documents OpenShift SCC, AMD GPU Operator/NFD validation, OLM/CSV inspection, RWX model-cache storage, Routes, and troubleshooting; adds sanitized sample manifests. Validation passed on OpenShift 4.21.25 with MI355X GPUs, including AIM profile discovery, RWX PVC binding, predictor readiness, and Qwen3-32B-FP8 serving. The test used a node-local static RWX workaround because the cluster default `lvms-vg1` storage class did not provide RWX; `oc apply --dry-run=client` was not run because no kubeconfig was configured. |
 
 ### SR-IOV DRA Driver
 
@@ -84,8 +103,8 @@ Running list of issues to fix across all repos. Updated as PRs are opened/merged
 | PR/Issue | Title | State | Comments |
 |---|---|---|---|
 | [#135](https://github.com/kubernetes-sigs/dra-driver-cpu/pull/135) | Skip CPU allocation when available CPU pool is empty | Closed | Closed 2026-06-11. ffromani filed docs PR #136 as alternative. |
-| [#153](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/153) | PLANNING: 2026 general roadmap | Open | ffromani's latest timeline. GA target still in flux. Referenced in VEP-152 discussion. **09-14 update from ffromani:** "great progress" on the external-allocator integration story (#304); **0.3.0 tentatively expected within September**. Tentative highlights: #112 likely **abandoned**; #36 (absorb memory allocation — the feature our VEP-152/KV-8 timeline depends on) to be "reviewed again" and, if consensus holds, implemented "sooner than later" because of its API/repo-rename blast radius; #103 (partial) also in scope. **Flagged risk: ffromani states the driver is "likely to continue with a unified codebase" and "likely to deprecate individual mode, to remove it in the future and to expose only grouped mode."** Both R760xa and XE8640 currently run `--cpu-device-mode=individual` (see the Kubelet CPU pinning section below) — if individual mode is deprecated, our multi-claim-per-NUMA deployment pattern needs a grouped-mode equivalent. Worth watching closely once 0.3.0 ships and the roadmap is formalized. |
-| [#142](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/142) | PLANNING: Release 0.3.0 | Open | Current release cycle. **09-08: pravk03 proposed re-scoping** — keep #304 for 0.3.0, move the rest of the open items to 0.4.0 ("already have a big list of improvements from 0.2.0"); ffromani agreed same day. |
+| [#153](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/153) | PLANNING: 2026 general roadmap | Open | ffromani's roadmap remains broader and partly inconsistent with the 0.3.0 release tracker. The GitHub releases page still lists **v0.2.0 as latest** in the latest check. The current 0.3.0 plan says individual mode only, with grouped-mode users pointed to a separate `cpumem` driver; see #142. Treat the earlier “unified codebase / likely deprecate individual mode” language as unresolved roadmap discussion, not a settled direction. |
+| [#142](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/142) | PLANNING: Release 0.3.0 | Open | Current release cycle. The current plan says **0.3.0 supports individual mode only** and requires a running `cpumem` driver for grouped-mode users. The tracker still has v0.2.0 as the latest released version. |
 | [#184](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/184) | PLANNING: Release 0.4.0 | Open | Next release planning. Picking up items deferred from 0.3.0 per the 09-08 re-scoping (see #142). |
 | [#152](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/152) | Switch defaults, deprecate grouped mode | Open | Blocker/gated. Tracks when individual mode becomes default. |
 | [#36](https://github.com/kubernetes-sigs/dra-driver-cpu/issues/36) | Absorb the memory allocation feature | Open | Combined CPU+memory driver. VEP-152 and KV-8 resolution depend on this timeline. **09-14: ffromani flagged this as the next major theme to address "sooner than later"** post-0.3.0, given its potential API/repo-rename impact (see #153). No implementation started yet — still a discussion, not a PR. |
@@ -129,20 +148,20 @@ VEPs from the [KubeVirt 1.9 Enhancements Tracking](https://github.com/orgs/kubev
 
 ## Upstream Sequencing
 
-The following work is sequenced behind [KEP-6072](https://github.com/kubernetes/enhancements/issues/6072) (standardize `resource.kubernetes.io/numaNode`). Hold until the KEP merges.
+KEP-6072 (standard `resource.kubernetes.io/numaNode`) is now merged. The remaining work is driver adoption, dependency updates, and KubeVirt consumption of the standardized attribute.
 
 | Step | What | Repo | Blocked on |
 |------|------|------|------------|
 | 1 | **KEP-6072 merges** | kubernetes/enhancements | ✅ Merged |
 | 2 | Helper functions (`GetNUMANodeAttributeByPCIBusID`, `GetNUMANodeAttribute`, `GetNUMANodeForCPU`) | kubernetes/kubernetes | ✅ Merged ([#139929](https://github.com/kubernetes/kubernetes/pull/139929)) |
 | 3 | NVIDIA GPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-nvidia-gpu | ✅ Merged ([#1261](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1261)) |
-| 3 | AMD GPU driver publishes `resource.kubernetes.io/numaNode` | ROCm/k8s-gpu-dra-driver | Step 2 (helper) |
-| 3 | dranet publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dranet | Step 2 (helper) |
-| 3 | SR-IOV NIC publishes `resource.kubernetes.io/numaNode` | k8snetworkplumbingwg/dra-driver-sriov | Step 2 (helper) |
-| 3 | CPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-cpu | Step 2 (helper) |
-| 3 | Memory driver publishes `resource.kubernetes.io/numaNode` | ffromani/dra-driver-memory | Step 2 (helper) |
-| 4 | KubeVirt reads `resource.kubernetes.io/numaNode` from KEP-5304 metadata for guest NUMA topology | kubevirt/kubevirt | Step 3 (drivers publish standard name) |
-| 5 | `enforcement: preferred` on `matchAttribute` (separate KEP) | kubernetes/kubernetes | Step 1 (numaNode established first) |
+| 3 | AMD GPU driver publishes `resource.kubernetes.io/numaNode` | ROCm/k8s-gpu-dra-driver | Driver adoption / dependency update |
+| 3 | dranet publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dranet | Driver adoption / dependency update |
+| 3 | SR-IOV NIC publishes `resource.kubernetes.io/numaNode` | k8snetworkplumbingwg/dra-driver-sriov | Driver adoption / dependency update |
+| 3 | CPU driver publishes `resource.kubernetes.io/numaNode` | kubernetes-sigs/dra-driver-cpu | Driver adoption / dependency update |
+| 3 | Memory driver publishes `resource.kubernetes.io/numaNode` | ffromani/dra-driver-memory | Memory driver implementation |
+| 4 | KubeVirt reads `resource.kubernetes.io/numaNode` from KEP-5304 metadata for guest NUMA topology | kubevirt/kubevirt | Driver adoption / metadata consumption |
+| 5 | `enforcement: preferred` on `matchAttribute` (separate KEP) | kubernetes/kubernetes | Separate KEP/design and implementation |
 
 ---
 
@@ -480,9 +499,9 @@ The kubelet fix K-3 ensures the cpuset is correct before the container starts, w
 
 ~~**Phase 1 (pciBusID from metadata → sysfs NUMA lookup):**~~ Resolved upstream via VEP-10. The DRA host device creation code (`gpu_hostdev.go`, `generic_hostdev.go`) reads `resource.kubernetes.io/pciBusID` from KEP-5304 metadata and populates `Source.Address`. The existing `PlacePCIDevicesWithNUMAAlignment` → `LookupDevicesNumaNodes` → `GetDeviceNumaNode` sysfs path then works end-to-end for DRA devices.
 
-**Phase 2 (numaNode directly from metadata — not yet upstream):** Read `resource.kubernetes.io/numaNode` directly from KEP-5304 metadata instead of sysfs. This extends NUMA-aware guest topology to non-PCI devices (CPUs, memory) and avoids the sysfs dependency. The fork implements `GetNUMANodeForClaim()` in `pkg/dra/utils.go`, `buildDRANUMAOverrides()` in the converter (reads numaNode from metadata, falls back to sysfs), and `buildDRANUMACells()` which constructs guest NUMA cells from DRA metadata rather than the kubelet's cpuset. Phase 2 depends on KEP-6072 standardizing the `resource.kubernetes.io/numaNode` attribute name.
+**Phase 2 (numaNode directly from metadata — not yet upstream):** Read `resource.kubernetes.io/numaNode` directly from KEP-5304 metadata instead of sysfs. This extends NUMA-aware guest topology to non-PCI devices (CPUs, memory) and avoids the sysfs dependency. The fork implements `GetNUMANodeForClaim()` in `pkg/dra/utils.go`, `buildDRANUMAOverrides()` in the converter (reads numaNode from metadata, falls back to sysfs), and `buildDRANUMACells()` which constructs guest NUMA cells from DRA metadata rather than the kubelet's cpuset. KEP-6072 is now merged; Phase 2 remains upstream implementation work and depends on driver adoption of the standardized attribute.
 
-**Upstream scope:** Phase 1 is done (VEP-10). Phase 2 is blocked on KEP-6072. The fork's `feature/dra-all-patches` branch has a working Phase 2 implementation tested on XE8640 and R760xa.
+**Upstream scope:** Phase 1 is done (VEP-10). Phase 2 is not yet upstream. The fork's `feature/dra-all-patches` branch has a working Phase 2 implementation tested on XE8640 and R760xa.
 
 ---
 
@@ -608,7 +627,7 @@ The workaround is to use dranet instead, which publishes KEP-5304 metadata with 
 
 #### D-2: NVIDIA GPU DRA driver: `numaNode` not published for standard GPU devices
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu`
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu`
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs`
 
 The NVIDIA DRA driver publishes `resource.kubernetes.io/numaNode` for VFIO-type GPU devices but not for standard (compute) GPU devices. This means `matchAttribute: resource.kubernetes.io/numaNode` constraints only work when requesting VFIO GPUs, not standard GPUs.
@@ -619,8 +638,8 @@ The fix adds `resource.kubernetes.io/numaNode` and `cpuSocketID` to all GPU devi
 
 #### D-3: NVIDIA GPU DRA driver: KEP-5304 opt-in not yet available
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu`
-**Fix:** Upstream issue [#916](https://github.com/NVIDIA/k8s-dra-driver-gpu/issues/916) — closed 2026-04-13 (implementation landed).
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu`
+**Fix:** Upstream issue [#916](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/916) — closed 2026-04-13 (implementation landed).
 **Status:** Partially fixed — `EnableDeviceMetadata(true)` exists but is gated behind `featuregates.Enabled(featuregates.DeviceMetadata)` which defaults to off. Requires explicit opt-in via feature gate flag. The tracking issue is closed because the KEP-5304 implementation itself is done; the remaining gap is purely the default-off feature gate, not open implementation work.
 
 The NVIDIA DRA driver has KEP-5304 metadata support implemented behind a feature gate (`DeviceMetadata`). When enabled, it publishes device metadata in `PrepareResult` including `pciBusID`. The feature gate version has been lowered (commit `705878f5`) but is still not enabled by default. KubeVirt needs this metadata to create VFIO passthrough entries and determine NUMA topology.
@@ -633,7 +652,7 @@ The NVIDIA DRA driver has KEP-5304 metadata support implemented behind a feature
 
 **Repo:** `kubernetes-sigs/dranet`
 **Fix:** `johnahull/dranet` `feature/standardized-topology-attrs`
-**Status:** Still needed. Upstream publishes `dra.net/numaNode` (vendor-specific) but not `resource.kubernetes.io/numaNode` (standardized). Blocked on KEP-6072.
+**Status:** Still needed. Upstream publishes `dra.net/numaNode` (vendor-specific) but not `resource.kubernetes.io/numaNode` (standardized). KEP-6072 is merged; remaining work is driver adoption and the required dependency update.
 
 dranet publishes NIC devices with vendor-specific topology attributes (`dra.net/numaNode`) but not the standardized `resource.kubernetes.io/numaNode`, `cpuSocketID`, `pciBusID`, or `pcieRoot` attributes needed for cross-driver `matchAttribute` constraints.
 
@@ -697,7 +716,7 @@ Observed on XE8640 with KubeVirt VMs using `dedicatedCpuPlacement`. Not observed
 
 #### D-10: NVIDIA DRA driver lock contention causes deadlock during VFIO prepare
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu` (upstream bug)
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu` (upstream bug)
 **Fix:** Not started. Workaround: clean state between attempts.
 
 The NVIDIA DRA driver acquires a file-based flock (`pu.lock`) for the entire duration of `PrepareResourceClaims`, including `WaitForGPUFree` which shells out to `fuser` via chroot. If the prepare takes longer than the kubelet's DRA timeout (~30s), the kubelet reports `DeadlineExceeded` and retries. But the previous prepare is still holding the lock, so all subsequent attempts fail with "timeout acquiring lock."
@@ -743,61 +762,61 @@ Observed on XE8640 with 4x H100 SXM5, Fedora 44, nvidia driver 595.58. Not obser
 
 #### D-12: NVIDIA DRA driver CDI spec missing /dev/vfio/vfio and IOMMU group mismatch
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu` (CDI generation)
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu` (CDI generation)
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `cb087a2`
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open; status needs reconciliation against NVIDIA v0.5.0)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-cdi.go`
-**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
+**Status:** Fixed in fork. Upstream coverage needs revalidation against NVIDIA v0.5.0; PR #1090 is not confirmed merged.
 
 When the NVIDIA DRA driver prepares a GPU that's already on vfio-pci (no unbind needed), the CDI spec may reference the wrong IOMMU group or miss `/dev/vfio/vfio`. Libvirt inside the virt-launcher then reports "VFIO PCI device assignment is not supported by the host."
 
 **Fix:** Always include `/dev/vfio/vfio` in `GetCommonEdits()` (was gated behind `enableAPIDevice`). In `GetDeviceSpecsByPCIBusID()`, read the IOMMU group directly from sysfs (`/sys/bus/pci/devices/<BDF>/iommu_group` symlink) instead of using `nvpci.GetGPUByPciBusID()` which doesn't work for vfio-pci-bound GPUs.
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open; status needs reconciliation against NVIDIA v0.5.0)
 
 ---
 
 #### D-13: NVIDIA DRA driver advertises driverless/nvidia-bound GPUs as VFIO devices
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu` (VFIO discovery)
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu` (VFIO discovery)
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `e589e5a`
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open; status needs reconciliation against NVIDIA v0.5.0)
 **Files:** `cmd/gpu-kubelet-plugin/nvlib.go`
-**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
+**Status:** Fixed in fork. Upstream coverage needs revalidation against NVIDIA v0.5.0; PR #1090 is not confirmed merged.
 
 `enumerateGpuVfioDevices()` treated any NVIDIA GPU not on the nvidia driver as a VFIO candidate. This caused driverless GPUs (stuck after a failed unbind on H100 SXM5) and nvidia-bound GPUs to be advertised in the ResourceSlice as allocatable VFIO devices. When the scheduler picked one, the prepare would fail or hang trying to unbind from nvidia (D-11).
 
 **Fix:** Check the actual kernel driver binding via sysfs (`readlink /sys/bus/pci/devices/<BDF>/driver`) before adding a GPU to the VFIO device list. Only GPUs currently bound to `vfio-pci` are advertised. This prevents the D-11 hang from recurring — even if `Unconfigure` returns a GPU to nvidia, it won't reappear as a VFIO device.
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open; status needs reconciliation against NVIDIA v0.5.0)
 
 ---
 
 #### D-14: NVIDIA DRA driver Unconfigure rebinds pre-bound vfio-pci GPUs to nvidia
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu`
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu`
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `ccdec5c`
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open; status needs reconciliation against NVIDIA v0.5.0)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`, `cmd/gpu-kubelet-plugin/deviceinfo.go`
-**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
+**Status:** Fixed in fork. Upstream coverage needs revalidation against NVIDIA v0.5.0; PR #1090 is not confirmed merged.
 
 When a VM is deleted, `Unconfigure()` rebinds the GPU from vfio-pci back to nvidia. On H100 SXM5 systems with NVLink, this hangs indefinitely (D-11). Worse, the `preConfigureDriver` field that tracks whether Configure performed an unbind is stored in memory and lost on pod restart — so after a plugin restart, Unconfigure always attempts the rebind.
 
 **Fix:** Two-layer check: (1) track the pre-Configure driver in `VfioDeviceInfo.preConfigureDriver` for the current pod lifecycle, and (2) check the kernel cmdline for `vfio-pci.ids=<vendor>:<device>` to detect boot-time pre-binding. If either indicates the GPU was pre-bound to vfio-pci, `Unconfigure` leaves it on vfio-pci instead of attempting the nvidia rebind.
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open, reworked)
 
 ---
 
 #### D-15: NVIDIA DRA driver vfio_pci/IOMMU sysfs checks fail inside containers
 
-**Repo:** `NVIDIA/k8s-dra-driver-gpu`
+**Repo:** `kubernetes-sigs/dra-driver-nvidia-gpu`
 **Fix:** `johnahull/dra-driver-nvidia-gpu` `feature/standardized-topology-attrs` commit `7f4760d`
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open, reworked)
 **Files:** `cmd/gpu-kubelet-plugin/vfio-device.go`
-**Status:** Fixed in fork. Upstream PR #1090 open, not merged.
+**Status:** Fixed in fork. Upstream coverage needs revalidation against NVIDIA v0.5.0; PR #1090 is not confirmed merged.
 
 `checkVfioPCIModuleLoaded()` and `checkIommuEnabled()` check sysfs paths under `/host-root/sys/` (e.g., `/host-root/sys/module/vfio_pci`). In containers where `/host-root` is a bind-mount of the host's `/`, the container's own `/sys` mount doesn't expose host sysfs at `/host-root/sys`. The VfioPciManager fails to initialize with "failed to load vfio_pci module" or "IOMMU is not enabled" even though both are working on the host.
 
 **Fix:** Fall back to checking the unprefixed sysfs path (`/sys/module/vfio_pci`, `/sys/kernel/iommu_groups`) when the host-root prefixed path doesn't exist.
-**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (draft)
+**Upstream:** [Issue #1089](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/issues/1089), [PR #1090](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu/pull/1090) (open, reworked)
 
 ---
 
@@ -841,18 +860,15 @@ Key detail: the first version read `/proc/mounts` which inside a container only 
 #### D-18: AMD GPU DRA driver: IOMMUFD support for VFIO passthrough
 
 **Repo:** `ROCm/k8s-gpu-dra-driver`
-**Fix:** Not started.
+**Fix:** [PR #114](https://github.com/ROCm/k8s-gpu-dra-driver/pull/114) (open; implementation and live validation complete).
+**Issue:** [#93](https://github.com/ROCm/k8s-gpu-dra-driver/issues/93)
 **Reference:** [KubeVirt VEP 266](https://github.com/kubevirt/enhancements/tree/main/veps/sig-compute/266-hostdev-iommufd)
 
-The AMD GPU DRA driver has no IOMMUFD awareness. When IOMMUFD is available (Linux 6.2+, `/dev/iommu` present), the driver should use VFIO cdev devices (`/dev/vfio/devices/vfioX`) instead of legacy IOMMU group devices (`/dev/vfio/N`), and include `/dev/iommu` in the CDI spec.
+PR #114 adds IOMMUFD awareness to the AMD GPU DRA VFIO path. When IOMMUFD is available (Linux 6.2+, `/dev/iommu` present), the driver uses VFIO cdev devices (`/dev/vfio/devices/vfioX`) instead of legacy IOMMU group devices (`/dev/vfio/N`) and includes `/dev/iommu` in the CDI spec.
 
 IOMMUFD enables per-device IOMMU isolation (vs per-group), which is required for confidential VMs (AMD SEV-SNP, Intel TDX) and improves security for multi-device passthrough.
 
-**What's needed:**
-1. Detect IOMMUFD at startup: check if `/dev/iommu` exists
-2. Publish `iommuFDEnabled: bool` attribute on VFIO devices in ResourceSlice
-3. CDI spec generation: when IOMMUFD preferred, include `/dev/iommu` + `/dev/vfio/devices/vfioX` instead of `/dev/vfio/vfio` + `/dev/vfio/N`
-4. Support IOMMU policy in device config (prefer IOMMUFD vs legacy-only)
+Live validation covered `LegacyOnly`, `PreferIommuFD`, `RequireIommuFD`, fallback, fail-closed behavior, two-device allocation, backend-consistent CDI, and KubeVirt IOMMUFD VM startup. KubeVirt follow-up fixes are tracked by #19295/#19296, #19278/#19297, and #19301/#19302.
 
 **Reference implementation:** NVIDIA DRA driver `cmd/gpu-kubelet-plugin/vfio-cdi.go` — `GetCommonEdits()` and `GetDeviceSpecsByPCIBusID()` with `preferIommuFD` parameter.
 
@@ -1022,17 +1038,16 @@ where `hd.ClaimRequest != nil`.
 #### KV-13: KubeVirt needs `<locked/>` and `x-pci-hole64-size` for VFIO VMs
 
 **Repo:** `kubevirt/kubevirt`
-**Status:** Not filed. Applied in fork session patches.
+**Status:** Tracked by [issue #19278](https://github.com/kubevirt/kubevirt/issues/19278) and [PR #19297](https://github.com/kubevirt/kubevirt/pull/19297); PR open.
 
-VFIO passthrough requires:
-- `<locked/>` in `<memoryBacking>` — enables `mem-lock=on` so QEMU locks guest memory
-  for DMA. Without it, QEMU starts with `mem-lock=off` and VFIO devices silently fail
-  to attach (device present in domain XML but missing from guest PCI bus).
-- `-global q35-pcihost.x-pci-hole64-size=274877906944` — needed for GPUs with BARs
-  larger than the default 64-bit PCI hole (MI300X has 262GB BAR).
+Large-BAR MI300X/MI355X VFIO devices need a sufficiently sized guest 64-bit PCI
+MMIO aperture. PR #19297 replaces the earlier fixed raw QEMU argument with
+libvirt-native, dynamically calculated `pcihole64` sizing for assigned GPUs and
+host devices on amd64 Q35 VMs.
 
-Currently patched in `converter.go` when GPUs or HostDevices are present. Should be
-upstreamed as standard VFIO VM handling.
+The earlier `<locked/>` change was dropped after review because virt-handler
+already raises the QEMU memlock limit to unlimited for VFIO VMIs. Physical
+MI355X validation captured a 1 TiB `pcihole64` aperture in the generated domain.
 
 ---
 
@@ -1094,11 +1109,44 @@ for these device IDs, similar to existing quirks for other devices with broken F
 
 ---
 
+#### D-22: GIM unload followed by amdgpu probe can panic on MI355X
+
+**Repo:** `ROCm/amdgpu`
+**Issue:** [#234](https://github.com/ROCm/amdgpu/issues/234)
+**Status:** Open; reproducer and source analysis filed.
+
+After GIM unload, an `amdgpu` PF probe can fail VCN initialization and leave a
+VCN idle worker running after teardown. A later worker invocation can call
+`amdgpu_in_reset()` with a freed or NULL reset domain and panic the host. The
+initial VCN ring timeout may be a separate GIM/amdgpu handoff issue, but the
+failed-probe cleanup path must remain safe.
+
+The issue includes the MI355X/Fedora environment, kernel trace, source analysis,
+and candidate cleanup/NULL-safety fixes. The local branch is preserved for
+evaluation but is not treated as an upstream-ready fix.
+
+#### D-23: GIM PSP timeout after amdgpu-to-GIM handoff on MI355X
+
+**Repo:** `amd/MxGPU-Virtualization`
+**Issue:** [#29](https://github.com/amd/MxGPU-Virtualization/issues/29)
+**Status:** Open; suspected GIM PSP wait/retry issue.
+
+On a clean 8x MI355X host, unloading `amdgpu` and immediately loading GIM can
+leave all adapters failing `mi300_psp_load_psp_fw()` while waiting for
+`regMP0_SMN_C2PMSG_35`. The one-second `TIMEOUT_PSP_REG` wait does not retry,
+while the nearby bootloader-steady path does. GIM returns `EIO`, leaves PFs
+unbound, and recovery requires a reboot.
+
+The issue records the kernel, GIM, firmware, VBIOS, and partition versions and
+cross-references ROCm/amdgpu #234 for the reverse-direction failure.
+
+---
+
 #### D-21: SR-IOV DRA driver RDMA skip for vfio-pci mode
 
 **Repo:** `k8snetworkplumbingwg/dra-driver-sriov`
-**Upstream:** [PR #142](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/142) — approved by rollandf, ready to merge.
-**Status:** PR submitted. Approved.
+**Upstream:** [PR #142](https://github.com/k8snetworkplumbingwg/dra-driver-sriov/pull/142) — merged 2026-09-01.
+**Status:** Resolved upstream.
 
 When `VfConfig.driver: vfio-pci` is set, the SR-IOV driver binds the NIC VF to vfio-pci
 but then tries to set up RDMA devices which no longer exist. Fix: return nil instead of
@@ -1127,4 +1175,3 @@ DeviceClass globally, affecting all claims (not just VM ones).
 | — | AMD GPU DRA driver publishes `numaNode` for all device types | `ROCm/k8s-gpu-dra-driver` main | Published for full GPUs and partitions, but as bare `numaNode` — see D-8 |
 | — | AMD GPU DRA driver version fallback + multi-driver claim filter | [ROCm/k8s-gpu-dra-driver#45](https://github.com/ROCm/k8s-gpu-dra-driver/pull/45) | `GetDriverVersion()` returns `"0.0.0"` for in-kernel amdgpu |
 | — | KubeVirt `permittedHostDevices` blocks DRA devices | `kubevirt/kubevirt` main | `HostDevicesWithDRA` feature gate (alpha) skips validation |
-

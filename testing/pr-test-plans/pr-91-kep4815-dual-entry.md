@@ -56,7 +56,7 @@ is stale and is not the expected behavior for the current branch.
 | Direct VFIO claim lifecycle | Component + live hardware integration | **Complete — automated and live** | Prepare/Unprepare tests and the non-GIM harness run covered direct dual-entry VFIO claims, CDI, release, and restoration to `amdgpu`. | KubeVirt direct-claim coverage remains separate. |
 | ResourceSlice chunking | Unit | **Complete — automated** | Boundary tests cover counter-set and device limits. | Live validation is optional. |
 | Publication locking | Concurrency/race | **Complete — automated** | Concurrent publication and claim tests exist, including race-sensitive coverage. | No separate live test is required. |
-| KubeVirt integration | End-to-end (KubeVirt) | **Partial live evidence** | GPU VF passthrough and two-GPU guest visibility were demonstrated. | Direct `type=vfio` and sibling-exclusion VM tests remain for this PR branch. |
+| KubeVirt integration | End-to-end (KubeVirt) | **Partial — live** | GPU VF passthrough, two-GPU VM allocation, direct VFIO VM allocation/release, and same-device claim exclusion were exercised with the harness. | A live VM test using the non-GIM dual `amdgpu`/`vfio` entries remains; NPS2/DPX multi-VF coverage is also deferred. |
 
 ## Automated test scenarios
 
@@ -126,9 +126,9 @@ acceptance tests.
 |---|---|---|---|---|
 | K-01 | End-to-end (KubeVirt) | GPU VF passthrough | VM starts and detects the GPU VF. | Complete — prior live evidence. |
 | K-02 | End-to-end (KubeVirt) | Two-GPU VM | Both allocated GPU VFs are visible in the guest. | Complete — prior live evidence. |
-| K-03 | End-to-end (KubeVirt) | Direct `type=vfio` VM claim | VM receives the directly claimed VFIO device and its CDI entry. | Not tested for PR #91. |
-| K-04 | End-to-end (KubeVirt) | VM sibling exclusion | A compute claim and its VFIO sibling cannot be allocated to conflicting workloads. | Automated coverage exists; live VM test pending. |
-| K-05 | End-to-end (KubeVirt) | VM deletion and release | The claim is released, counters are freed, and the original allocatable entry returns. | Not tested for PR #91. |
+| K-03 | End-to-end (KubeVirt) | Direct `type=vfio` VM claim | VM receives the directly claimed VFIO device and its CDI entry. | **Complete — live, harness-backed**; a `RequireIommuFD` direct VFIO VM reached `Running` and cleaned up successfully. Evidence: `/home/jhull/dra-test-work/evidence/pr91-k03-20261001/run.log`. |
+| K-04 | End-to-end (KubeVirt) | VM sibling exclusion | A compute claim and its VFIO sibling cannot be allocated to conflicting workloads. | **Partial — live, harness-backed**; one VM held a selected VFIO device and a second same-device VM remained `Scheduling` with `cannot allocate all claims`. This validates claim exclusion, but GIM exposed no simultaneous `amdgpu` sibling for the full dual-entry VM case. Evidence: `/home/jhull/dra-test-work/evidence/pr91-k04-same-vfio-20261001/`. |
+| K-05 | End-to-end (KubeVirt) | VM deletion and release | The claim is released, counters are freed, and the original allocatable entry returns. | **Complete — live, harness-backed**; the direct VFIO VM completed its hold and the harness removed the VMI and claim. Evidence: `/home/jhull/dra-test-work/evidence/pr91-k03-20261001/run.log`. |
 
 Guest NUMA and PCIe-topology validation is useful integration evidence, but it
 does not by itself prove KEP-4815 dual-entry or counter behavior.
@@ -205,9 +205,11 @@ Evidence is saved under
 The harness cleaned each namespace and claim; the final host state had all
 eight PFs bound to `amdgpu`.
 
-The remaining PR #91 items are optional KubeVirt direct/sibling cases and the
-NPS2/DPX multi-VF profile matrix. The host's supported SPX/one-VF setting was
-not changed for this run.
+The direct VFIO and same-device KubeVirt claim-conflict cases are now covered
+by the harness. The remaining optional items are a non-GIM KubeVirt test that
+allocates the actual `amdgpu`/`vfio` dual entries together, plus the NPS2/DPX
+multi-VF profile matrix. The host's supported SPX/one-VF setting was not
+changed for this run.
 
 ## Final assessment
 
@@ -217,7 +219,7 @@ capacity at the supported SPX/one-VF setting, node-level exhaustion, and
 restart recovery. The non-GIM validation now also proves the PR #91
 dual-entry (`amdgpu` plus `vfio`) view, shared counters, sibling exclusion in
 both orders, alternate-device selection, and independent release ordering.
-Remaining optional work is the KubeVirt direct/sibling matrix and
+Remaining optional work is the non-GIM KubeVirt dual-entry sibling matrix and
 multi-VF profile/capacity coverage after switching the host to NPS2/DPX;
 MI355X values must be measured on that configuration rather than inferred
 from MI300X.
@@ -238,5 +240,23 @@ The feature-gate-negative capture is under
 after settling, it showed zero `gpu-vfio` entries and eight `amdgpu` entries,
 and the gate was restored to `VFIOPassthrough=true`.
 
-The remaining optional items are unchanged: live KubeVirt direct/sibling
-cases and the NPS2/DPX multi-VF profile matrix.
+The direct VFIO and same-device KubeVirt conflict cases are now complete. The
+remaining optional items are the non-GIM KubeVirt dual-entry sibling matrix
+and the NPS2/DPX multi-VF profile matrix.
+
+## 2026-10-01 KubeVirt harness validation
+
+The harness was run against the GIM-loaded MI355X host with the updated
+KubeVirt IOMMUFD-capable virt-launcher image. A direct `type=vfio` VM using
+`RequireIommuFD` reached `Running`, stayed healthy for the configured hold, and
+was released cleanly. A second VM requesting the same VF while the first was
+active remained `Scheduling` with a pending claim; the scheduler reported
+that the node could not allocate all claims. This covers direct VFIO
+lifecycle, release, and live claim exclusion, but not the non-GIM
+compute/VFIO dual-entry VM case because GIM exposes only the VFIO VFs in this
+configuration.
+
+The two-GPU KubeVirt allocation also passed with the harness. The raw logs are
+under `/home/jhull/dra-test-work/evidence/harness-multidevice-20261001/` and
+`/home/jhull/dra-test-work/evidence/pr91-k03-20261001/`; the same-device
+conflict run is under `/home/jhull/dra-test-work/evidence/pr91-k04-same-vfio-20261001/`.
