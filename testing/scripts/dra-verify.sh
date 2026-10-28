@@ -2145,6 +2145,28 @@ def extract_numa_values(selectors):
             numas.add(int(m))
     return numas
 
+def grouping_consumers(subs, numa_label):
+    """Find consumers of devices represented by a grouping instance."""
+    target_numas = set(re.findall(r"\d+", numa_label or ""))
+    consumers = set()
+    for sr in subs:
+        drv = sr.get("deviceClass", "")
+        tree_drv = drv
+        if drv not in dev_tree:
+            for td in dev_tree:
+                if td in drv or drv in td:
+                    tree_drv = td
+                    break
+        for numa_val, pcie_devices in dev_tree.get(tree_drv, {}).items():
+            if target_numas and str(numa_val) not in target_numas:
+                continue
+            for devices in pcie_devices.values():
+                for device in devices:
+                    consumer = allocated.get((device["driver"], device["name"]))
+                    if consumer:
+                        consumers.add(consumer)
+    return sorted(consumers)
+
 by_profile = defaultdict(list)
 by_grouping = defaultdict(list)
 for dc in items:
@@ -2209,7 +2231,12 @@ for grouping_name in sorted(by_grouping) if show_pairs else []:
         sub_summary = ", ".join(sub_parts)
 
         numa_str = f"NUMA {numa_label}" if numa_label else ""
-        status = "\x1b[32mfree\x1b[0m"
+        consumers = grouping_consumers(subs, numa_label)
+        if consumers:
+            consumer_text = ", ".join(consumers)
+            status = f"\x1b[33m⚡ {consumer_text}\x1b[0m"
+        else:
+            status = "\x1b[32mfree\x1b[0m"
 
         print(f"  {alignment} \xb7 {numa_str} → {name}  {status}")
         print(f"    {sub_summary}")
@@ -2521,7 +2548,7 @@ if aggregates and show_aggregates:
         if instance_allocated:
             allocated_per_group[grp] += 1
 
-    print(f"\x1b[1mAggregate DeviceClasses\x1b[0m (scheduler-placed, no NUMA constraint):")
+    print(f"\x1b[1mAggregate DeviceClasses\x1b[0m (scheduler-placed instances):")
     for dc in sorted(aggregates, key=lambda x: x["metadata"]["name"]):
         name = dc["metadata"]["name"]
         labels = dc.get("metadata", {}).get("labels", {})
