@@ -1,213 +1,210 @@
-# PR #91 live test runbook: KEP-4815
+# PR #91 live test runbook: KEP-4815 dual entries
 
-Parent evidence matrix: [PR #91 test plan](../pr-91-kep4815-dual-entry.md)
+The [PR #91 results matrix](../pr-91-kep4815-dual-entry.md) records case status
+and evidence. This runbook is the entry point when the lab node is ready.
+Run the mode-specific [harness configurations](https://github.com/johnahull/k8s-dra-harness/tree/feature/pr91-live-hardware-tests/examples/pr91)
+against the final PR #91 image. The harness creates and cleans up its own
+claims, pods, and VMIs; it does not switch the host between amdgpu and GIM,
+deploy the driver image, or modify a checkpoint.
 
-This runbook validates dual GPU entries, shared counters, sibling exclusion,
-per-VF capacity, direct VFIO claims, and release behavior on a real AMD
-SR-IOV/GIM system.
+## 1. Prepare one run
 
-## Required inputs
-
-Set these before execution:
-
-```bash
-export DRIVER_NAMESPACE="${DRIVER_NAMESPACE:-kube-amd-gpu}"
-export DRIVER_RELEASE="${DRIVER_RELEASE:-k8s-gpu-dra-driver}"
-export DRA_DRIVER_COMMIT="<commit-under-test>"
-export GPU_DRIVER_IMAGE="<registry/image:tag>"
-```
-
-The tester must have:
-
-- An AMD GPU system with GIM-created VFs or another supported SR-IOV setup.
-- No important workloads using the selected GPU/PF/VF.
-- `VFIOPassthrough` and Kubernetes partitionable-device support configured as
-  required by the PR branch.
-- A driver image built from the PR #91 branch or an image whose digest is
-  recorded in the evidence directory.
-
-## Phase 1: Host and driver baseline
-
-Record the physical GPU/VF state before changing Kubernetes:
+Use a dedicated GPU node and a driver image built from the PR head. Do not
+install a second copy of `gpu.amd.com` alongside an existing driver. Confirm
+Kubernetes serves `resource.k8s.io/v1`, has KEP-4815 partitionable-device
+scheduling enabled, and has no unrelated claims on the target GPUs.
 
 ```bash
-lspci -D -nn | tee "$RUN_DIR/lspci-before.txt"
-find /sys/kernel/iommu_groups -maxdepth 2 -type l | sort \
-  | tee "$RUN_DIR/iommu-groups.txt"
-for bdf in $(lspci -D -d 1002: | awk '{print $1}'); do
-  printf '%s ' "$bdf"
-  readlink -f "/sys/bus/pci/devices/$bdf/driver" 2>/dev/null || true
-done | tee "$RUN_DIR/gpu-drivers.txt"
+export HARNESS=/home/jhull/devel/k8s-dra-harness
+export DRIVER=/home/jhull/devel/amd/k8s-gpu-dra-driver-kep4815-fix
+export WORK=/home/jhull/dra-test-work/pr91
+export TEST_NODE=<kubernetes-node-name>
+export TEST_HOST=<ssh-host-for-that-node>
+export DRIVER_NAMESPACE=<installed-driver-namespace>
+export RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(git -C "$DRIVER" rev-parse --short HEAD)"
+export EVIDENCE=/home/jhull/dra-test-work/evidence/pr91-$RUN_ID
+mkdir -p "$WORK" "$EVIDENCE"
+cp "$HARNESS"/examples/pr91/*.yaml "$WORK"/
 ```
 
-Capture GIM's supported VF counts and partition modes using the platform's
-normal GIM/AMD management tool. Do not assume MI300X values apply to MI355X.
-Save the output as `$RUN_DIR/vf-counts-before.txt`.
+Edit the copied YAML for the driver namespace, target node, inventory path,
+`REPLACE-RUN-ID`, and any PCI BDF placeholders. Use the actual `kubectl get
+node` name for `targetNode`. The harness reads the node's hostname label to
+place pods without bypassing the scheduler. Keep a separate copied config
+and evidence directory for each host mode, VF count, and qualified PF: the
+harness uses fixed snapshot names and a second run in the same directory
+would overwrite the first. For VMI cases, provision the
+cloud-init and guest SSH Secrets named in the copied YAML first.
 
-Deploy or upgrade the driver using the image and chart selected for the test
-system. The exact Helm values depend on the cluster, but the deployment must
-enable VFIO discovery:
+Record the exact image digest, chart values, driver and harness commits, GIM
+and kernel versions, and verification-script commit. The examples leave
+`expectedRepoCommit` unset; set it to the verification checkout's commit
+when that checkout is clean.
 
 ```bash
-helm upgrade --install "$DRIVER_RELEASE" <chart> \
-  --namespace "$DRIVER_NAMESPACE" --create-namespace \
-  --set image.repository="${GPU_DRIVER_IMAGE%:*}" \
-  --set image.tag="${GPU_DRIVER_IMAGE##*:}" \
-  --set featureGates.VFIOPassthrough=true
-kubectl rollout status daemonset -n "$DRIVER_NAMESPACE" --timeout=5m
-kubectl get pods -n "$DRIVER_NAMESPACE" -o wide | tee "$RUN_DIR/driver-pods.txt"
-kubectl logs -n "$DRIVER_NAMESPACE" -l app.kubernetes.io/name=k8s-gpu-dra-driver \
-  --all-containers --tail=-1 | tee "$RUN_DIR/driver-discovery.log"
+kubectl config current-context | tee "$EVIDENCE/context.txt"
+kubectl version -o yaml > "$EVIDENCE/kubernetes-version.yaml"
+kubectl api-resources --api-group=resource.k8s.io > "$EVIDENCE/dra-api.txt"
+kubectl get nodes -o wide > "$EVIDENCE/nodes.txt"
+kubectl get deviceclasses -o yaml > "$EVIDENCE/deviceclasses-before.yaml"
+kubectl get resourceslices -o yaml > "$EVIDENCE/resourceslices-before.yaml"
+kubectl get resourceclaims -A -o yaml > "$EVIDENCE/resourceclaims-before.yaml"
+kubectl get pods -n "$DRIVER_NAMESPACE" -l app.kubernetes.io/component=kubeletplugin -o wide > "$EVIDENCE/plugin-pods.txt"
+kubectl get pods -n "$DRIVER_NAMESPACE" -l app.kubernetes.io/component=kubeletplugin -o yaml > "$EVIDENCE/plugin-pods.yaml"
+ssh "$TEST_HOST" 'uname -a; lspci -D -nn; cat /proc/cmdline' > "$EVIDENCE/host-before.txt"
+git -C "$DRIVER" rev-parse HEAD > "$EVIDENCE/driver-commit.txt"
+git -C "$HARNESS" rev-parse HEAD > "$EVIDENCE/harness-commit.txt"
+git -C /home/jhull/devel/dra-topology-aware-co-placement rev-parse HEAD > "$EVIDENCE/verification-commit.txt"
 ```
 
-If the chart uses a different release label or feature-gate value, record the
-actual command and rendered values rather than silently changing the test.
+From the driver checkout, export
+`LD_LIBRARY_PATH="$PWD/third_party/amd_smi/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"`,
+then run `go test ./...`, `go vet ./...`,
+`go test -race ./cmd/gpu-kubeletplugin`, and
+`python3 scripts/test-deviceclasses.py`. From the harness checkout, run
+`make unit-test` and `python3 scripts/test_pr91_host_inventory.py`.
 
-## Phase 2: Verify dual entries and attributes
+Capture the hardware inventory **after every host mode or VF-count change**:
 
 ```bash
-kubectl get resourceslices -o yaml | tee "$RUN_DIR/resourceslices-gate-on.yaml"
-./testing/scripts/dra-verify.sh attributes -a | tee "$RUN_DIR/attributes-gate-on.txt"
+ssh "$TEST_HOST" python3 - --node "$TEST_NODE" \
+  < "$HARNESS/scripts/pr91-host-inventory.py" \
+  > "$WORK/<mode>-inventory.json"
 ```
 
-For every eligible GPU, confirm in the YAML that:
+The inventory records the PF/VF BDFs, bindings, active VF count, IOMMU group,
+PCI device ID, and PF VRAM source used by the live assertions. Review it
+before running a claim. Do not edit it to match an unexpected ResourceSlice.
 
-- A compute entry has `type=amdgpu`.
-- A VFIO sibling has `type=vfio`.
-- The two entries identify the same PCI function.
-- The device names are unique.
-- The VFIO entry carries the expected `isVF`, PCI, NUMA, and parent metadata.
-
-Record `PASS` only when the final PR #91 image is the image publishing these
-entries.
-
-Run the negative gate check in an isolated deployment:
+For each copied config, the actual execution command is:
 
 ```bash
-helm upgrade "$DRIVER_RELEASE" <chart> \
-  --namespace "$DRIVER_NAMESPACE" \
-  --set featureGates.VFIOPassthrough=false
-kubectl rollout status daemonset -n "$DRIVER_NAMESPACE" --timeout=5m
-kubectl get resourceslices -o yaml | tee "$RUN_DIR/resourceslices-gate-off.yaml"
+cd "$HARNESS"
+KUBECONFIG=<lab-kubeconfig> \
+DRA_HARNESS_CONFIG="$WORK/<mode>.yaml" \
+TEST_FEATURES=dra make run-tests
 ```
 
-Expected result: VFIO entries are absent while normal compute entries remain
-published. Restore the gate before continuing:
+## 2. MI300X with amdgpu, no GIM VFs
 
-```bash
-helm upgrade "$DRIVER_RELEASE" <chart> \
-  --namespace "$DRIVER_NAMESPACE" \
-  --set featureGates.VFIOPassthrough=true
-kubectl rollout status daemonset -n "$DRIVER_NAMESPACE" --timeout=5m
-```
+Deploy the final PR image and matching Helm chart with
+`featureGates.VFIOPassthrough=true` and `AutoPartition=false`. Record the pod
+`imageID` digest and actual Helm values. Confirm each test PF is on amdgpu,
+has `sriov_numvfs=0`, and has a usable IOMMU group. Run
+`mi300x-dual.yaml` after capturing `mi300x-dual-inventory.json`.
 
-## Phase 3: Verify KEP-4815 counters
+Expected: each eligible PF has one compute and one BDF-stable VFIO entry
+with the same PCI identity and capacity. Both consume one capacity-1
+`fn-<BDF>` counter in `pf-<BDF>-counter-set`; no `vf-slots` exists. The
+compute workload and an idle plugin restart succeed. The chart provides
+`gpu.amd.com` for compute and `gpu.amd.com-vfio` for VFIO. Check these
+selectors with the Helm test and the saved DeviceClass snapshot.
 
-```bash
-./testing/scripts/dra-verify.sh counters | tee "$RUN_DIR/counters-before.txt"
-kubectl get resourceslices -o yaml | tee "$RUN_DIR/resourceslices-counters.yaml"
-```
+**Do not run a VFIO PF consumer on MI300X.** A previous MI300X session found
+that a VFIO reset could make PF PCI config space unreadable until a host
+reboot. This includes the harness sibling and class-isolation Pod scenarios:
+if a counter or class is wrong, the supposedly pending VFIO Pod could Prepare.
+Use the scheduler allocator test from draft PR #133 against saved slices for
+the MI300X allocation model; reserve live PF allocation tests for a
+qualified platform.
 
-For each SR-IOV PF, verify:
+With no active VFIO claims, temporarily disable the VFIO gate, restart the
+plugin, and save DeviceClasses and ResourceSlices. Expect compute entries
+but no VFIO entries or function counters. Restore the gate and confirm the
+original publication. This gate-off/on check is an explicit runbook step,
+not a harness scenario.
 
-- A `vf-slots` shared counter set is present.
-- A VF consumes one slot.
-- A PF consumes all configured VF slots.
-- Every `consumesCounters.counterSet` refers to a published counter set.
-- Function-level sibling entries consume the same `fn-<pci-bdf>` counter when
-  the device is dual-advertised.
+## 3. MI300X AutoPartition plus VFIO gate
 
-If `dra-verify.sh counters` reports no shared counter sets, mark this test
-`FAIL` or `BLOCKED` with the exact ResourceSlice output; do not infer success
-from a CDI file or from VFIO binding alone.
+On an isolated amdgpu MI300X node, enable both `AutoPartition` and
+`VFIOPassthrough`, capture `mi300x-auto-inventory.json`, and run
+`mi300x-auto.yaml`. Expect synthetic SPX and partition candidates with
+valid `gpu-<index>-mutex` counters and no direct VFIO sibling of a
+synthetic partition. The chart must also provide `gpu.amd.com-spx` for
+whole-GPU extended-resource requests. This profile does not create a
+partition-mode-changing claim. Test real CPX/DPX transitions only with the
+node prepared for AMD driver reload and a separate partition runbook.
 
-## Phase 4: Test VF counts and capacity
+## 4. MI300X with GIM VFs
 
-For every VF count supported by GIM on the test platform, repeat discovery and
-the ResourceSlice capture. Begin with 1, 2, 4, and 8 where available, and add
-3 when TPX is supported.
+Drain claims before changing host mode. Configure GIM with the platform's
+supported VF count; do not assume that 2, 4, or 8 VFs per PF are supported.
+For a GIM-only node, the current chart's init container waits for amdgpu.
+Apply and record the lab's init-container command override after each
+deployment or Helm upgrade; otherwise the plugin never starts and VF
+discovery is not tested.
 
-For each count, compare the PF values with every VF:
+Capture a fresh inventory and run a separate copy of `mi300x-gim.yaml` for
+one VF per PF, then for one supported multi-VF setting if available. Set a
+different `hostInventory` path and `evidenceDir` in each copy. Refresh the
+inventory and restart discovery after each VF-count change. Expected: GIM
+PFs are absent; each eligible `virtfn*` appears once in
+`gpu.amd.com-vfio` with `isVF=true`, no `partitionProfile`, and no shared
+counter. Per-VF capacity is PF sysfs VRAM divided by `sriov_numvfs` when
+that source exists, with MI300X CU/SIMD values `304/N` and `1216/N`.
+The harness allocates and releases distinct VFs until the next request is
+pending, then restarts the idle plugin. Run `mi300x-gim-vmi.yaml` separately
+to verify the guest sees an AMD PCI device and VM deletion releases its VF.
 
-| Field | Check |
-|---|---|
-| `partitionProfile` | Matches the platform-reported partition mode. |
-| `memory` | PF memory divided by configured VF count. |
-| `computeUnits` | PF compute total divided by configured VF count. |
-| `simdUnits` | PF SIMD total divided by configured VF count. |
-| `vf-slots` | PF counter capacity equals the configured VF capacity. |
+For the **zero-VF** case, drain claims, set the supported GIM VF count to
+zero, restart the plugin, and inspect ResourceSlices and logs directly.
+The harness's existing-driver preflight requires a nonempty ResourceSlice,
+so it cannot run this intentionally empty case. Restore a supported VF
+count and recapture inventory before continuing.
 
-Save one ResourceSlice YAML and one summarized result row per VF count. A
-platform that does not support a count should be recorded as `SKIPPED`, not
-`FAIL`.
+## 5. Checkpoint failure and repair
 
-## Phase 5: Test allocation and sibling exclusion
+Use only an isolated node with **no active claims**. Confirm the plugin's
+host-mounted `KUBELET_PLUGINS_DIRECTORY_PATH`, back up its
+`gpu.amd.com/checkpoint.json` outside that plugin directory, and save the
+checksum and original permissions. Corrupt a copy on the node, restart
+only that node's plugin pod, and capture logs and slices.
 
-Use disposable ResourceClaims and the cluster's existing DRA consumer
-mechanism. Applying a claim alone may not invoke Prepare; use the same Pod or
-VM consumer pattern already used by the cluster.
+With VFIO enabled, expect startup failure mentioning the unreadable
+checkpoint. With VFIO disabled, expect startup with no devices published
+for that node. The PR's component tests cover rejection of Prepare and
+Unprepare while recovery is unavailable; do not strand a live claim just to
+invoke those methods. Restore the exact backup, restore the original
+feature gate, restart the plugin, and verify normal publication before
+leaving this phase. No harness config is used while the checkpoint is bad
+because its normal existing-driver preflight correctly rejects an empty pool.
 
-Run these scenarios in both allocation orders:
+## 6. MI350P direct PF, if the hardware is available
 
-1. Allocate the compute `amdgpu` entry, then request its VFIO sibling.
-2. Allocate the VFIO entry, then request its compute sibling.
-3. Allocate one GPU and request VFIO on another GPU.
-4. Allocate VFs from one PF until the `vf-slots` capacity is exhausted.
-5. Request one additional VF after exhaustion.
-6. Allocate a PF-level resource while its VFs are free, if the platform
-   exposes that resource.
+First record the MI350P PF PCI ID. The current GIM CU/SIMD table has entries
+for MI300X, MI325X, and MI355X, but no MI350P entry; an unmapped MI350P
+must not be reported as a passing CU/SIMD capacity test.
 
-Expected results:
+Arrange console and reboot access. Pick a disposable PF, put it on amdgpu
+with no VFs, capture `mi350p-qualify-inventory.json`, and run
+`mi350p-qualify.yaml` with that exact `targetBDF`. It holds the direct VFIO
+claim for 120 seconds. During the hold, capture the host driver symlink,
+VFIO group nodes, CDI spec, claim, and plugin logs. After release, confirm
+the PF returned to amdgpu and dual publication and its counter returned.
+Stop further PF tests if config space, rebind, or driver health fails.
 
-- Compute and VFIO siblings cannot be allocated together.
-- The scheduler can select another eligible GPU.
-- Allocation succeeds only within the published slot capacity.
-- PF allocation blocks the sibling VFs.
+Qualify a second disposable PF with its own copied config and evidence
+directory. Only then set `targetBDF` and
+`alternateBDF` in `mi350p-direct.yaml` and run it. It checks class isolation,
+sibling exclusion in both allocation orders, an active direct-claim plugin
+restart, and two independent claims released in both orders. During an
+active direct claim after restart, expect the selected BDF to be VFIO-only
+with no function counter; after release, expect amdgpu and VFIO entries
+and their shared counter again. Optional pre-bound PF mode has its own
+`mi350p-prebound.yaml`, and a PF guest test has
+`mi350p-direct-vmi.yaml`; run each only in its matching host mode.
 
-After every scenario, save:
+## 7. Evidence and completion
 
-```bash
-kubectl get resourceclaims -A -o yaml > "$RUN_DIR/resourceclaims-<scenario>.yaml"
-kubectl get resourceslices -o yaml > "$RUN_DIR/resourceslices-<scenario>.yaml"
-./testing/scripts/dra-verify.sh counters > "$RUN_DIR/counters-<scenario>.txt"
-```
+For every phase save before/during/after host binding, ResourceSlices,
+DeviceClasses, claims, plugin logs, CDI, and VM/guest output where relevant.
+The harness writes JSON snapshots and `dra-counters.py` output to each
+configured evidence directory. Record each row of the parent results
+matrix as **pass**, **fail**, **blocked**, or **not applicable**, with a path
+to the evidence and the final image digest.
 
-## Phase 6: Direct VFIO claim and release
-
-Use a direct `type=vfio` selector for a pre-bound or directly usable VF. The
-claim must exercise the PR #91 direct-VFIO path rather than a legacy explicit
-driver shortcut. Capture:
-
-- Claim allocation status.
-- Prepare result and CDI YAML.
-- Host driver binding before and after Prepare.
-- ResourceSlice state while allocated.
-- State after claim release.
-
-Expected result: the VFIO device is usable, the claim's CDI is present, and
-release restores the expected allocatable entry without a stale sibling or
-conversion record.
-
-## Phase 7: KubeVirt integration
-
-This phase is supplemental to the driver tests. Run it only after the driver
-and counter phases pass:
-
-1. Create a VM using a direct `type=vfio` claim.
-2. Verify the VM starts and the guest sees the GPU VF.
-3. Verify a conflicting compute/VFIO sibling claim cannot be allocated.
-4. Delete the VM and claim.
-5. Verify counters are released and the original entry returns.
-
-Save VM/VMI YAML, CDI YAML, `lspci` output, and the final ResourceSlice state.
-
-## Completion criteria
-
-Mark the live PR #91 run complete only when the final image demonstrates:
-
-- Dual entries in ResourceSlices.
-- Correct `vf-slots` and function-level counters.
-- Scheduler-level sibling exclusion.
-- Correct capacity across supported VF counts.
-- Direct VFIO allocation and release.
-- No duplicate, missing, or stale ResourceSlice devices.
+After cleanup, verify harness-owned claims and consumers are gone and all
+host bindings match the phase's recorded baseline. If MI350P is absent or
+cannot safely rebind, mark direct-PF live cases **blocked**; the unit tests
+remain evidence for rollback and other fault paths, but do not replace a
+successful live direct-PF lifecycle test.
